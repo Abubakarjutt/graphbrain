@@ -26,7 +26,7 @@ const mockDbUpdate = vi.fn(() => ({ eq: mockDbUpdateEq }))
 const mockRowSingle = vi.fn()
 const mockRowOrder = vi.fn().mockResolvedValue({ data: [], error: null })
 const mockRowSelectEq2 = vi.fn(() => ({ single: mockRowSingle, order: mockRowOrder }))
-const mockRowSelectEq1 = vi.fn(() => ({ eq: mockRowSelectEq2 }))
+const mockRowSelectEq1 = vi.fn(() => ({ eq: mockRowSelectEq2, order: mockRowOrder }))
 const mockRowSelect = vi.fn(() => ({ eq: mockRowSelectEq1 }))
 const mockRowInsertSingle = vi.fn()
 const mockRowInsertSelect = vi.fn(() => ({ single: mockRowInsertSingle }))
@@ -73,7 +73,7 @@ describe('database actions', () => {
     mockDbUpdate.mockImplementation(() => ({ eq: mockDbUpdateEq }))
     mockRowOrder.mockResolvedValue({ data: [], error: null })
     mockRowSelectEq2.mockImplementation(() => ({ single: mockRowSingle, order: mockRowOrder }))
-    mockRowSelectEq1.mockImplementation(() => ({ eq: mockRowSelectEq2 }))
+    mockRowSelectEq1.mockImplementation(() => ({ eq: mockRowSelectEq2, order: mockRowOrder }))
     mockRowSelect.mockImplementation(() => ({ eq: mockRowSelectEq1 }))
     mockRowInsertSelect.mockImplementation(() => ({ single: mockRowInsertSingle }))
     mockRowInsert.mockImplementation(() => ({ select: mockRowInsertSelect }))
@@ -125,5 +125,29 @@ describe('database actions', () => {
     mockPagesSingle.mockResolvedValue({ data: null, error: null })
     const { getDatabase } = await import('@/lib/actions/databases')
     await expect(getDatabase('db1', 'wrong-ws')).rejects.toThrow('Database not found or access denied')
+  })
+
+  it('getDatabase returns database with rows and resolved page titles', async () => {
+    mockDbSingle.mockResolvedValue({
+      data: { id: 'db1', page_id: 'p1', schema: [], created_at: '' },
+      error: null,
+    })
+    mockPagesSingle.mockResolvedValue({
+      data: { id: 'p1', workspace_id: 'ws1' },
+      error: null,
+    })
+    mockRowOrder.mockResolvedValue({
+      data: [{ id: 'r1', database_id: 'db1', page_id: 'rp1', fields: {}, created_at: '' }],
+      error: null,
+    })
+    mockPagesIn.mockResolvedValue({
+      data: [{ id: 'rp1', title: 'My Row Page' }],
+      error: null,
+    })
+    const { getDatabase } = await import('@/lib/actions/databases')
+    const result = await getDatabase('db1', 'ws1')
+    expect(result.id).toBe('db1')
+    expect(result.rows).toHaveLength(1)
+    expect(result.rows[0].page_title).toBe('My Row Page')
   })
 })

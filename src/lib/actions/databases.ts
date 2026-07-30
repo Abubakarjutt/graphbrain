@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Database, DatabaseField, DatabaseWithRows } from '@/lib/types/database'
+import type { Database, DatabaseField, DatabaseRow, DatabaseWithRows } from '@/lib/types/database'
 
 export async function createDatabase(workspaceId: string): Promise<{ database: Database; pageId: string }> {
   const supabase = await createClient()
@@ -22,8 +22,9 @@ export async function createDatabase(workspaceId: string): Promise<{ database: D
     .select()
     .single()
   if (dbError || !database) {
-    await supabase.from('pages').delete().eq('id', page.id)
-    throw new Error(dbError?.message ?? 'Failed to create database')
+    const deleteResult = await supabase.from('pages').delete().eq('id', page.id)
+    const msg = dbError?.message ?? 'Failed to create database'
+    throw new Error(deleteResult.error ? `${msg} (rollback also failed: ${deleteResult.error.message})` : msg)
   }
 
   revalidatePath(`/workspace/${workspaceId}`)
@@ -32,13 +33,15 @@ export async function createDatabase(workspaceId: string): Promise<{ database: D
 
 export async function getDatabase(databaseId: string, workspaceId: string): Promise<DatabaseWithRows> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
 
   const { data: db, error: dbError } = await supabase
     .from('databases')
     .select('id, page_id, schema, created_at')
     .eq('id', databaseId)
     .single()
-  if (dbError || !db) throw new Error('Database not found')
+  if (dbError || !db) throw new Error('Database not found or access denied')
 
   const { data: containerPage } = await supabase
     .from('pages')
@@ -55,7 +58,7 @@ export async function getDatabase(databaseId: string, workspaceId: string): Prom
     .order('created_at', { ascending: true })
   if (rowsError) throw new Error(rowsError.message)
 
-  const pageIds = (rows ?? []).map((r: { page_id: string | null }) => r.page_id).filter(Boolean) as string[]
+  const pageIds = ((rows ?? []) as DatabaseRow[]).map(r => r.page_id).filter(Boolean) as string[]
   const pageTitles: Record<string, string> = {}
   if (pageIds.length > 0) {
     const { data: rowPages } = await supabase
@@ -70,7 +73,7 @@ export async function getDatabase(databaseId: string, workspaceId: string): Prom
     page_id: db.page_id,
     schema: db.schema as DatabaseField[],
     created_at: db.created_at,
-    rows: (rows ?? []).map((r: { id: string; database_id: string; page_id: string | null; fields: unknown; created_at: string }) => ({
+    rows: ((rows ?? []) as DatabaseRow[]).map(r => ({
       id: r.id,
       database_id: r.database_id,
       page_id: r.page_id,
