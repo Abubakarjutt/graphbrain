@@ -1,18 +1,32 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { useTransition } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { WorkspaceEntry } from '@/lib/types/database'
+import type { WorkspaceEntry, Page } from '@/lib/types/database'
+import { createPage } from '@/lib/actions/pages'
+import { SidebarPageTree } from './SidebarPageTree'
 
 interface SidebarProps {
   workspaces: WorkspaceEntry[]
   user: User
+  pages: Page[]
 }
 
-export function Sidebar({ workspaces, user }: SidebarProps) {
+export function Sidebar({ workspaces, user, pages }: SidebarProps) {
   const params = useParams()
+  const router = useRouter()
+  const [, startTransition] = useTransition()
   const currentWorkspaceId = params?.workspaceId as string | undefined
+
+  function handleCreatePage(parentId: string | null) {
+    if (!currentWorkspaceId) return
+    startTransition(async () => {
+      const page = await createPage(currentWorkspaceId, parentId)
+      router.push(`/workspace/${currentWorkspaceId}/page/${page.id}`)
+    })
+  }
 
   return (
     <aside className="w-64 flex-shrink-0 border-r bg-muted/30 flex flex-col h-full">
@@ -34,6 +48,13 @@ export function Sidebar({ workspaces, user }: SidebarProps) {
               {ws.name}
             </Link>
           ) : null
+        )}
+        {currentWorkspaceId && (
+          <SidebarPageTree
+            pages={pages}
+            workspaceId={currentWorkspaceId}
+            onCreatePage={handleCreatePage}
+          />
         )}
       </nav>
       <div className="p-4 border-t">
