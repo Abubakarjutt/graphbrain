@@ -92,14 +92,10 @@ export interface DatabaseRow {
 }
 
 export interface DatabaseRowWithTitle extends DatabaseRow {
-  page_title: string
+  page_title: string | null
 }
 
-export interface DatabaseWithRows {
-  id: string
-  page_id: string
-  schema: DatabaseField[]
-  created_at: string
+export interface DatabaseWithRows extends Database {
   rows: DatabaseRowWithTitle[]
 }
 
