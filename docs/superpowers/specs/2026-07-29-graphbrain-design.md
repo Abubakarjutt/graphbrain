@@ -56,7 +56,7 @@ Graphbrain is a Notion-like webapp with a knowledge graph engine that lets users
 - Two modes:
   - **Search** — instant fuzzy + semantic similarity search across all content
   - **Ask** — natural language Q&A with streamed response + source citations
-- Scope selector: "All workspaces" vs "This project only"
+- Scope selector: "Entire workspace" vs "This project only"
 - Every AI response shows source citations for user verification
 
 ---
@@ -67,7 +67,7 @@ Graphbrain is a Notion-like webapp with a knowledge graph engine that lets users
 -- Core
 workspaces        (id, name, owner_id, created_at)
 workspace_members (workspace_id, user_id, role)
-pages             (id, workspace_id, parent_id, title, content JSONB, created_by)
+pages             (id, workspace_id, parent_id, title, created_by, created_at, updated_at)
 blocks            (id, page_id, type, content JSONB, position)
 files             (id, workspace_id, page_id, storage_path, mime_type, extracted_text)
 databases         (id, page_id, schema JSONB)
@@ -105,6 +105,14 @@ query_logs        (id, workspace_id, user_id, query, response, sources JSONB, cr
 6. Sent to Ollama (`llama3.1:8b`) → response streamed token by token to UI
 7. Source citations extracted and displayed below response
 8. Query logged to `query_logs`
+
+### Graph Traversal Flow (relationship exploration)
+1. User asks a relational query (e.g. "what is linked to this project?")
+2. Intent detected as graph traversal (keyword/pattern matching on query)
+3. Starting node resolved from current page or query subject
+4. Postgres recursive CTE walks `edges` table up to N hops
+5. Related nodes returned and displayed as a linked list of pages/blocks
+6. Result optionally passed to Ollama for summarization
 
 ### Background Embedding Queue
 - BullMQ + Redis for async job management
