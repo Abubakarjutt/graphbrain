@@ -19,7 +19,7 @@ export default async function PageViewPage({
 
   if (!page) notFound()
 
-  const doc = await loadBlocks(pageId)
+  const doc = await loadBlocks(pageId, workspaceId)
 
   return (
     <PageEditor

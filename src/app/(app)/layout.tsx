@@ -1,8 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/AppShell'
-import { getPages } from '@/lib/actions/pages'
-import type { WorkspaceEntry } from '@/lib/types/database'
+import type { WorkspaceEntry, Page } from '@/lib/types/database'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -15,8 +14,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     .select('workspace_id, role, workspaces(id, name)')
     .eq('user_id', user.id) as { data: WorkspaceEntry[] | null }
 
-  const firstWorkspaceId = workspaces?.[0]?.workspace_id
-  const pages = firstWorkspaceId ? await getPages(firstWorkspaceId) : []
+  // Fetch pages for all of the user's workspaces so the sidebar stays
+  // correct when navigating between workspaces. Sidebar filters by active workspace.
+  const workspaceIds = (workspaces ?? []).map(w => w.workspace_id)
+  const pages: Page[] = workspaceIds.length > 0
+    ? (await supabase
+        .from('pages')
+        .select('*')
+        .in('workspace_id', workspaceIds)
+        .order('created_at', { ascending: true })
+      ).data ?? []
+    : []
 
   return (
     <AppShell workspaces={workspaces ?? []} user={user} pages={pages}>

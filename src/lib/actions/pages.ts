@@ -42,16 +42,29 @@ export async function updatePageTitle(pageId: string, workspaceId: string, title
 
 export async function deletePage(pageId: string, workspaceId: string): Promise<void> {
   const supabase = await createClient()
+  // workspace_id guard ensures users can only delete pages they own.
+  // Child pages become root pages (ON DELETE SET NULL on parent_id).
+  // Child blocks are removed automatically (ON DELETE CASCADE on blocks.page_id).
   const { error } = await supabase
     .from('pages')
     .delete()
     .eq('id', pageId)
+    .eq('workspace_id', workspaceId)
   if (error) throw new Error(error.message)
   revalidatePath(`/workspace/${workspaceId}`)
 }
 
 export async function saveBlocks(pageId: string, workspaceId: string, doc: TiptapDocument): Promise<void> {
   const supabase = await createClient()
+
+  // Verify page belongs to the workspace before touching its blocks
+  const { data: page } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', pageId)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!page) throw new Error('Page not found or access denied')
 
   const { error: deleteError } = await supabase.from('blocks').delete().eq('page_id', pageId)
   if (deleteError) throw new Error(deleteError.message)
@@ -64,15 +77,25 @@ export async function saveBlocks(pageId: string, workspaceId: string, doc: Tipta
   }))
 
   if (blocks.length > 0) {
-    const { error } = await supabase.from('blocks').upsert(blocks)
+    const { error } = await supabase.from('blocks').insert(blocks)
     if (error) throw new Error(error.message)
   }
 
   revalidatePath(`/workspace/${workspaceId}/page/${pageId}`)
 }
 
-export async function loadBlocks(pageId: string): Promise<TiptapDocument> {
+export async function loadBlocks(pageId: string, workspaceId: string): Promise<TiptapDocument> {
   const supabase = await createClient()
+
+  // Verify page belongs to the workspace (RLS also enforces this)
+  const { data: page } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', pageId)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!page) throw new Error('Page not found or access denied')
+
   const { data, error } = await supabase
     .from('blocks')
     .select('id, type, content, position')

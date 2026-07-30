@@ -51,7 +51,7 @@ export function Sidebar({ workspaces, user, pages }: SidebarProps) {
         )}
         {currentWorkspaceId && (
           <SidebarPageTree
-            pages={pages}
+            pages={pages.filter(p => p.workspace_id === currentWorkspaceId)}
             workspaceId={currentWorkspaceId}
             onCreatePage={handleCreatePage}
           />

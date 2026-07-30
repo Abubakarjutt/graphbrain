@@ -14,6 +14,9 @@ interface BlockEditorProps {
 
 export function BlockEditor({ doc, onSave }: BlockEditorProps) {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Keep ref up to date so the onUpdate closure never captures a stale prop
+  const onSaveRef = useRef(onSave)
+  useEffect(() => { onSaveRef.current = onSave }, [onSave])
 
   const editor = useEditor({
     extensions: [
@@ -27,7 +30,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
     onUpdate({ editor }) {
       if (saveTimer.current) clearTimeout(saveTimer.current)
       saveTimer.current = setTimeout(() => {
-        onSave(editor.getJSON() as TiptapDocument)
+        onSaveRef.current(editor.getJSON() as TiptapDocument)
       }, 1000)
     },
   })

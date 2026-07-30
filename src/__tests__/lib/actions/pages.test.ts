@@ -1,18 +1,26 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Each function builds its own terminal mock so the chain always resolves correctly.
 const mockSingle = vi.fn()
-const mockSelect = vi.fn()
 const mockInsert = vi.fn()
 const mockUpdate = vi.fn()
-const mockDelete = vi.fn()
-const mockEq = vi.fn()
 const mockOrder = vi.fn()
+
+// Chained eq — first call returns builder, subsequent calls can resolve
+const mockEq = vi.fn()
+
+// delete returns an object whose eq is the terminal call
+const mockDeleteEq2 = vi.fn()
+const mockDeleteEq1 = vi.fn(() => ({ eq: mockDeleteEq2 }))
+const mockDelete = vi.fn(() => ({ eq: mockDeleteEq1 }))
+
+const mockSelect = vi.fn()
 
 const mockFrom = vi.fn(() => ({
   select: mockSelect.mockReturnThis(),
   insert: mockInsert.mockReturnThis(),
   update: mockUpdate.mockReturnThis(),
-  delete: mockDelete.mockReturnThis(),
+  delete: mockDelete,
   eq: mockEq.mockReturnThis(),
   order: mockOrder,
   single: mockSingle,
@@ -31,10 +39,21 @@ describe('page actions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
+    // Reset chained mocks
+    mockDeleteEq1.mockImplementation(() => ({ eq: mockDeleteEq2 }))
+    mockDeleteEq2.mockResolvedValue({ error: null })
+    mockDelete.mockImplementation(() => ({ eq: mockDeleteEq1 }))
+    mockSelect.mockReturnThis()
+    mockInsert.mockReturnThis()
+    mockUpdate.mockReturnThis()
+    mockEq.mockReturnThis()
   })
 
   it('createPage inserts a page and returns it', async () => {
-    mockSingle.mockResolvedValue({ data: { id: 'p1', title: 'Untitled', workspace_id: 'ws1', parent_id: null, created_by: 'u1', created_at: '', updated_at: '' }, error: null })
+    mockSingle.mockResolvedValue({
+      data: { id: 'p1', title: 'Untitled', workspace_id: 'ws1', parent_id: null, created_by: 'u1', created_at: '', updated_at: '' },
+      error: null,
+    })
     const { createPage } = await import('@/lib/actions/pages')
     const result = await createPage('ws1', null)
     expect(mockFrom).toHaveBeenCalledWith('pages')
@@ -43,7 +62,7 @@ describe('page actions', () => {
   })
 
   it('updatePageTitle updates title and revalidates', async () => {
-    mockSingle.mockResolvedValue({ data: { id: 'p1', title: 'New Title' }, error: null })
+    mockEq.mockResolvedValue({ error: null })
     const { revalidatePath } = await import('next/cache')
     const { updatePageTitle } = await import('@/lib/actions/pages')
     await updatePageTitle('p1', 'ws1', 'New Title')
@@ -51,12 +70,13 @@ describe('page actions', () => {
     expect(revalidatePath).toHaveBeenCalled()
   })
 
-  it('deletePage deletes and revalidates', async () => {
-    mockEq.mockResolvedValue({ error: null })
+  it('deletePage deletes with both id and workspace_id filters', async () => {
     const { revalidatePath } = await import('next/cache')
     const { deletePage } = await import('@/lib/actions/pages')
     await deletePage('p1', 'ws1')
     expect(mockDelete).toHaveBeenCalled()
+    expect(mockDeleteEq1).toHaveBeenCalledWith('id', 'p1')
+    expect(mockDeleteEq2).toHaveBeenCalledWith('workspace_id', 'ws1')
     expect(revalidatePath).toHaveBeenCalled()
   })
 

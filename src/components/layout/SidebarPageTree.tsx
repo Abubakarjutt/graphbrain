@@ -19,11 +19,13 @@ interface PageNodeProps {
   onCreatePage: (parentId: string | null) => void
 }
 
+const MAX_DEPTH = 10
+
 function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodeProps) {
   const [expanded, setExpanded] = useState(false)
   const params = useParams()
   const currentPageId = params?.pageId as string | undefined
-  const children = pages.filter(p => p.parent_id === page.id)
+  const children = depth < MAX_DEPTH ? pages.filter(p => p.parent_id === page.id) : []
   const isActive = currentPageId === page.id
 
   return (
