@@ -35,8 +35,7 @@ export async function updatePageTitle(pageId: string, workspaceId: string, title
     .from('pages')
     .update({ title, updated_at: new Date().toISOString() })
     .eq('id', pageId)
-    .select()
-    .single()
+    .eq('workspace_id', workspaceId)
   if (error) throw new Error(error.message)
   revalidatePath(`/workspace/${workspaceId}`)
 }
@@ -54,7 +53,8 @@ export async function deletePage(pageId: string, workspaceId: string): Promise<v
 export async function saveBlocks(pageId: string, workspaceId: string, doc: TiptapDocument): Promise<void> {
   const supabase = await createClient()
 
-  await supabase.from('blocks').delete().eq('page_id', pageId)
+  const { error: deleteError } = await supabase.from('blocks').delete().eq('page_id', pageId)
+  if (deleteError) throw new Error(deleteError.message)
 
   const blocks = (doc.content ?? []).map((node: TiptapNode, index: number) => ({
     page_id: pageId,
