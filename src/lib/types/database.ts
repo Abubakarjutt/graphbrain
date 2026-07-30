@@ -86,8 +86,21 @@ export interface Database {
 export interface DatabaseRow {
   id: string
   database_id: string
+  page_id: string | null
   fields: Record<string, unknown>
   created_at: string
+}
+
+export interface DatabaseRowWithTitle extends DatabaseRow {
+  page_title: string
+}
+
+export interface DatabaseWithRows {
+  id: string
+  page_id: string
+  schema: DatabaseField[]
+  created_at: string
+  rows: DatabaseRowWithTitle[]
 }
 
 export interface Node {
