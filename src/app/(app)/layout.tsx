@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/AppShell'
+import type { WorkspaceEntry } from '@/lib/types/database'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -8,15 +9,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect('/login')
 
-  type WorkspaceMemberRow = {
-    workspace_id: string
-    role: string
-    workspaces: { id: string; name: string } | null
-  }
   const { data: workspaces } = await supabase
     .from('workspace_members')
     .select('workspace_id, role, workspaces(id, name)')
-    .eq('user_id', user.id) as { data: WorkspaceMemberRow[] | null }
+    .eq('user_id', user.id) as { data: WorkspaceEntry[] | null }
 
   return (
     <AppShell workspaces={workspaces ?? []} user={user}>

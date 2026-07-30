@@ -13,6 +13,12 @@ export type BlockType =
   | 'file'
   | 'embed'
 
+export interface WorkspaceEntry {
+  workspace_id: string
+  role: string
+  workspaces: { id: string; name: string } | null
+}
+
 export interface DatabaseField {
   id: string
   name: string

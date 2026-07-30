@@ -1,13 +1,8 @@
 'use client'
 
 import type { User } from '@supabase/supabase-js'
+import type { WorkspaceEntry } from '@/lib/types/database'
 import { Sidebar } from './Sidebar'
-
-interface WorkspaceEntry {
-  workspace_id: string
-  role: string
-  workspaces: { id: string; name: string } | null
-}
 
 interface AppShellProps {
   workspaces: WorkspaceEntry[]

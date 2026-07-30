@@ -10,7 +10,7 @@ export default async function WorkspacePage({
 
   const { data: workspace } = await supabase
     .from('workspaces')
-    .select('id, name')
+    .select('id, name, workspace_members!inner(user_id)')
     .eq('id', params.workspaceId)
     .single()
 

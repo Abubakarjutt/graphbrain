@@ -3,12 +3,7 @@
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
-
-interface WorkspaceEntry {
-  workspace_id: string
-  role: string
-  workspaces: { id: string; name: string } | null
-}
+import type { WorkspaceEntry } from '@/lib/types/database'
 
 interface SidebarProps {
   workspaces: WorkspaceEntry[]
