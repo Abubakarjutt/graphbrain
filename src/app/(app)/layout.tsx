@@ -8,10 +8,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   if (!user) redirect('/login')
 
+  type WorkspaceMemberRow = {
+    workspace_id: string
+    role: string
+    workspaces: { id: string; name: string } | null
+  }
   const { data: workspaces } = await supabase
     .from('workspace_members')
     .select('workspace_id, role, workspaces(id, name)')
-    .eq('user_id', user.id)
+    .eq('user_id', user.id) as { data: WorkspaceMemberRow[] | null }
 
   return (
     <AppShell workspaces={workspaces ?? []} user={user}>
