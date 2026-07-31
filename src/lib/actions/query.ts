@@ -16,7 +16,8 @@ export async function searchQuery(
 
   try {
     return await retrieveNodes(workspaceId, query, scope)
-  } catch {
+  } catch (err) {
+    console.error('[searchQuery] retrieveNodes failed, falling back to text search:', err)
     try {
       const { data: pages } = await supabase
         .from('pages')

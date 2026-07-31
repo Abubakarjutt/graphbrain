@@ -13,20 +13,26 @@ const mockEdgesSelect = vi.fn(() => ({ or: mockEdgesOr }))
 const mockNodesIn = vi.fn()
 const mockNodesSelect = vi.fn(() => ({ in: mockNodesIn }))
 
-function makeDefaultChain() {
-  return {
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    maybeSingle: vi.fn().mockResolvedValue({ data: null }),
-    order: vi.fn().mockReturnThis(),
-    limit: vi.fn().mockResolvedValue({ data: [] }),
-  }
+// Returns a chain that supports select/in/order/eq/maybeSingle/limit for batch queries
+function makeBatchChain(data: unknown[] = []) {
+  const chain: Record<string, unknown> = {}
+  const resolve = () => Promise.resolve({ data })
+  chain.select = vi.fn(() => chain)
+  chain.in = vi.fn(() => chain)
+  chain.order = vi.fn(() => chain)
+  chain.eq = vi.fn(() => chain)
+  chain.maybeSingle = vi.fn(resolve)
+  chain.limit = vi.fn(resolve)
+  // make the chain itself thenable so awaiting works
+  chain.then = (onfulfilled: (v: { data: unknown[] }) => unknown) =>
+    Promise.resolve({ data }).then(onfulfilled)
+  return chain
 }
 
 function makeFrom(tableOverrides: Record<string, () => unknown>) {
   return (table: string) => {
     if (tableOverrides[table]) return tableOverrides[table]()
-    return makeDefaultChain()
+    return makeBatchChain()
   }
 }
 
@@ -40,16 +46,16 @@ describe('retrieveNodes', () => {
   it('returns top nodes plus 1-hop expanded nodes, deduped', async () => {
     mockRpc.mockResolvedValue({
       data: [
-        { id: 'node1', entity_type: 'page', entity_id: 'page1', similarity: 0.9 },
-        { id: 'node2', entity_type: 'page', entity_id: 'page2', similarity: 0.8 },
+        { id: '11111111-0000-0000-0000-000000000001', entity_type: 'page', entity_id: 'aaaa0000-0000-0000-0000-000000000001', similarity: 0.9 },
+        { id: '11111111-0000-0000-0000-000000000002', entity_type: 'page', entity_id: 'aaaa0000-0000-0000-0000-000000000002', similarity: 0.8 },
       ],
       error: null,
     })
     mockEdgesOr.mockResolvedValue({
-      data: [{ source_node_id: 'node1', target_node_id: 'node3' }],
+      data: [{ source_node_id: '11111111-0000-0000-0000-000000000001', target_node_id: '11111111-0000-0000-0000-000000000003' }],
     })
     mockNodesIn.mockResolvedValue({
-      data: [{ id: 'node3', entity_type: 'page', entity_id: 'page3' }],
+      data: [{ id: '11111111-0000-0000-0000-000000000003', entity_type: 'page', entity_id: 'aaaa0000-0000-0000-0000-000000000003' }],
     })
     ;(createClient as Mock).mockResolvedValue({
       rpc: mockRpc,
@@ -63,7 +69,7 @@ describe('retrieveNodes', () => {
     const results = await retrieveNodes('ws1', 'test query')
     expect(results).toHaveLength(3)
     expect(results[0].score).toBe(0.9)
-    expect(results[2].nodeId).toBe('node3')
+    expect(results[2].nodeId).toBe('11111111-0000-0000-0000-000000000003')
     expect(results[2].score).toBe(0)
   })
 

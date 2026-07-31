@@ -1,3 +1,5 @@
+-- IMPORTANT: query_embedding must be vector(768) — matches nomic-embed-text output
+-- and the nodes.embedding column dimension. Update both if the model changes.
 CREATE OR REPLACE FUNCTION match_nodes(
   query_embedding vector(768),
   match_workspace_id uuid,

@@ -72,7 +72,8 @@ describe('ollama client', () => {
       const { streamChat } = await import('@/lib/graph/ollama')
       const tokens: string[] = []
       for await (const token of streamChat('test prompt')) tokens.push(token)
-      expect(tokens).toEqual(['Hello', ' world', ''])
+      // done:true token yields empty string which is now filtered out (LR-01 fix)
+      expect(tokens).toEqual(['Hello', ' world'])
     })
 
     it('throws when Ollama returns non-200', async () => {
