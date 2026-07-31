@@ -26,7 +26,7 @@ export default async function PageViewPage({
   // Check if this page is a file page
   const fileRecord = await getFileRecord(pageId, workspaceId)
   if (fileRecord) {
-    const { url: signedUrl } = await getSignedReadUrl(fileRecord.storage_path, workspaceId)
+    const { url: signedUrl } = await getSignedReadUrl(pageId, workspaceId)
     return (
       <div className="flex-1 overflow-auto">
         <FilePage fileRecord={fileRecord} signedUrl={signedUrl} workspaceId={workspaceId} />

@@ -71,7 +71,9 @@ export async function getUploadUrl(
   if (!member) throw new Error('Access denied')
 
   const reservedPageId = crypto.randomUUID()
-  const storagePath = `${workspaceId}/${reservedPageId}/${filename}`
+  // Sanitize filename: strip path separators and traversal sequences
+  const safeName = filename.replace(/^.*[\\/]/, '').replace(/\.{2,}/g, '.').slice(0, 200) || 'file'
+  const storagePath = `${workspaceId}/${reservedPageId}/${safeName}`
 
   const { data, error } = await supabase.storage.from('files').createSignedUploadUrl(storagePath)
   if (error || !data) throw new Error(error?.message ?? 'Failed to create upload URL')
@@ -91,6 +93,19 @@ export async function createFilePage(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
 
+  // Defense-in-depth: verify workspace membership (consistent with other mutating actions)
+  const { data: member } = await supabase
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) throw new Error('Access denied')
+
+  // Validate the storage path belongs to this workspace/page to prevent path injection
+  const expectedPrefix = `${workspaceId}/${reservedPageId}/`
+  if (!storagePath.startsWith(expectedPrefix)) throw new Error('Invalid storage path')
+
   const { error: pageError } = await supabase.from('pages').insert({
     id: reservedPageId,
     workspace_id: workspaceId,
@@ -98,7 +113,11 @@ export async function createFilePage(
     title: filename,
     created_by: user.id,
   })
-  if (pageError) throw new Error(pageError.message)
+  if (pageError) {
+    // Clean up the already-uploaded storage object before failing
+    await supabase.storage.from('files').remove([storagePath])
+    throw new Error(pageError.message)
+  }
 
   const extractionStatus = extractionStatusForMimeType(mimeType)
 
@@ -133,6 +152,15 @@ export async function getFileRecord(pageId: string, workspaceId: string): Promis
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
+  // Defense-in-depth: verify workspace membership before returning extracted_text
+  const { data: member } = await supabase
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) return null
+
   const { data } = await supabase
     .from('files')
     .select('id, workspace_id, page_id, storage_path, mime_type, extracted_text, extraction_status, created_at')
@@ -143,7 +171,8 @@ export async function getFileRecord(pageId: string, workspaceId: string): Promis
   return data as FileRecord | null
 }
 
-export async function getSignedReadUrl(storagePath: string, workspaceId: string): Promise<{ url: string }> {
+// Accepts pageId instead of storagePath to prevent callers from minting signed URLs for arbitrary paths
+export async function getSignedReadUrl(pageId: string, workspaceId: string): Promise<{ url: string }> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
@@ -156,7 +185,16 @@ export async function getSignedReadUrl(storagePath: string, workspaceId: string)
     .maybeSingle()
   if (!member) throw new Error('Access denied')
 
-  const { data, error } = await supabase.storage.from('files').createSignedUrl(storagePath, 3600)
+  // Look up storage path from DB — never trust client-supplied paths for reads
+  const { data: file } = await supabase
+    .from('files')
+    .select('storage_path')
+    .eq('page_id', pageId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  if (!file) throw new Error('File not found')
+
+  const { data, error } = await supabase.storage.from('files').createSignedUrl(file.storage_path, 3600)
   if (error || !data) throw new Error(error?.message ?? 'Failed to create read URL')
 
   return { url: data.signedUrl }
@@ -177,11 +215,12 @@ export async function retryExtraction(fileId: string, workspaceId: string): Prom
 
   await runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type)
 
-  const { data: updated } = await supabase
+  const { data: updated, error } = await supabase
     .from('files')
     .select('id, workspace_id, page_id, storage_path, mime_type, extracted_text, extraction_status, created_at')
     .eq('id', fileId)
     .single()
+  if (error || !updated) throw new Error('File not found after extraction')
 
   return updated as FileRecord
 }
