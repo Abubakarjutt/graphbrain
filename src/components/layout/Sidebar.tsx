@@ -4,27 +4,44 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useTransition } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { WorkspaceEntry, Page } from '@/lib/types/database'
+import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
 import { createPage } from '@/lib/actions/pages'
+import { createDatabase } from '@/lib/actions/databases'
 import { SidebarPageTree } from './SidebarPageTree'
+import { SidebarDatabaseTree } from './SidebarDatabaseTree'
 
 interface SidebarProps {
   workspaces: WorkspaceEntry[]
   user: User
   pages: Page[]
+  databases: Database[]
 }
 
-export function Sidebar({ workspaces, user, pages }: SidebarProps) {
+export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const params = useParams()
   const router = useRouter()
   const [, startTransition] = useTransition()
   const currentWorkspaceId = params?.workspaceId as string | undefined
+
+  // Exclude database container pages and their direct children (row pages) from the Pages section
+  const databasePageIds = new Set(databases.map(d => d.page_id))
+  const regularPages = pages.filter(
+    p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
+  )
 
   function handleCreatePage(parentId: string | null) {
     if (!currentWorkspaceId) return
     startTransition(async () => {
       const page = await createPage(currentWorkspaceId, parentId)
       router.push(`/workspace/${currentWorkspaceId}/page/${page.id}`)
+    })
+  }
+
+  function handleCreateDatabase() {
+    if (!currentWorkspaceId) return
+    startTransition(async () => {
+      const { database } = await createDatabase(currentWorkspaceId)
+      router.push(`/workspace/${currentWorkspaceId}/database/${database.id}`)
     })
   }
 
@@ -50,11 +67,19 @@ export function Sidebar({ workspaces, user, pages }: SidebarProps) {
           ) : null
         )}
         {currentWorkspaceId && (
-          <SidebarPageTree
-            pages={pages.filter(p => p.workspace_id === currentWorkspaceId)}
-            workspaceId={currentWorkspaceId}
-            onCreatePage={handleCreatePage}
-          />
+          <>
+            <SidebarPageTree
+              pages={regularPages.filter(p => p.workspace_id === currentWorkspaceId)}
+              workspaceId={currentWorkspaceId}
+              onCreatePage={handleCreatePage}
+            />
+            <SidebarDatabaseTree
+              databases={databases}
+              pages={pages}
+              workspaceId={currentWorkspaceId}
+              onCreateDatabase={handleCreateDatabase}
+            />
+          </>
         )}
       </nav>
       <div className="p-4 border-t">
