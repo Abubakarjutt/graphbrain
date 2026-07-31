@@ -29,3 +29,29 @@ export async function checkHealth(): Promise<boolean> {
     return false
   }
 }
+
+export async function* streamChat(prompt: string, timeoutMs = 120_000): AsyncGenerator<string> {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    const res = await fetch(`${OLLAMA_BASE}/api/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'llama3.1:8b', prompt, stream: true }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`Ollama generate failed: ${res.status}`)
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      for (const line of decoder.decode(value).split('\n').filter(Boolean)) {
+        const json = JSON.parse(line) as { response: string; done: boolean }
+        yield json.response
+      }
+    }
+  } finally {
+    clearTimeout(timeout)
+  }
+}

@@ -141,3 +141,14 @@ export interface TiptapNode {
   marks?: Array<{ type: string; attrs?: Record<string, unknown> }>
   text?: string
 }
+
+export interface SearchResult {
+  nodeId: string
+  entityType: EntityType
+  entityId: string
+  title: string
+  excerpt: string
+  projectName: string | null
+  projectDatabaseId: string | null
+  score: number
+}
