@@ -90,6 +90,8 @@ export async function updateDatabaseSchema(
   schema: DatabaseField[]
 ): Promise<void> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
 
   const { data: db } = await supabase
     .from('databases')
@@ -164,7 +166,7 @@ export async function createRow(
     page_id: page.id,
     fields: row.fields as Record<string, unknown>,
     created_at: row.created_at,
-    page_title: 'Untitled',
+    page_title: page.title ?? null,
   }
 }
 
@@ -175,6 +177,8 @@ export async function updateRowFields(
   fields: Record<string, unknown>
 ): Promise<void> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
 
   const { data: db } = await supabase
     .from('databases')
@@ -238,7 +242,8 @@ export async function deleteRow(
   if (error) throw new Error(error.message)
 
   if (row.page_id) {
-    await supabase.from('pages').delete().eq('id', row.page_id)
+    const { error: pageDeleteError } = await supabase.from('pages').delete().eq('id', row.page_id)
+    if (pageDeleteError) throw new Error(`Row deleted but failed to delete linked page: ${pageDeleteError.message}`)
   }
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)

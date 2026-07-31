@@ -195,6 +195,15 @@ describe('database actions', () => {
   })
 
   it('deleteRow deletes the row then its linked page', async () => {
+    const callOrder: string[] = []
+    mockRowDeleteEq.mockImplementation((...args: unknown[]) => {
+      callOrder.push('rowDelete')
+      return Promise.resolve({ error: null })
+    })
+    mockPagesDeleteEq.mockImplementation((...args: unknown[]) => {
+      callOrder.push('pageDelete')
+      return Promise.resolve({ error: null })
+    })
     mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
     mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
     mockRowSingle.mockResolvedValue({ data: { id: 'row1', page_id: 'p-row' }, error: null })
@@ -202,5 +211,23 @@ describe('database actions', () => {
     await deleteRow('row1', 'db1', 'ws1')
     expect(mockRowDeleteEq).toHaveBeenCalledWith('id', 'row1')
     expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p-row')
+    expect(callOrder).toEqual(['rowDelete', 'pageDelete'])
+  })
+
+  it('updateDatabaseSchema updates schema fields', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    const newSchema = [{ id: 'f1', name: 'Title', type: 'text' as const }]
+    const { updateDatabaseSchema } = await import('@/lib/actions/databases')
+    await updateDatabaseSchema('db1', 'ws1', newSchema)
+    expect(mockDbUpdate).toHaveBeenCalledWith({ schema: newSchema })
+    expect(mockDbUpdateEq).toHaveBeenCalledWith('id', 'db1')
+  })
+
+  it('updateDatabaseSchema throws when database not in workspace', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: null, error: null })
+    const { updateDatabaseSchema } = await import('@/lib/actions/databases')
+    await expect(updateDatabaseSchema('db1', 'wrong-ws', [])).rejects.toThrow('Database not found or access denied')
   })
 })
