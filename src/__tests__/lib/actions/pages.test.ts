@@ -7,6 +7,7 @@ vi.mock('@/lib/graph/graph', () => ({
   upsertEdge: vi.fn().mockResolvedValue(undefined),
   findNodeId: vi.fn().mockResolvedValue(null),
   findPageNodeByTitle: vi.fn().mockResolvedValue(null),
+  clearMentionEdges: vi.fn().mockResolvedValue(undefined),
 }))
 vi.mock('@/lib/graph/content', () => ({
   pageToText: vi.fn().mockReturnValue('page text'),

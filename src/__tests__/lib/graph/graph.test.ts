@@ -15,6 +15,9 @@ const mockNodesSelect = vi.fn(() => ({ eq: mockNodesSelectEq1 }))
 
 // ── edges table ──────────────────────────────────────────────────
 const mockEdgesUpsert = vi.fn().mockResolvedValue({ error: null })
+const mockEdgesDeleteEq2 = vi.fn().mockResolvedValue({ error: null })
+const mockEdgesDeleteEq1 = vi.fn(() => ({ eq: mockEdgesDeleteEq2 }))
+const mockEdgesDelete = vi.fn(() => ({ eq: mockEdgesDeleteEq1 }))
 
 // ── pages table (for findPageNodeByTitle) ──────────────────────
 const mockPagesMaybeSingle = vi.fn()
@@ -25,7 +28,7 @@ const mockPagesSelect = vi.fn(() => ({ eq: mockPagesSelectEq1 }))
 const mockFrom = vi.fn((table: string) => {
   switch (table) {
     case 'nodes': return { upsert: mockNodesUpsert, update: mockNodesUpdate, select: mockNodesSelect }
-    case 'edges': return { upsert: mockEdgesUpsert }
+    case 'edges': return { upsert: mockEdgesUpsert, delete: mockEdgesDelete }
     case 'pages': return { select: mockPagesSelect }
     default: return {}
   }
@@ -55,6 +58,9 @@ describe('graph actions', () => {
     mockNodesSelectEq1.mockImplementation(() => ({ eq: mockNodesSelectEq2 }))
     mockNodesSelect.mockImplementation(() => ({ eq: mockNodesSelectEq1 }))
     mockEdgesUpsert.mockResolvedValue({ error: null })
+    mockEdgesDeleteEq2.mockResolvedValue({ error: null })
+    mockEdgesDeleteEq1.mockImplementation(() => ({ eq: mockEdgesDeleteEq2 }))
+    mockEdgesDelete.mockImplementation(() => ({ eq: mockEdgesDeleteEq1 }))
     mockPagesMaybeSingle.mockResolvedValue({ data: null, error: null })
     mockPagesSelectEq2.mockImplementation(() => ({ maybeSingle: mockPagesMaybeSingle }))
     mockPagesSelectEq1.mockImplementation(() => ({ eq: mockPagesSelectEq2 }))
@@ -62,7 +68,7 @@ describe('graph actions', () => {
     mockFrom.mockImplementation((table: string) => {
       switch (table) {
         case 'nodes': return { upsert: mockNodesUpsert, update: mockNodesUpdate, select: mockNodesSelect }
-        case 'edges': return { upsert: mockEdgesUpsert }
+        case 'edges': return { upsert: mockEdgesUpsert, delete: mockEdgesDelete }
         case 'pages': return { select: mockPagesSelect }
         default: return {}
       }
@@ -97,6 +103,25 @@ describe('graph actions', () => {
       expect(mockNodesUpdateEq).toHaveBeenCalledWith('id', 'n1')
     })
 
+    it('skips embed and DB update for empty text', async () => {
+      const { embed } = await import('@/lib/graph/ollama')
+      const { scheduleEmbed } = await import('@/lib/graph/graph')
+      await scheduleEmbed('n1', '   ')
+      expect(embed).not.toHaveBeenCalled()
+      expect(mockNodesUpdate).not.toHaveBeenCalled()
+    })
+
+    it('retries when DB update returns an error', async () => {
+      vi.useFakeTimers()
+      mockNodesUpdateEq.mockResolvedValue({ error: { message: 'write failed' } })
+      const { scheduleEmbed } = await import('@/lib/graph/graph')
+      const p = scheduleEmbed('n1', 'text')
+      await vi.runAllTimersAsync()
+      await p
+      expect(mockNodesUpdateEq).toHaveBeenCalledTimes(3)
+      vi.useRealTimers()
+    })
+
     it('retries 3 times then gives up without throwing', async () => {
       vi.useFakeTimers()
       const { embed } = await import('@/lib/graph/ollama')
@@ -124,6 +149,16 @@ describe('graph actions', () => {
         }),
         expect.objectContaining({ ignoreDuplicates: true })
       )
+    })
+  })
+
+  describe('clearMentionEdges', () => {
+    it('deletes mention edges from source and backlink edges to target', async () => {
+      const { clearMentionEdges } = await import('@/lib/graph/graph')
+      await clearMentionEdges('n1')
+      expect(mockEdgesDelete).toHaveBeenCalledTimes(2)
+      expect(mockEdgesDeleteEq1).toHaveBeenCalledWith('source_node_id', 'n1')
+      expect(mockEdgesDeleteEq1).toHaveBeenCalledWith('target_node_id', 'n1')
     })
   })
 

@@ -20,44 +20,51 @@ function extractionStatusForMimeType(mimeType: string): 'pending' | 'none' {
 
 async function runExtraction(fileId: string, storagePath: string, mimeType: string, workspaceId: string): Promise<void> {
   const supabase = await createClient()
+  let extractedText: string | null = null
+
   try {
     const { data: blob, error } = await supabase.storage.from('files').download(storagePath)
     if (error || !blob) throw new Error(error?.message ?? 'Download failed')
 
     const buffer = Buffer.from(await blob.arrayBuffer())
-    let text: string | null = null
 
     if (mimeType === 'application/pdf') {
       const { PDFParse } = await import('pdf-parse')
       const parser = new PDFParse({ data: buffer })
       const result = await parser.getText()
-      text = result.text
+      extractedText = result.text
     } else if (
       mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
       mimeType === 'application/msword'
     ) {
       const mammoth = await import('mammoth')
       const result = await mammoth.extractRawText({ buffer })
-      text = result.value
+      extractedText = result.value
     } else if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
-      text = buffer.toString('utf-8')
+      extractedText = buffer.toString('utf-8')
     }
 
     await supabase
       .from('files')
-      .update({ extracted_text: text, extraction_status: 'done' })
+      .update({ extracted_text: extractedText, extraction_status: 'done' })
       .eq('id', fileId)
-
-    const embeddableText = fileToText(text)
-    if (embeddableText) {
-      const nodeId = await upsertNode(workspaceId, 'file', fileId)
-      await scheduleEmbed(nodeId, embeddableText)
-    }
   } catch {
     await supabase
       .from('files')
       .update({ extraction_status: 'error' })
       .eq('id', fileId)
+    return
+  }
+
+  // Graph writes are independent — extraction already succeeded, never touch extraction_status here
+  try {
+    const embeddableText = fileToText(extractedText)
+    if (embeddableText) {
+      const nodeId = await upsertNode(workspaceId, 'file', fileId)
+      await scheduleEmbed(nodeId, embeddableText)
+    }
+  } catch (err) {
+    console.error(`runExtraction: graph write failed for file ${fileId}:`, err)
   }
 }
 
@@ -221,14 +228,7 @@ export async function retryExtraction(fileId: string, workspaceId: string): Prom
     .maybeSingle()
   if (!file) throw new Error('File not found or access denied')
 
-  await runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type, workspaceId)
+  after(() => runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type, workspaceId))
 
-  const { data: updated, error } = await supabase
-    .from('files')
-    .select('id, workspace_id, page_id, storage_path, mime_type, extracted_text, extraction_status, created_at')
-    .eq('id', fileId)
-    .single()
-  if (error || !updated) throw new Error('File not found after extraction')
-
-  return updated as FileRecord
+  return file as FileRecord
 }

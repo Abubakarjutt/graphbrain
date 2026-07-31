@@ -22,15 +22,17 @@ export async function upsertNode(
 }
 
 export async function scheduleEmbed(nodeId: string, text: string): Promise<void> {
+  if (!text.trim()) return
   const supabase = await createClient()
   const delays = [1000, 2000, 4000]
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const embedding = await embed(text)
-      await supabase
+      const { error } = await supabase
         .from('nodes')
         .update({ embedding, updated_at: new Date().toISOString() })
         .eq('id', nodeId)
+      if (error) throw new Error(error.message)
       return
     } catch (err) {
       if (attempt < 2) {
@@ -70,6 +72,12 @@ export async function findNodeId(
     .eq('entity_id', entityId)
     .maybeSingle()
   return (data as { id: string } | null)?.id ?? null
+}
+
+export async function clearMentionEdges(nodeId: string): Promise<void> {
+  const supabase = await createClient()
+  await supabase.from('edges').delete().eq('source_node_id', nodeId).eq('relationship_type', 'mention')
+  await supabase.from('edges').delete().eq('target_node_id', nodeId).eq('relationship_type', 'backlink')
 }
 
 export async function findPageNodeByTitle(

@@ -3,7 +3,7 @@
 import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { upsertNode, scheduleEmbed, upsertEdge, findNodeId, findPageNodeByTitle } from '@/lib/graph/graph'
+import { upsertNode, scheduleEmbed, upsertEdge, findNodeId, findPageNodeByTitle, clearMentionEdges } from '@/lib/graph/graph'
 import { pageToText, parseMentions } from '@/lib/graph/content'
 import type { Page, TiptapDocument, TiptapNode, Block } from '@/lib/types/database'
 
@@ -105,6 +105,7 @@ export async function saveBlocks(pageId: string, workspaceId: string, doc: Tipta
 
   after(async () => {
     const nodeId = await upsertNode(workspaceId, 'page', pageId)
+    await clearMentionEdges(nodeId)
     const mentionedTitles = parseMentions(doc.content ?? [])
     for (const title of mentionedTitles) {
       const targetNodeId = await findPageNodeByTitle(workspaceId, title)
