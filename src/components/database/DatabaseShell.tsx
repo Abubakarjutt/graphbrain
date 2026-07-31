@@ -5,6 +5,9 @@ import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
 import { updateDatabaseSchema, createRow, deleteRow } from '@/lib/actions/databases'
 import { SchemaEditor } from './SchemaEditor'
 import { TableView } from './TableView'
+import { KanbanView } from './KanbanView'
+
+type View = 'table' | 'kanban' | 'calendar'
 
 interface DatabaseShellProps {
   databaseId: string
@@ -15,6 +18,7 @@ interface DatabaseShellProps {
 }
 
 export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: DatabaseShellProps) {
+  const [view, setView] = useState<View>('table')
   const [currentSchema, setCurrentSchema] = useState(schema)
   const [currentRows, setCurrentRows] = useState(rows)
   const [schemaEditorOpen, setSchemaEditorOpen] = useState(false)
@@ -67,12 +71,27 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b px-6 py-4 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{title}</h1>
+      <div className="border-b px-6 py-3 flex items-center justify-between gap-4">
+        <h1 className="text-xl font-semibold shrink-0">{title}</h1>
+        <div className="flex items-center gap-1 border rounded-md p-0.5">
+          {(['table', 'kanban', 'calendar'] as View[]).map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1 text-sm rounded transition-colors ${
+                view === v
+                  ? 'bg-accent text-accent-foreground'
+                  : 'hover:bg-accent/50 text-muted-foreground'
+              }`}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
+          ))}
+        </div>
         <button
           onClick={() => setSchemaEditorOpen(v => !v)}
           aria-expanded={schemaEditorOpen}
-          className="text-sm text-muted-foreground hover:text-foreground border rounded-md px-3 py-1"
+          className="text-sm text-muted-foreground hover:text-foreground border rounded-md px-3 py-1 shrink-0"
         >
           Fields
         </button>
@@ -85,15 +104,31 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
           onClose={() => setSchemaEditorOpen(false)}
         />
       )}
-      <TableView
-        databaseId={databaseId}
-        workspaceId={workspaceId}
-        schema={currentSchema}
-        rows={currentRows}
-        onAddRow={handleAddRow}
-        onRowUpdate={handleRowUpdate}
-        onDeleteRow={handleDeleteRow}
-      />
+      {view === 'table' && (
+        <TableView
+          databaseId={databaseId}
+          workspaceId={workspaceId}
+          schema={currentSchema}
+          rows={currentRows}
+          onAddRow={handleAddRow}
+          onRowUpdate={handleRowUpdate}
+          onDeleteRow={handleDeleteRow}
+        />
+      )}
+      {view === 'kanban' && (
+        <KanbanView
+          databaseId={databaseId}
+          workspaceId={workspaceId}
+          schema={currentSchema}
+          rows={currentRows}
+          onRowUpdate={handleRowUpdate}
+        />
+      )}
+      {view === 'calendar' && (
+        <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
+          Calendar view coming in Phase 2b-iii.
+        </div>
+      )}
     </div>
   )
 }
