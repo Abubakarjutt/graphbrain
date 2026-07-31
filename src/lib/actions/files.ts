@@ -3,6 +3,8 @@
 import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { upsertNode, scheduleEmbed } from '@/lib/graph/graph'
+import { fileToText } from '@/lib/graph/content'
 import type { FileRecord } from '@/lib/types/database'
 
 function extractionStatusForMimeType(mimeType: string): 'pending' | 'none' {
@@ -16,7 +18,7 @@ function extractionStatusForMimeType(mimeType: string): 'pending' | 'none' {
   return extractable.includes(mimeType) ? 'pending' : 'none'
 }
 
-async function runExtraction(fileId: string, storagePath: string, mimeType: string): Promise<void> {
+async function runExtraction(fileId: string, storagePath: string, mimeType: string, workspaceId: string): Promise<void> {
   const supabase = await createClient()
   try {
     const { data: blob, error } = await supabase.storage.from('files').download(storagePath)
@@ -45,6 +47,12 @@ async function runExtraction(fileId: string, storagePath: string, mimeType: stri
       .from('files')
       .update({ extracted_text: text, extraction_status: 'done' })
       .eq('id', fileId)
+
+    const embeddableText = fileToText(text)
+    if (embeddableText) {
+      const nodeId = await upsertNode(workspaceId, 'file', fileId)
+      await scheduleEmbed(nodeId, embeddableText)
+    }
   } catch {
     await supabase
       .from('files')
@@ -140,7 +148,7 @@ export async function createFilePage(
   }
 
   if (extractionStatus === 'pending') {
-    after(() => runExtraction(fileData.id, storagePath, mimeType))
+    after(() => runExtraction(fileData.id, storagePath, mimeType, workspaceId))
   }
 
   revalidatePath(`/workspace/${workspaceId}/page/${parentPageId}`)
@@ -213,7 +221,7 @@ export async function retryExtraction(fileId: string, workspaceId: string): Prom
     .maybeSingle()
   if (!file) throw new Error('File not found or access denied')
 
-  await runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type)
+  await runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type, workspaceId)
 
   const { data: updated, error } = await supabase
     .from('files')
