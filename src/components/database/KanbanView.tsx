@@ -129,10 +129,15 @@ export function KanbanView({ databaseId, workspaceId, schema, rows, onRowUpdate 
         : currentValue === over.id
     if (isAlreadyInColumn) return
 
+    const originalFields = { ...row.fields }
     const newFields = { ...row.fields, [selectField!.id]: newOptionValue }
     onRowUpdate(String(active.id), newFields)
     startTransition(async () => {
-      await updateRowFields(String(active.id), databaseId, workspaceId, newFields)
+      try {
+        await updateRowFields(String(active.id), databaseId, workspaceId, newFields)
+      } catch {
+        onRowUpdate(String(active.id), originalFields)
+      }
     })
   }
 
