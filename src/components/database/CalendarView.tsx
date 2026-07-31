@@ -2,7 +2,7 @@
 
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import { Calendar, dateFnsLocalizer, SlotInfo } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
@@ -35,6 +35,7 @@ interface CalendarViewProps {
 
 export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreated }: CalendarViewProps) {
   const [, startTransition] = useTransition()
+  const [error, setError] = useState<string | null>(null)
   const dateField = schema.find(f => f.type === 'date')
 
   if (!dateField) {
@@ -63,13 +64,19 @@ export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreat
   function handleSelectSlot(slot: SlotInfo) {
     const dateStr = format(slot.start, 'yyyy-MM-dd')
     startTransition(async () => {
-      const row = await createRow(databaseId, workspaceId, { [dateField!.id]: dateStr })
-      onRowCreated(row)
+      try {
+        const row = await createRow(databaseId, workspaceId, { [dateField!.id]: dateStr })
+        onRowCreated(row)
+        setError(null)
+      } catch {
+        setError('Failed to create row')
+      }
     })
   }
 
   return (
     <div className="flex-1 p-4" style={{ minHeight: '500px' }}>
+      {error && <p className="text-sm text-destructive pb-2">{error}</p>}
       <Calendar
         localizer={localizer}
         events={events}
