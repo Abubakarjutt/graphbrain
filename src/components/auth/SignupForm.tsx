@@ -20,7 +20,7 @@ export function SignupForm() {
     setLoading(true)
     setError(null)
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
@@ -29,7 +29,11 @@ export function SignupForm() {
     if (error) {
       setError(error.message)
       setLoading(false)
+    } else if (data.session) {
+      // Email confirmations disabled locally — session is issued immediately
+      window.location.href = '/'
     } else {
+      // Email confirmation required — tell user to check their inbox
       router.push('/login?message=Check your email to confirm your account')
     }
   }
