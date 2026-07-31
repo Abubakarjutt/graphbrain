@@ -73,6 +73,7 @@ export interface FileRecord {
   storage_path: string
   mime_type: string
   extracted_text: string | null
+  extraction_status: 'pending' | 'done' | 'error' | 'none'
   created_at: string
 }
 
