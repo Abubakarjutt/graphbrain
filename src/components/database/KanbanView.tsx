@@ -13,8 +13,8 @@ import { CSS } from '@dnd-kit/utilities'
 import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
 import { updateRowFields } from '@/lib/actions/databases'
 
-// Sentinel used as the droppable ID for the "No Status" column
-const NO_STATUS_ID = '__no_status__'
+// Sentinel droppable ID for "No Status" column — UUID format prevents collision with user option names
+const NO_STATUS_ID = '__kanban-no-status-f47ac10b__'
 
 interface KanbanCardProps {
   row: DatabaseRowWithTitle

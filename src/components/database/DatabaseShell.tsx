@@ -6,6 +6,7 @@ import { updateDatabaseSchema, createRow, deleteRow } from '@/lib/actions/databa
 import { SchemaEditor } from './SchemaEditor'
 import { TableView } from './TableView'
 import { KanbanView } from './KanbanView'
+import { CalendarView } from './CalendarView'
 
 type View = 'table' | 'kanban' | 'calendar'
 
@@ -76,6 +77,10 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
     })
   }
 
+  function handleRowCreated(row: DatabaseRowWithTitle) {
+    setCurrentRows(prev => [...prev, row])
+  }
+
   return (
     <div className="flex flex-col h-full">
       <div className="border-b px-6 py-3 flex items-center justify-between gap-4">
@@ -135,9 +140,13 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
         />
       )}
       {view === 'calendar' && (
-        <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-          Calendar view coming in Phase 2b-iii.
-        </div>
+        <CalendarView
+          databaseId={databaseId}
+          workspaceId={workspaceId}
+          schema={currentSchema}
+          rows={currentRows}
+          onRowCreated={handleRowCreated}
+        />
       )}
     </div>
   )

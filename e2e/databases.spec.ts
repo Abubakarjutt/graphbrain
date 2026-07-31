@@ -58,4 +58,23 @@ test.describe('database flow', () => {
     await page.getByRole('button', { name: 'Kanban' }).click()
     await expect(page.getByText('No Status')).toBeVisible()
   })
+
+  test('Calendar view shows empty-state when no date field exists', async ({ page }) => {
+    await page.getByRole('button', { name: /new database/i }).click()
+    await page.waitForURL(/\/database\//)
+    await page.getByRole('button', { name: 'Calendar' }).click()
+    await expect(page.getByText('Add a Date field to use Calendar view')).toBeVisible()
+  })
+
+  test('Calendar view renders a month grid when a date field exists', async ({ page }) => {
+    await page.getByRole('button', { name: /new database/i }).click()
+    await page.waitForURL(/\/database\//)
+    await page.getByRole('button', { name: 'Fields' }).click()
+    await page.getByLabel('New field name').fill('Due Date')
+    await page.getByLabel('Field type').selectOption('date')
+    await page.getByRole('button', { name: 'Add' }).click()
+    await page.getByRole('button', { name: 'Close' }).click()
+    await page.getByRole('button', { name: 'Calendar' }).click()
+    await expect(page.locator('.rbc-month-view')).toBeVisible()
+  })
 })
