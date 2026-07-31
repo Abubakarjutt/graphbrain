@@ -86,8 +86,17 @@ export interface Database {
 export interface DatabaseRow {
   id: string
   database_id: string
+  page_id: string | null
   fields: Record<string, unknown>
   created_at: string
+}
+
+export interface DatabaseRowWithTitle extends DatabaseRow {
+  page_title: string | null
+}
+
+export interface DatabaseWithRows extends Database {
+  rows: DatabaseRowWithTitle[]
 }
 
 export interface Node {
@@ -117,4 +126,17 @@ export interface QueryLog {
   response: string | null
   sources: QueryLogSource[]
   created_at: string
+}
+
+export interface TiptapDocument {
+  type: 'doc'
+  content: TiptapNode[]
+}
+
+export interface TiptapNode {
+  type: string
+  attrs?: Record<string, unknown>
+  content?: TiptapNode[]
+  marks?: Array<{ type: string; attrs?: Record<string, unknown> }>
+  text?: string
 }

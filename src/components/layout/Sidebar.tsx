@@ -1,18 +1,55 @@
 'use client'
 
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
+import { useState, useTransition } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { WorkspaceEntry } from '@/lib/types/database'
+import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
+import { createPage } from '@/lib/actions/pages'
+import { createDatabase } from '@/lib/actions/databases'
+import { SidebarPageTree } from './SidebarPageTree'
+import { SidebarDatabaseTree } from './SidebarDatabaseTree'
 
 interface SidebarProps {
   workspaces: WorkspaceEntry[]
   user: User
+  pages: Page[]
+  databases: Database[]
 }
 
-export function Sidebar({ workspaces, user }: SidebarProps) {
+export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const params = useParams()
+  const router = useRouter()
+  const [, startTransition] = useTransition()
+  const [createDbError, setCreateDbError] = useState<string | null>(null)
   const currentWorkspaceId = params?.workspaceId as string | undefined
+
+  // Exclude database container pages and their direct children (row pages) from the Pages section
+  const databasePageIds = new Set(databases.map(d => d.page_id))
+  const regularPages = pages.filter(
+    p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
+  )
+
+  function handleCreatePage(parentId: string | null) {
+    if (!currentWorkspaceId) return
+    startTransition(async () => {
+      const page = await createPage(currentWorkspaceId, parentId)
+      router.push(`/workspace/${currentWorkspaceId}/page/${page.id}`)
+    })
+  }
+
+  function handleCreateDatabase() {
+    if (!currentWorkspaceId) return
+    startTransition(async () => {
+      try {
+        const { database } = await createDatabase(currentWorkspaceId)
+        setCreateDbError(null)
+        router.push(`/workspace/${currentWorkspaceId}/database/${database.id}`)
+      } catch (err) {
+        setCreateDbError(err instanceof Error ? err.message : 'Failed to create database')
+      }
+    })
+  }
 
   return (
     <aside className="w-64 flex-shrink-0 border-r bg-muted/30 flex flex-col h-full">
@@ -34,6 +71,24 @@ export function Sidebar({ workspaces, user }: SidebarProps) {
               {ws.name}
             </Link>
           ) : null
+        )}
+        {currentWorkspaceId && (
+          <>
+            <SidebarPageTree
+              pages={regularPages.filter(p => p.workspace_id === currentWorkspaceId)}
+              workspaceId={currentWorkspaceId}
+              onCreatePage={handleCreatePage}
+            />
+            {createDbError && (
+              <p className="px-3 py-1 text-xs text-destructive">{createDbError}</p>
+            )}
+            <SidebarDatabaseTree
+              databases={databases}
+              pages={pages}
+              workspaceId={currentWorkspaceId}
+              onCreateDatabase={handleCreateDatabase}
+            />
+          </>
         )}
       </nav>
       <div className="p-4 border-t">
