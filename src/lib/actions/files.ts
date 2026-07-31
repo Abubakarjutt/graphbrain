@@ -26,8 +26,9 @@ async function runExtraction(fileId: string, storagePath: string, mimeType: stri
     let text: string | null = null
 
     if (mimeType === 'application/pdf') {
-      const pdfParse = (await import('pdf-parse')).default
-      const result = await pdfParse(buffer)
+      const { PDFParse } = await import('pdf-parse')
+      const parser = new PDFParse({ data: buffer })
+      const result = await parser.getText()
       text = result.text
     } else if (
       mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||

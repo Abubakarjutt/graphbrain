@@ -53,7 +53,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('next/server', () => ({ after: vi.fn() }))
-vi.mock('pdf-parse', () => ({ default: vi.fn() }))
+vi.mock('pdf-parse', () => ({ PDFParse: vi.fn().mockImplementation(() => ({ getText: vi.fn().mockResolvedValue({ text: '' }) })) }))
 vi.mock('mammoth', () => ({ extractRawText: vi.fn() }))
 
 describe('file actions', () => {
