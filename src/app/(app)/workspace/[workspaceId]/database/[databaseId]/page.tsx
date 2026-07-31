@@ -1,0 +1,43 @@
+import { notFound } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { getDatabase } from '@/lib/actions/databases'
+import { DatabaseShell } from '@/components/database/DatabaseShell'
+
+export default async function DatabasePage({
+  params,
+}: {
+  params: Promise<{ workspaceId: string; databaseId: string }>
+}) {
+  const { workspaceId, databaseId } = await params
+  const supabase = await createClient()
+
+  const { data: membership } = await supabase
+    .from('workspace_members')
+    .select('workspace_id')
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!membership) notFound()
+
+  let db
+  try {
+    db = await getDatabase(databaseId, workspaceId)
+  } catch {
+    notFound()
+  }
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('title')
+    .eq('id', db.page_id)
+    .single()
+
+  return (
+    <DatabaseShell
+      databaseId={databaseId}
+      workspaceId={workspaceId}
+      title={containerPage?.title ?? 'Untitled Database'}
+      schema={db.schema}
+      rows={db.rows}
+    />
+  )
+}
