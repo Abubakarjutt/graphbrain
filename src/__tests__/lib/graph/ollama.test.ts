@@ -48,4 +48,39 @@ describe('ollama client', () => {
       await expect(embed('test')).rejects.toThrow('Ollama embed failed: 500')
     })
   })
+
+  describe('streamChat', () => {
+    it('yields tokens from NDJSON stream', async () => {
+      const lines = [
+        JSON.stringify({ response: 'Hello', done: false }),
+        JSON.stringify({ response: ' world', done: false }),
+        JSON.stringify({ response: '', done: true }),
+      ].join('\n')
+      const encoder = new TextEncoder()
+      let sent = false
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        body: {
+          getReader: () => ({
+            read: async () => {
+              if (!sent) { sent = true; return { done: false, value: encoder.encode(lines) } }
+              return { done: true, value: undefined }
+            },
+          }),
+        },
+      }))
+      const { streamChat } = await import('@/lib/graph/ollama')
+      const tokens: string[] = []
+      for await (const token of streamChat('test prompt')) tokens.push(token)
+      // done:true token yields empty string which is now filtered out (LR-01 fix)
+      expect(tokens).toEqual(['Hello', ' world'])
+    })
+
+    it('throws when Ollama returns non-200', async () => {
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 500 }))
+      const { streamChat } = await import('@/lib/graph/ollama')
+      const gen = streamChat('test')
+      await expect(gen.next()).rejects.toThrow('Ollama generate failed: 500')
+    })
+  })
 })

@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js'
 import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
 import { Sidebar } from './Sidebar'
 import { OllamaStatusBanner } from './OllamaStatusBanner'
+import { CmdKModal } from '@/components/query/CmdKModal'
 
 interface AppShellProps {
   workspaces: WorkspaceEntry[]
@@ -22,6 +23,7 @@ export function AppShell({ workspaces, user, pages, databases, ollamaAvailable =
         <Sidebar workspaces={workspaces} user={user} pages={pages} databases={databases} />
         <main className="flex-1 overflow-auto bg-background">{children}</main>
       </div>
+      <CmdKModal databases={databases} />
     </div>
   )
 }
