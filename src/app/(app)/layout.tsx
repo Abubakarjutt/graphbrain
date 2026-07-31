@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/AppShell'
+import { checkHealth } from '@/lib/graph/ollama'
 import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
@@ -32,8 +33,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ).data ?? []
     : []
 
+  const ollamaAvailable = await checkHealth()
+
   return (
-    <AppShell workspaces={workspaces ?? []} user={user} pages={pages} databases={databases}>
+    <AppShell workspaces={workspaces ?? []} user={user} pages={pages} databases={databases} ollamaAvailable={ollamaAvailable}>
       {children}
     </AppShell>
   )

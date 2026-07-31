@@ -3,20 +3,25 @@
 import type { User } from '@supabase/supabase-js'
 import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
 import { Sidebar } from './Sidebar'
+import { OllamaStatusBanner } from './OllamaStatusBanner'
 
 interface AppShellProps {
   workspaces: WorkspaceEntry[]
   user: User
   pages: Page[]
   databases: Database[]
+  ollamaAvailable?: boolean
   children: React.ReactNode
 }
 
-export function AppShell({ workspaces, user, pages, databases, children }: AppShellProps) {
+export function AppShell({ workspaces, user, pages, databases, ollamaAvailable = true, children }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar workspaces={workspaces} user={user} pages={pages} databases={databases} />
-      <main className="flex-1 overflow-auto bg-background">{children}</main>
+    <div className="flex h-screen overflow-hidden flex-col">
+      <OllamaStatusBanner ollamaAvailable={ollamaAvailable} />
+      <div className="flex flex-1 overflow-hidden">
+        <Sidebar workspaces={workspaces} user={user} pages={pages} databases={databases} />
+        <main className="flex-1 overflow-auto bg-background">{children}</main>
+      </div>
     </div>
   )
 }
