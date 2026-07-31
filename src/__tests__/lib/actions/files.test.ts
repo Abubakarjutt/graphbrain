@@ -156,16 +156,30 @@ describe('file actions', () => {
     expect(result?.extraction_status).toBe('pending')
   })
 
-  it('getSignedReadUrl returns signed URL', async () => {
+  it('getSignedReadUrl returns signed URL looked up from DB by pageId', async () => {
+    mockFilesMaybeSingle.mockResolvedValue({ data: { storage_path: 'ws1/p1/file.pdf' }, error: null })
     const { getSignedReadUrl } = await import('@/lib/actions/files')
-    const result = await getSignedReadUrl('ws1/p1/file.pdf', 'ws1')
+    const result = await getSignedReadUrl('p1', 'ws1')
     expect(result.url).toBe('https://storage/read')
     expect(mockCreateSignedUrl).toHaveBeenCalledWith('ws1/p1/file.pdf', 3600)
+  })
+
+  it('getSignedReadUrl throws when file not found for pageId', async () => {
+    mockFilesMaybeSingle.mockResolvedValue({ data: null, error: null })
+    const { getSignedReadUrl } = await import('@/lib/actions/files')
+    await expect(getSignedReadUrl('p1', 'ws1')).rejects.toThrow('File not found')
   })
 
   it('getSignedReadUrl throws when user is not a workspace member', async () => {
     mockMemberMaybeSingle.mockResolvedValue({ data: null, error: null })
     const { getSignedReadUrl } = await import('@/lib/actions/files')
-    await expect(getSignedReadUrl('ws1/p1/file.pdf', 'ws1')).rejects.toThrow('Access denied')
+    await expect(getSignedReadUrl('p1', 'ws1')).rejects.toThrow('Access denied')
+  })
+
+  it('createFilePage throws on invalid storage path prefix', async () => {
+    const { createFilePage } = await import('@/lib/actions/files')
+    await expect(
+      createFilePage('ws1', 'parent1', 'evil.pdf', 'ws2/p1/evil.pdf', 'application/pdf', 'p1')
+    ).rejects.toThrow('Invalid storage path')
   })
 })
