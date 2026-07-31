@@ -211,6 +211,8 @@ export async function deleteRow(
   workspaceId: string
 ): Promise<void> {
   const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
 
   const { data: db } = await supabase
     .from('databases')

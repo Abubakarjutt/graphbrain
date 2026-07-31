@@ -22,12 +22,14 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
   const [, startTransition] = useTransition()
 
   function handleSchemaChange(newSchema: DatabaseField[]) {
+    const previousSchema = currentSchema
     setCurrentSchema(newSchema)
     startTransition(async () => {
       try {
         await updateDatabaseSchema(databaseId, workspaceId, newSchema)
         setError(null)
       } catch {
+        setCurrentSchema(previousSchema)
         setError('Failed to update schema')
       }
     })
@@ -50,12 +52,14 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
   }
 
   function handleDeleteRow(rowId: string) {
+    const rowToDelete = currentRows.find(r => r.id === rowId)
     setCurrentRows(prev => prev.filter(r => r.id !== rowId))
     startTransition(async () => {
       try {
         await deleteRow(rowId, databaseId, workspaceId)
         setError(null)
       } catch {
+        if (rowToDelete) setCurrentRows(prev => [...prev, rowToDelete])
         setError('Failed to delete row')
       }
     })
@@ -67,6 +71,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
         <h1 className="text-xl font-semibold">{title}</h1>
         <button
           onClick={() => setSchemaEditorOpen(v => !v)}
+          aria-expanded={schemaEditorOpen}
           className="text-sm text-muted-foreground hover:text-foreground border rounded-md px-3 py-1"
         >
           Fields
