@@ -1,0 +1,184 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useParams } from 'next/navigation'
+import { searchQuery } from '@/lib/actions/query'
+import { SearchResults } from './SearchResults'
+import { AskPanel } from './AskPanel'
+import type { Database, SearchResult } from '@/lib/types/database'
+import type { QueryScope } from '@/lib/graph/query'
+
+interface CmdKModalProps {
+  databases: Database[]
+}
+
+type Mode = 'search' | 'ask'
+
+export function CmdKModal({ databases }: CmdKModalProps) {
+  const params = useParams()
+  const workspaceId = params?.workspaceId as string | undefined
+  const currentDatabaseId = params?.databaseId as string | undefined
+
+  const [open, setOpen] = useState(false)
+  const [mode, setMode] = useState<Mode>('search')
+  const [query, setQuery] = useState('')
+  const [scope, setScope] = useState<QueryScope>({})
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [response, setResponse] = useState('')
+  const [sources, setSources] = useState<SearchResult[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const close = useCallback(() => {
+    setOpen(false)
+    setQuery('')
+    setResults([])
+    setResponse('')
+    setSources([])
+    setError(null)
+  }, [])
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setOpen(prev => !prev)
+      }
+      if (e.key === 'Escape') close()
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [close])
+
+  useEffect(() => {
+    if (open) {
+      inputRef.current?.focus()
+      if (currentDatabaseId) setScope({ databaseId: currentDatabaseId })
+    }
+  }, [open, currentDatabaseId])
+
+  useEffect(() => {
+    if (mode !== 'search' || !query.trim() || !workspaceId) {
+      setResults([])
+      return
+    }
+    const timer = setTimeout(async () => {
+      setLoading(true)
+      setError(null)
+      const res = await searchQuery(workspaceId, query, scope)
+      if ('error' in res) {
+        setError(res.error)
+        setResults([])
+      } else {
+        setResults(res)
+      }
+      setLoading(false)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [query, mode, workspaceId, scope])
+
+  async function handleAsk() {
+    if (!query.trim() || !workspaceId) return
+    setLoading(true)
+    setResponse('')
+    setSources([])
+    setError(null)
+
+    const res = await fetch('/api/query/ask', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ workspaceId, query, scope }),
+    })
+
+    if (!res.ok) {
+      setError('AI unavailable — start Ollama with `ollama serve`')
+      setLoading(false)
+      return
+    }
+
+    const sourcesHeader = res.headers.get('X-Sources')
+    if (sourcesHeader) setSources(JSON.parse(sourcesHeader) as SearchResult[])
+    setLoading(false)
+
+    const reader = res.body!.getReader()
+    const decoder = new TextDecoder()
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      setResponse(prev => prev + decoder.decode(value))
+    }
+  }
+
+  if (!workspaceId || !open) return null
+
+  return (
+    <div
+      data-testid="modal-overlay"
+      className="fixed inset-0 bg-black/40 z-50 flex items-start justify-center pt-24"
+      onClick={e => { if (e.target === e.currentTarget) close() }}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Search or ask"
+        className="w-full max-w-2xl bg-background rounded-xl shadow-2xl border border-border overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center px-4 py-3 border-b border-border gap-2">
+          <span className="text-muted-foreground text-sm">🔍</span>
+          <input
+            ref={inputRef}
+            className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+            placeholder="Search or ask anything…"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && mode === 'ask') handleAsk() }}
+          />
+          <button onClick={close} className="text-xs text-muted-foreground hover:text-foreground px-1" aria-label="Close">Esc</button>
+        </div>
+
+        <div className="flex items-center justify-between px-4 py-2 border-b border-border">
+          <div className="flex gap-1">
+            {(['search', 'ask'] as Mode[]).map(m => (
+              <button
+                key={m}
+                onClick={() => { setMode(m); setResults([]); setResponse(''); setError(null) }}
+                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${mode === m ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                {m === 'search' ? 'Search' : 'Ask'}
+              </button>
+            ))}
+          </div>
+          <select
+            value={scope.databaseId ?? ''}
+            onChange={e => setScope(e.target.value ? { databaseId: e.target.value } : {})}
+            className="text-xs bg-transparent border border-border rounded px-2 py-1 text-muted-foreground"
+            aria-label="Scope"
+          >
+            <option value="">Entire workspace</option>
+            {databases.map(db => (
+              <option key={db.id} value={db.id}>{db.id}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="max-h-96 overflow-y-auto">
+          {mode === 'search' && (
+            <>
+              {loading && <p className="px-4 py-3 text-xs text-muted-foreground animate-pulse">Searching…</p>}
+              {!loading && query && results.length === 0 && !error && (
+                <p className="px-4 py-6 text-sm text-center text-muted-foreground">No results yet — content is still being indexed</p>
+              )}
+              {error && <p className="px-4 py-3 text-sm text-destructive">{error}</p>}
+              <SearchResults results={results} workspaceId={workspaceId} onNavigate={close} />
+            </>
+          )}
+          {mode === 'ask' && (
+            <AskPanel response={response} sources={sources} loading={loading} error={error} workspaceId={workspaceId} />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
