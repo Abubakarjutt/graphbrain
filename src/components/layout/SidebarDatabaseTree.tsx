@@ -12,6 +12,7 @@ interface SidebarDatabaseTreeProps {
 }
 
 export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDatabase }: SidebarDatabaseTreeProps) {
+  // databaseId param is only populated on the /database/[databaseId] route (Task 8)
   const params = useParams()
   const currentDatabaseId = params?.databaseId as string | undefined
 
@@ -34,6 +35,7 @@ export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDat
       </div>
       {workspaceDatabases.map(db => {
         const containerPage = pages.find(p => p.id === db.page_id)
+        // Row pages have parent_id = database container page_id (set by createRow server action)
         const rowPages = pages.filter(p => p.parent_id === db.page_id)
         const isActive = currentDatabaseId === db.id
         return (
@@ -50,8 +52,7 @@ export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDat
               <Link
                 key={rp.id}
                 href={`/workspace/${workspaceId}/page/${rp.id}`}
-                className="flex items-center rounded-md text-sm hover:bg-accent/50 text-muted-foreground"
-                style={{ paddingLeft: '24px', paddingTop: '4px', paddingBottom: '4px', paddingRight: '8px' }}
+                className="flex items-center rounded-md text-sm hover:bg-accent/50 text-muted-foreground pl-6 py-1 pr-2"
               >
                 {rp.title || 'Untitled'}
               </Link>

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { useTransition } from 'react'
+import { useState, useTransition } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
 import { createPage } from '@/lib/actions/pages'
@@ -21,6 +21,7 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const params = useParams()
   const router = useRouter()
   const [, startTransition] = useTransition()
+  const [createDbError, setCreateDbError] = useState<string | null>(null)
   const currentWorkspaceId = params?.workspaceId as string | undefined
 
   // Exclude database container pages and their direct children (row pages) from the Pages section
@@ -40,8 +41,13 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   function handleCreateDatabase() {
     if (!currentWorkspaceId) return
     startTransition(async () => {
-      const { database } = await createDatabase(currentWorkspaceId)
-      router.push(`/workspace/${currentWorkspaceId}/database/${database.id}`)
+      try {
+        const { database } = await createDatabase(currentWorkspaceId)
+        setCreateDbError(null)
+        router.push(`/workspace/${currentWorkspaceId}/database/${database.id}`)
+      } catch (err) {
+        setCreateDbError(err instanceof Error ? err.message : 'Failed to create database')
+      }
     })
   }
 
@@ -73,6 +79,9 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
               workspaceId={currentWorkspaceId}
               onCreatePage={handleCreatePage}
             />
+            {createDbError && (
+              <p className="px-3 py-1 text-xs text-destructive">{createDbError}</p>
+            )}
             <SidebarDatabaseTree
               databases={databases}
               pages={pages}
