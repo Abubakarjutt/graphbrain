@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Database, DatabaseField, DatabaseRow, DatabaseWithRows } from '@/lib/types/database'
+import type { Database, DatabaseField, DatabaseRow, DatabaseRowWithTitle, DatabaseWithRows } from '@/lib/types/database'
 
 export async function createDatabase(workspaceId: string): Promise<{ database: Database; pageId: string }> {
   const supabase = await createClient()
@@ -82,4 +82,164 @@ export async function getDatabase(databaseId: string, workspaceId: string): Prom
       page_title: r.page_id ? (pageTitles[r.page_id] ?? 'Untitled') : null,
     })),
   }
+}
+
+export async function updateDatabaseSchema(
+  databaseId: string,
+  workspaceId: string,
+  schema: DatabaseField[]
+): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: db } = await supabase
+    .from('databases')
+    .select('id, page_id')
+    .eq('id', databaseId)
+    .single()
+  if (!db) throw new Error('Database not found or access denied')
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const { error } = await supabase
+    .from('databases')
+    .update({ schema })
+    .eq('id', databaseId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
+}
+
+export async function createRow(
+  databaseId: string,
+  workspaceId: string,
+  initialFields?: Record<string, unknown>
+): Promise<DatabaseRowWithTitle> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
+
+  const { data: db } = await supabase
+    .from('databases')
+    .select('id, page_id')
+    .eq('id', databaseId)
+    .single()
+  if (!db) throw new Error('Database not found or access denied')
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const { data: page, error: pageError } = await supabase
+    .from('pages')
+    .insert({ workspace_id: workspaceId, parent_id: db.page_id, title: 'Untitled', created_by: user.id })
+    .select()
+    .single()
+  if (pageError || !page) throw new Error(pageError?.message ?? 'Failed to create row page')
+
+  const { data: row, error: rowError } = await supabase
+    .from('database_rows')
+    .insert({ database_id: databaseId, page_id: page.id, fields: initialFields ?? {} })
+    .select()
+    .single()
+  if (rowError || !row) {
+    const deleteResult = await supabase.from('pages').delete().eq('id', page.id)
+    const msg = rowError?.message ?? 'Failed to create row'
+    throw new Error(deleteResult.error ? `${msg} (rollback also failed: ${deleteResult.error.message})` : msg)
+  }
+
+  revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
+  return {
+    id: row.id,
+    database_id: row.database_id,
+    page_id: page.id,
+    fields: row.fields as Record<string, unknown>,
+    created_at: row.created_at,
+    page_title: 'Untitled',
+  }
+}
+
+export async function updateRowFields(
+  rowId: string,
+  databaseId: string,
+  workspaceId: string,
+  fields: Record<string, unknown>
+): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: db } = await supabase
+    .from('databases')
+    .select('id, page_id')
+    .eq('id', databaseId)
+    .single()
+  if (!db) throw new Error('Database not found or access denied')
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const { error } = await supabase
+    .from('database_rows')
+    .update({ fields })
+    .eq('id', rowId)
+    .eq('database_id', databaseId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
+}
+
+export async function deleteRow(
+  rowId: string,
+  databaseId: string,
+  workspaceId: string
+): Promise<void> {
+  const supabase = await createClient()
+
+  const { data: db } = await supabase
+    .from('databases')
+    .select('id, page_id')
+    .eq('id', databaseId)
+    .single()
+  if (!db) throw new Error('Database not found or access denied')
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const { data: row } = await supabase
+    .from('database_rows')
+    .select('id, page_id')
+    .eq('id', rowId)
+    .eq('database_id', databaseId)
+    .single()
+  if (!row) throw new Error('Row not found')
+
+  const { error } = await supabase
+    .from('database_rows')
+    .delete()
+    .eq('id', rowId)
+  if (error) throw new Error(error.message)
+
+  if (row.page_id) {
+    await supabase.from('pages').delete().eq('id', row.page_id)
+  }
+
+  revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
 }

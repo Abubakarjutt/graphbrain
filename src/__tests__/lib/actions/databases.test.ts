@@ -150,4 +150,57 @@ describe('database actions', () => {
     expect(result.rows).toHaveLength(1)
     expect(result.rows[0].page_title).toBe('My Row Page')
   })
+
+  it('createRow atomically creates a page and a database row', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    mockPagesInsertSingle.mockResolvedValue({
+      data: { id: 'p-row', title: 'Untitled', workspace_id: 'ws1', parent_id: 'p-container', created_by: 'u1', created_at: '', updated_at: '' },
+      error: null,
+    })
+    mockRowInsertSingle.mockResolvedValue({
+      data: { id: 'row1', database_id: 'db1', page_id: 'p-row', fields: {}, created_at: '' },
+      error: null,
+    })
+    const { createRow } = await import('@/lib/actions/databases')
+    const row = await createRow('db1', 'ws1')
+    expect(mockPagesInsert).toHaveBeenCalledWith(expect.objectContaining({ parent_id: 'p-container', workspace_id: 'ws1' }))
+    expect(mockRowInsert).toHaveBeenCalledWith(expect.objectContaining({ database_id: 'db1', page_id: 'p-row' }))
+    expect(row.id).toBe('row1')
+    expect(row.page_id).toBe('p-row')
+    expect(row.page_title).toBe('Untitled')
+  })
+
+  it('createRow rolls back the page if row insert fails', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    mockPagesInsertSingle.mockResolvedValue({
+      data: { id: 'p-row', title: 'Untitled', workspace_id: 'ws1', parent_id: 'p-container', created_by: 'u1', created_at: '', updated_at: '' },
+      error: null,
+    })
+    mockRowInsertSingle.mockResolvedValue({ data: null, error: { message: 'Row error' } })
+    const { createRow } = await import('@/lib/actions/databases')
+    await expect(createRow('db1', 'ws1')).rejects.toThrow('Row error')
+    expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p-row')
+  })
+
+  it('updateRowFields updates fields with correct row and database IDs', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    const { updateRowFields } = await import('@/lib/actions/databases')
+    await updateRowFields('row1', 'db1', 'ws1', { fieldA: 'value' })
+    expect(mockRowUpdate).toHaveBeenCalledWith({ fields: { fieldA: 'value' } })
+    expect(mockRowUpdateEq1).toHaveBeenCalledWith('id', 'row1')
+    expect(mockRowUpdateEq2).toHaveBeenCalledWith('database_id', 'db1')
+  })
+
+  it('deleteRow deletes the row then its linked page', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    mockRowSingle.mockResolvedValue({ data: { id: 'row1', page_id: 'p-row' }, error: null })
+    const { deleteRow } = await import('@/lib/actions/databases')
+    await deleteRow('row1', 'db1', 'ws1')
+    expect(mockRowDeleteEq).toHaveBeenCalledWith('id', 'row1')
+    expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p-row')
+  })
 })
