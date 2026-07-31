@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useRouter } from 'next/navigation'
+import { FIELD_LABEL, FIELD_INPUT, PRIMARY_BTN } from './field-styles'
 
 export function SignupForm() {
   const [email, setEmail] = useState('')
@@ -39,9 +40,11 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSignup} className="space-y-4">
-      <div className="space-y-1">
-        <Label htmlFor="email">Email</Label>
+    <form onSubmit={handleSignup} className="space-y-5">
+      <div className="space-y-2">
+        <Label htmlFor="email" className={FIELD_LABEL}>
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
@@ -49,10 +52,13 @@ export function SignupForm() {
           onChange={e => setEmail(e.target.value)}
           required
           placeholder="you@example.com"
+          className={FIELD_INPUT}
         />
       </div>
-      <div className="space-y-1">
-        <Label htmlFor="password">Password</Label>
+      <div className="space-y-2">
+        <Label htmlFor="password" className={FIELD_LABEL}>
+          Password
+        </Label>
         <Input
           id="password"
           type="password"
@@ -60,10 +66,16 @@ export function SignupForm() {
           onChange={e => setPassword(e.target.value)}
           required
           minLength={8}
+          placeholder="At least 8 characters"
+          className={FIELD_INPUT}
         />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <Button type="submit" className="w-full" disabled={loading}>
+      {error && (
+        <p className="rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {error}
+        </p>
+      )}
+      <Button type="submit" className={PRIMARY_BTN} disabled={loading}>
         {loading ? 'Creating account…' : 'Create account'}
       </Button>
     </form>

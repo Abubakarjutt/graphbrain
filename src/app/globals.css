@@ -49,38 +49,42 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Ink & Constellation — warm paper, ink text, champagne-gold accents. */
+  --gold: oklch(0.78 0.11 79);
+  --gold-deep: oklch(0.62 0.11 67);
+
+  --background: oklch(0.988 0.005 85);
+  --foreground: oklch(0.23 0.018 268);
+  --card: oklch(1 0.002 85);
+  --card-foreground: oklch(0.23 0.018 268);
+  --popover: oklch(1 0.002 85);
+  --popover-foreground: oklch(0.23 0.018 268);
+  --primary: oklch(0.25 0.02 268);
+  --primary-foreground: oklch(0.98 0.006 85);
+  --secondary: oklch(0.965 0.006 85);
+  --secondary-foreground: oklch(0.25 0.02 268);
+  --muted: oklch(0.965 0.006 85);
+  --muted-foreground: oklch(0.53 0.02 268);
+  --accent: oklch(0.945 0.028 82);
+  --accent-foreground: oklch(0.36 0.06 70);
+  --destructive: oklch(0.55 0.2 27);
+  --border: oklch(0.905 0.008 85);
+  --input: oklch(0.9 0.008 85);
+  --ring: oklch(0.76 0.1 79);
+  --chart-1: oklch(0.78 0.11 79);
+  --chart-2: oklch(0.62 0.11 67);
+  --chart-3: oklch(0.5 0.08 55);
+  --chart-4: oklch(0.55 0.06 250);
+  --chart-5: oklch(0.4 0.05 268);
+  --radius: 0.7rem;
+  --sidebar: oklch(0.975 0.006 85);
+  --sidebar-foreground: oklch(0.3 0.018 268);
+  --sidebar-primary: oklch(0.25 0.02 268);
+  --sidebar-primary-foreground: oklch(0.98 0.006 85);
+  --sidebar-accent: oklch(0.945 0.02 82);
+  --sidebar-accent-foreground: oklch(0.3 0.04 70);
+  --sidebar-border: oklch(0.91 0.008 85);
+  --sidebar-ring: oklch(0.76 0.1 79);
 }
 
 .dark {
@@ -126,5 +130,82 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  Ink & Constellation — shared aesthetic utilities
+ * ------------------------------------------------------------------ */
+
+.font-display {
+  font-family: var(--font-display), Georgia, serif;
+  font-optical-sizing: auto;
+}
+
+/* Fine film-grain texture layered over dark scenes for depth. */
+.grain::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  mix-blend-mode: overlay;
+}
+
+/* Champagne-gold hairline used as a decorative rule. */
+.gold-rule {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklch, var(--gold) 70%, transparent),
+    transparent
+  );
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(0, -18px, 0) scale(1.04);
+  }
+}
+
+@keyframes gold-shimmer {
+  0% {
+    background-position: -180% 0;
+  }
+  100% {
+    background-position: 180% 0;
+  }
+}
+
+.animate-rise {
+  animation: rise 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-drift {
+  animation: drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-drift {
+    animation: none;
   }
 }
