@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react'
 import { Sidebar } from '@/components/layout/Sidebar'
 
 vi.mock('@/lib/actions/pages', () => ({ createPage: vi.fn() }))
+vi.mock('@/lib/actions/databases', () => ({ createDatabase: vi.fn() }))
 
 vi.mock('next/navigation', () => ({
   useParams: vi.fn().mockReturnValue({ workspaceId: 'ws-1' }),
@@ -24,24 +25,24 @@ const mockWorkspaces = [
 
 describe('Sidebar', () => {
   it('renders workspace names', () => {
-    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} />)
+    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
     expect(screen.getByText('My Workspace')).toBeInTheDocument()
     expect(screen.getByText('Team Workspace')).toBeInTheDocument()
   })
 
   it('highlights the active workspace', () => {
-    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} />)
+    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
     const activeLink = screen.getByText('My Workspace').closest('a')
     expect(activeLink?.className).toContain('bg-accent')
   })
 
   it('renders user email at bottom', () => {
-    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} />)
+    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
     expect(screen.getByText('test@test.com')).toBeInTheDocument()
   })
 
   it('renders graphbrain brand name', () => {
-    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} />)
+    render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
     expect(screen.getByText('graphbrain')).toBeInTheDocument()
   })
 })

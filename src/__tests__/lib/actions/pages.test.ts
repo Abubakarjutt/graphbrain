@@ -1,5 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('next/server', () => ({ after: vi.fn() }))
+vi.mock('@/lib/graph/graph', () => ({
+  upsertNode: vi.fn().mockResolvedValue('n1'),
+  scheduleEmbed: vi.fn().mockResolvedValue(undefined),
+  upsertEdge: vi.fn().mockResolvedValue(undefined),
+  findNodeId: vi.fn().mockResolvedValue(null),
+  findPageNodeByTitle: vi.fn().mockResolvedValue(null),
+  clearMentionEdges: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/lib/graph/content', () => ({
+  pageToText: vi.fn().mockReturnValue('page text'),
+  parseMentions: vi.fn().mockReturnValue([]),
+}))
+
 // Each function builds its own terminal mock so the chain always resolves correctly.
 const mockSingle = vi.fn()
 const mockInsert = vi.fn()

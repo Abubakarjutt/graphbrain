@@ -73,6 +73,7 @@ export interface FileRecord {
   storage_path: string
   mime_type: string
   extracted_text: string | null
+  extraction_status: 'pending' | 'done' | 'error' | 'none'
   created_at: string
 }
 
@@ -86,8 +87,17 @@ export interface Database {
 export interface DatabaseRow {
   id: string
   database_id: string
+  page_id: string | null
   fields: Record<string, unknown>
   created_at: string
+}
+
+export interface DatabaseRowWithTitle extends DatabaseRow {
+  page_title: string | null
+}
+
+export interface DatabaseWithRows extends Database {
+  rows: DatabaseRowWithTitle[]
 }
 
 export interface Node {

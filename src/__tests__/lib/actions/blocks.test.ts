@@ -29,6 +29,18 @@ vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(async () => ({ from: mockFrom })),
 }))
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
+vi.mock('next/server', () => ({ after: vi.fn() }))
+vi.mock('@/lib/graph/graph', () => ({
+  upsertNode: vi.fn().mockResolvedValue('n1'),
+  scheduleEmbed: vi.fn().mockResolvedValue(undefined),
+  upsertEdge: vi.fn().mockResolvedValue(undefined),
+  findNodeId: vi.fn().mockResolvedValue(null),
+  findPageNodeByTitle: vi.fn().mockResolvedValue(null),
+}))
+vi.mock('@/lib/graph/content', () => ({
+  pageToText: vi.fn().mockReturnValue('page text'),
+  parseMentions: vi.fn().mockReturnValue([]),
+}))
 
 const mockDoc: TiptapDocument = {
   type: 'doc',
@@ -58,7 +70,7 @@ describe('block actions', () => {
 
   it('saveBlocks verifies page ownership then deletes and inserts blocks', async () => {
     const { saveBlocks } = await import('@/lib/actions/pages')
-    await saveBlocks('page1', 'ws1', mockDoc)
+    await saveBlocks('page1', 'ws1', mockDoc, 'My Page')
 
     // Ownership check: pages table queried with correct filters
     expect(mockFrom).toHaveBeenCalledWith('pages')
@@ -77,7 +89,7 @@ describe('block actions', () => {
   it('saveBlocks throws when page ownership check fails', async () => {
     mockPagesSingle.mockResolvedValue({ data: null, error: null })
     const { saveBlocks } = await import('@/lib/actions/pages')
-    await expect(saveBlocks('other-page', 'ws1', mockDoc)).rejects.toThrow('Page not found or access denied')
+    await expect(saveBlocks('other-page', 'ws1', mockDoc, 'My Page')).rejects.toThrow('Page not found or access denied')
     expect(mockBlocksDelete).not.toHaveBeenCalled()
   })
 
