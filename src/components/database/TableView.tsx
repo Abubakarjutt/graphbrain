@@ -11,6 +11,7 @@ interface CellProps {
   onChange: (value: unknown) => void
 }
 
+// Cell uses defaultValue (uncontrolled) — adequate for single-user use; revisit if real-time subscriptions are added
 function Cell({ field, value, onChange }: CellProps) {
   if (field.type === 'checkbox') {
     return (
@@ -44,6 +45,7 @@ function Cell({ field, value, onChange }: CellProps) {
       />
     )
   }
+  // url and select: text input is adequate; multi_select stores as string (array coercion not yet implemented)
   return (
     <input
       type="text"
@@ -80,7 +82,11 @@ export function TableView({
     const newFields = { ...row.fields, [field.id]: value }
     onRowUpdate(row.id, newFields)
     startTransition(async () => {
-      await updateRowFields(row.id, databaseId, workspaceId, newFields)
+      try {
+        await updateRowFields(row.id, databaseId, workspaceId, newFields)
+      } catch {
+        onRowUpdate(row.id, row.fields)
+      }
     })
   }
 
@@ -89,13 +95,13 @@ export function TableView({
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr className="border-b bg-muted/30">
-            <th className="text-left px-4 py-2 font-medium text-muted-foreground w-48">Name</th>
+            <th scope="col" className="text-left px-4 py-2 font-medium text-muted-foreground w-48">Name</th>
             {schema.map(field => (
-              <th key={field.id} className="text-left px-4 py-2 font-medium text-muted-foreground">
+              <th key={field.id} scope="col" className="text-left px-4 py-2 font-medium text-muted-foreground">
                 {field.name}
               </th>
             ))}
-            <th className="w-8" />
+            <th scope="col" className="w-8" />
           </tr>
         </thead>
         <tbody>
@@ -125,7 +131,7 @@ export function TableView({
               <td className="px-2">
                 <button
                   onClick={() => onDeleteRow(row.id)}
-                  className="opacity-0 group-hover:opacity-100 text-destructive text-xs"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-destructive text-xs"
                   aria-label="Delete row"
                 >
                   ×
