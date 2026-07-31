@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import type { DatabaseField } from '@/lib/types/database'
 import { updateRowFields } from '@/lib/actions/databases'
 
@@ -22,6 +22,16 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
   })
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
+
+  useEffect(() => {
+    setLocalValues(prev => {
+      const additions: Record<string, string> = {}
+      for (const f of schema) {
+        if (!(f.id in prev)) additions[f.id] = ''
+      }
+      return Object.keys(additions).length > 0 ? { ...prev, ...additions } : prev
+    })
+  }, [schema])
 
   function handleChange(fieldId: string, value: unknown, displayValue?: string) {
     const previous = fields

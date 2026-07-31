@@ -11,13 +11,6 @@ export default async function DatabasePage({
   const { workspaceId, databaseId } = await params
   const supabase = await createClient()
 
-  const { data: membership } = await supabase
-    .from('workspace_members')
-    .select('workspace_id')
-    .eq('workspace_id', workspaceId)
-    .single()
-  if (!membership) notFound()
-
   let db
   try {
     db = await getDatabase(databaseId, workspaceId)

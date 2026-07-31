@@ -19,7 +19,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
   const [currentRows, setCurrentRows] = useState(rows)
   const [schemaEditorOpen, setSchemaEditorOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   function handleSchemaChange(newSchema: DatabaseField[]) {
     const previousSchema = currentSchema
@@ -52,14 +52,21 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
   }
 
   function handleDeleteRow(rowId: string) {
-    const rowToDelete = currentRows.find(r => r.id === rowId)
+    const insertIdx = currentRows.findIndex(r => r.id === rowId)
+    const rowToDelete = currentRows[insertIdx]
     setCurrentRows(prev => prev.filter(r => r.id !== rowId))
     startTransition(async () => {
       try {
         await deleteRow(rowId, databaseId, workspaceId)
         setError(null)
       } catch {
-        if (rowToDelete) setCurrentRows(prev => [...prev, rowToDelete])
+        if (rowToDelete) {
+          setCurrentRows(prev => {
+            const next = [...prev]
+            next.splice(Math.min(insertIdx, next.length), 0, rowToDelete)
+            return next
+          })
+        }
         setError('Failed to delete row')
       }
     })
@@ -79,11 +86,13 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
       </div>
       {error && <p className="text-sm text-destructive px-6 py-2">{error}</p>}
       {schemaEditorOpen && (
-        <SchemaEditor
-          schema={currentSchema}
-          onChange={handleSchemaChange}
-          onClose={() => setSchemaEditorOpen(false)}
-        />
+        <div className={isPending ? 'pointer-events-none opacity-50' : ''}>
+          <SchemaEditor
+            schema={currentSchema}
+            onChange={handleSchemaChange}
+            onClose={() => setSchemaEditorOpen(false)}
+          />
+        </div>
       )}
       <TableView
         databaseId={databaseId}

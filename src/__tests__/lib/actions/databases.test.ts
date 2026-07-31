@@ -224,6 +224,28 @@ describe('database actions', () => {
     expect(mockDbUpdateEq).toHaveBeenCalledWith('id', 'db1')
   })
 
+  it('deleteRow throws when linked page delete fails after row is deleted', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p-container' }, error: null })
+    mockRowSingle.mockResolvedValue({ data: { id: 'row1', page_id: 'p-row' }, error: null })
+    mockPagesDeleteEq.mockResolvedValue({ error: { message: 'page delete failed' } })
+    const { deleteRow } = await import('@/lib/actions/databases')
+    await expect(deleteRow('row1', 'db1', 'ws1')).rejects.toThrow('Row deleted but failed to delete linked page: page delete failed')
+  })
+
+  it('getDatabase returns Untitled page_title when row page is absent from the titles map', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p1', schema: [], created_at: '' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'p1', workspace_id: 'ws1' }, error: null })
+    mockRowOrder.mockResolvedValue({
+      data: [{ id: 'r1', database_id: 'db1', page_id: 'missing-page', fields: {}, created_at: '' }],
+      error: null,
+    })
+    mockPagesIn.mockResolvedValue({ data: [], error: null })
+    const { getDatabase } = await import('@/lib/actions/databases')
+    const result = await getDatabase('db1', 'ws1')
+    expect(result.rows[0].page_title).toBe('Untitled')
+  })
+
   it('updateDatabaseSchema throws when database not in workspace', async () => {
     mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'p-container' }, error: null })
     mockPagesSingle.mockResolvedValue({ data: null, error: null })

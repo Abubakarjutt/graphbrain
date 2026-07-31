@@ -28,7 +28,7 @@ export default async function PageViewPage({
     .from('database_rows')
     .select('id, database_id, fields')
     .eq('page_id', pageId)
-    .single()
+    .maybeSingle()
 
   let dbSchema: DatabaseField[] | null = null
   if (dbRow) {

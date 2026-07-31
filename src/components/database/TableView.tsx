@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import Link from 'next/link'
 import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
 import { updateRowFields } from '@/lib/actions/databases'
@@ -11,8 +11,13 @@ interface CellProps {
   onChange: (value: unknown) => void
 }
 
-// Cell uses defaultValue (uncontrolled) — adequate for single-user use; revisit if real-time subscriptions are added
 function Cell({ field, value, onChange }: CellProps) {
+  const [localValue, setLocalValue] = useState(String(value ?? ''))
+
+  useEffect(() => {
+    setLocalValue(String(value ?? ''))
+  }, [value])
+
   if (field.type === 'checkbox') {
     return (
       <input
@@ -27,7 +32,8 @@ function Cell({ field, value, onChange }: CellProps) {
     return (
       <input
         type="date"
-        defaultValue={String(value ?? '')}
+        value={localValue}
+        onChange={e => setLocalValue(e.target.value)}
         onBlur={e => onChange(e.target.value || null)}
         className="w-full bg-transparent text-sm outline-none"
         aria-label={field.name}
@@ -38,7 +44,8 @@ function Cell({ field, value, onChange }: CellProps) {
     return (
       <input
         type="number"
-        defaultValue={String(value ?? '')}
+        value={localValue}
+        onChange={e => setLocalValue(e.target.value)}
         onBlur={e => onChange(e.target.value === '' ? null : Number(e.target.value))}
         className="w-full bg-transparent text-sm outline-none"
         aria-label={field.name}
@@ -49,7 +56,8 @@ function Cell({ field, value, onChange }: CellProps) {
   return (
     <input
       type="text"
-      defaultValue={String(value ?? '')}
+      value={localValue}
+      onChange={e => setLocalValue(e.target.value)}
       onBlur={e => onChange(e.target.value)}
       className="w-full bg-transparent text-sm outline-none"
       aria-label={field.name}
