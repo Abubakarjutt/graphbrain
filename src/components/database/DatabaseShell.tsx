@@ -78,6 +78,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
             <button
               key={v}
               onClick={() => setView(v)}
+              aria-pressed={view === v}
               className={`px-3 py-1 text-sm rounded transition-colors ${
                 view === v
                   ? 'bg-accent text-accent-foreground'
