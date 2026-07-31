@@ -1,8 +1,11 @@
 'use server'
 
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Page, TiptapDocument, TiptapNode } from '@/lib/types/database'
+import { upsertNode, scheduleEmbed, upsertEdge, findNodeId, findPageNodeByTitle } from '@/lib/graph/graph'
+import { pageToText, parseMentions } from '@/lib/graph/content'
+import type { Page, TiptapDocument, TiptapNode, Block } from '@/lib/types/database'
 
 export async function getPages(workspaceId: string): Promise<Page[]> {
   const supabase = await createClient()
@@ -25,8 +28,19 @@ export async function createPage(workspaceId: string, parentId: string | null): 
     .select()
     .single()
   if (error) throw new Error(error.message)
+
+  const page = data as Page
+  after(async () => {
+    const nodeId = await upsertNode(workspaceId, 'page', page.id)
+    if (parentId) {
+      const parentNodeId = await findNodeId('page', parentId)
+      if (parentNodeId) await upsertEdge(workspaceId, parentNodeId, nodeId, 'parent_child')
+    }
+    await scheduleEmbed(nodeId, pageToText('Untitled', []))
+  })
+
   revalidatePath(`/workspace/${workspaceId}`)
-  return data
+  return page
 }
 
 export async function updatePageTitle(pageId: string, workspaceId: string, title: string): Promise<void> {
@@ -37,14 +51,23 @@ export async function updatePageTitle(pageId: string, workspaceId: string, title
     .eq('id', pageId)
     .eq('workspace_id', workspaceId)
   if (error) throw new Error(error.message)
+
+  after(async () => {
+    const client = await createClient()
+    const { data: blockRows } = await client
+      .from('blocks')
+      .select('id, page_id, type, content, position, created_at')
+      .eq('page_id', pageId)
+      .order('position', { ascending: true })
+    const nodeId = await upsertNode(workspaceId, 'page', pageId)
+    await scheduleEmbed(nodeId, pageToText(title, (blockRows ?? []) as Block[]))
+  })
+
   revalidatePath(`/workspace/${workspaceId}`)
 }
 
 export async function deletePage(pageId: string, workspaceId: string): Promise<void> {
   const supabase = await createClient()
-  // workspace_id guard ensures users can only delete pages they own.
-  // Child pages become root pages (ON DELETE SET NULL on parent_id).
-  // Child blocks are removed automatically (ON DELETE CASCADE on blocks.page_id).
   const { error } = await supabase
     .from('pages')
     .delete()
@@ -54,10 +77,9 @@ export async function deletePage(pageId: string, workspaceId: string): Promise<v
   revalidatePath(`/workspace/${workspaceId}`)
 }
 
-export async function saveBlocks(pageId: string, workspaceId: string, doc: TiptapDocument): Promise<void> {
+export async function saveBlocks(pageId: string, workspaceId: string, doc: TiptapDocument, pageTitle: string): Promise<void> {
   const supabase = await createClient()
 
-  // Verify page belongs to the workspace before touching its blocks
   const { data: page } = await supabase
     .from('pages')
     .select('id')
@@ -81,13 +103,25 @@ export async function saveBlocks(pageId: string, workspaceId: string, doc: Tipta
     if (error) throw new Error(error.message)
   }
 
+  after(async () => {
+    const nodeId = await upsertNode(workspaceId, 'page', pageId)
+    const mentionedTitles = parseMentions(doc.content ?? [])
+    for (const title of mentionedTitles) {
+      const targetNodeId = await findPageNodeByTitle(workspaceId, title)
+      if (targetNodeId) {
+        await upsertEdge(workspaceId, nodeId, targetNodeId, 'mention')
+        await upsertEdge(workspaceId, targetNodeId, nodeId, 'backlink')
+      }
+    }
+    await scheduleEmbed(nodeId, pageToText(pageTitle, blocks as unknown as Block[]))
+  })
+
   revalidatePath(`/workspace/${workspaceId}/page/${pageId}`)
 }
 
 export async function loadBlocks(pageId: string, workspaceId: string): Promise<TiptapDocument> {
   const supabase = await createClient()
 
-  // Verify page belongs to the workspace (RLS also enforces this)
   const { data: page } = await supabase
     .from('pages')
     .select('id')

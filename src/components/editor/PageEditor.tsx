@@ -40,7 +40,7 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
   function handleSave(doc: TiptapDocument) {
     startTransition(async () => {
       try {
-        await saveBlocks(pageId, workspaceId, doc)
+        await saveBlocks(pageId, workspaceId, doc, title)
         setSaveError(null)
       } catch {
         setSaveError('Failed to save content')
