@@ -1,5 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+vi.mock('next/server', () => ({ after: vi.fn() }))
+vi.mock('@/lib/graph/graph', () => ({
+  upsertNode: vi.fn().mockResolvedValue('n1'),
+  scheduleEmbed: vi.fn().mockResolvedValue(undefined),
+}))
+vi.mock('@/lib/graph/content', () => ({
+  rowToText: vi.fn().mockReturnValue('field text'),
+}))
+
 // ── pages table ──────────────────────────────────────────────────
 const mockPagesSingle = vi.fn()
 const mockPagesSelectEq2 = vi.fn(() => ({ single: mockPagesSingle }))

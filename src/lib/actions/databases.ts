@@ -1,7 +1,10 @@
 'use server'
 
+import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { upsertNode, scheduleEmbed } from '@/lib/graph/graph'
+import { rowToText } from '@/lib/graph/content'
 import type { Database, DatabaseField, DatabaseRow, DatabaseRowWithTitle, DatabaseWithRows } from '@/lib/types/database'
 
 export async function createDatabase(workspaceId: string): Promise<{ database: Database; pageId: string }> {
@@ -159,6 +162,11 @@ export async function createRow(
     throw new Error(deleteResult.error ? `${msg} (rollback also failed: ${deleteResult.error.message})` : msg)
   }
 
+  after(async () => {
+    const nodeId = await upsertNode(workspaceId, 'database_row', row.id)
+    await scheduleEmbed(nodeId, rowToText(row.fields as Record<string, unknown>))
+  })
+
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
   return {
     id: row.id,
@@ -201,6 +209,11 @@ export async function updateRowFields(
     .eq('id', rowId)
     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
+
+  after(async () => {
+    const nodeId = await upsertNode(workspaceId, 'database_row', rowId)
+    await scheduleEmbed(nodeId, rowToText(fields))
+  })
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
 }
