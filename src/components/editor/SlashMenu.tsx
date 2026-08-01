@@ -43,6 +43,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
           return true
         }
         if (event.key === 'Enter') {
+          if (items.length === 0) return false
           onSelect(items[selectedIndex])
           return true
         }

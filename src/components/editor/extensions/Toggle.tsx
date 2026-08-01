@@ -1,5 +1,3 @@
-'use client'
-
 import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { ToggleView } from '@/components/editor/ToggleView'
