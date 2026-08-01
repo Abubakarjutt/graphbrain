@@ -7,6 +7,7 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -27,6 +28,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
       TaskList,
       TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder: "Type '/' for commands" }),
+      MarkdownRules,
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
