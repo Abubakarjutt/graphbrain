@@ -36,20 +36,27 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
       >
         <button
           onClick={() => setExpanded(v => !v)}
-          className="w-4 h-4 flex items-center justify-center text-xs shrink-0"
+          className="w-4 h-4 flex items-center justify-center shrink-0 text-sidebar-foreground/40 transition-transform"
           aria-label={expanded ? 'Collapse' : 'Expand'}
+          style={{ transform: children.length > 0 && expanded ? 'rotate(90deg)' : undefined }}
         >
-          {children.length > 0 ? (expanded ? '▾' : '▸') : ' '}
+          {children.length > 0 ? (
+            <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden>
+              <path d="M1.5 1.5 6.5 5 1.5 8.5z" />
+            </svg>
+          ) : null}
         </button>
         <Link href={`/workspace/${workspaceId}/page/${page.id}`} className="flex-1 truncate">
           {page.title || 'Untitled'}
         </Link>
         <button
           onClick={() => onCreatePage(page.id)}
-          className="opacity-0 group-hover:opacity-100 w-4 h-4 text-xs"
+          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-sidebar-foreground/45 transition-colors hover:text-[var(--gold)]"
           aria-label="New subpage"
         >
-          +
+          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
         </button>
       </div>
       {expanded && children.map(child => (
