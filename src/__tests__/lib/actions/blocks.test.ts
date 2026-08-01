@@ -105,4 +105,51 @@ describe('block actions', () => {
     expect(doc.type).toBe('doc')
     expect(doc.content).toHaveLength(1)
   })
+
+  it('saveBlocks + loadBlocks round-trips a doc with Tiptap node names unchanged', async () => {
+    // The doc uses real Tiptap node names that previously violated blocks_type_check.
+    const tiptapDoc: TiptapDocument = {
+      type: 'doc',
+      content: [
+        { type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] },
+        { type: 'heading', attrs: { level: 2 }, content: [{ type: 'text', text: 'Section' }] },
+        { type: 'taskList', content: [{ type: 'taskItem', attrs: { checked: false }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Todo item' }] }] }] },
+        { type: 'callout', attrs: { type: 'info' }, content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Note' }] }] },
+      ],
+    }
+
+    // Capture what saveBlocks inserts so we can feed it back through loadBlocks.
+    let capturedRows: Array<{ page_id: string; type: string; content: unknown; position: number }> = []
+    mockBlocksInsert.mockImplementation((rows) => {
+      capturedRows = rows
+      return Promise.resolve({ error: null })
+    })
+
+    const { saveBlocks, loadBlocks } = await import('@/lib/actions/pages')
+    await saveBlocks('page1', 'ws1', tiptapDoc, 'My Page')
+
+    // Verify each inserted row preserves the original Tiptap node name as `type`.
+    expect(capturedRows).toHaveLength(4)
+    expect(capturedRows[0].type).toBe('paragraph')
+    expect(capturedRows[1].type).toBe('heading')
+    expect(capturedRows[2].type).toBe('taskList')
+    expect(capturedRows[3].type).toBe('callout')
+
+    // Now simulate loadBlocks returning the same rows in position order.
+    const dbRows = capturedRows.map((r, i) => ({
+      id: `b${i}`,
+      type: r.type,
+      content: r.content,
+      position: r.position,
+    }))
+    mockBlocksOrderEq.mockResolvedValue({ data: dbRows, error: null })
+
+    const loaded = await loadBlocks('page1', 'ws1')
+    expect(loaded.type).toBe('doc')
+    expect(loaded.content).toHaveLength(4)
+
+    // loadBlocks returns b.content for each row; each content is the original TiptapNode.
+    const types = loaded.content!.map((n) => n.type)
+    expect(types).toEqual(['paragraph', 'heading', 'taskList', 'callout'])
+  })
 })

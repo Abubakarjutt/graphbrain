@@ -15,11 +15,14 @@ export default async function PageViewPage({
   const { workspaceId, pageId } = await params
   const supabase = await createClient()
 
+  // Authorization is enforced by the pages_select RLS policy
+  // (is_workspace_member); scope to the URL's workspace as well.
   const { data: page } = await supabase
     .from('pages')
-    .select('id, title, workspace_id, workspace_members!inner(user_id)')
+    .select('id, title, workspace_id')
     .eq('id', pageId)
-    .single()
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
 
   if (!page) notFound()
 

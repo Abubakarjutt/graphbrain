@@ -9,18 +9,18 @@ test.describe('page flow', () => {
     await page.waitForURL(/\/workspace\//)
   })
 
-  test('sidebar shows Pages section', async ({ page }) => {
-    await expect(page.getByText('Pages')).toBeVisible()
+  test('sidebar shows Docs section', async ({ page }) => {
+    await expect(page.getByText('Docs')).toBeVisible()
   })
 
-  test('clicking + New Page creates a page and navigates to editor', async ({ page }) => {
-    await page.getByRole('button', { name: /new page/i }).first().click()
+  test('clicking + New Doc creates a page and navigates to editor', async ({ page }) => {
+    await page.getByRole('button', { name: /new doc/i }).first().click()
     await page.waitForURL(/\/page\//)
     await expect(page.getByPlaceholder('Untitled')).toBeVisible()
   })
 
   test('typing in title updates the page title', async ({ page }) => {
-    await page.getByRole('button', { name: /new page/i }).first().click()
+    await page.getByRole('button', { name: /new doc/i }).first().click()
     await page.waitForURL(/\/page\//)
     const titleInput = page.getByPlaceholder('Untitled')
     await titleInput.fill('My Test Page')
@@ -29,7 +29,7 @@ test.describe('page flow', () => {
   })
 
   test('editor renders and accepts text input', async ({ page }) => {
-    await page.getByRole('button', { name: /new page/i }).first().click()
+    await page.getByRole('button', { name: /new doc/i }).first().click()
     await page.waitForURL(/\/page\//)
     const editor = page.locator('.ProseMirror')
     await editor.click()

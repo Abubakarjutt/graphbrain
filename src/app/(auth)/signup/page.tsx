@@ -1,22 +1,26 @@
 import Link from 'next/link'
 import { SignupForm } from '@/components/auth/SignupForm'
+import { AuthShell } from '@/components/auth/AuthShell'
 
 export default function SignupPage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm space-y-6 p-8">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold">graphbrain</h1>
-          <p className="text-sm text-muted-foreground">Create your account</p>
-        </div>
-        <SignupForm />
-        <p className="text-center text-sm text-muted-foreground">
+    <AuthShell
+      eyebrow="Get started"
+      title="Create your account"
+      subtitle="Your second brain is one step away."
+      footer={
+        <>
           Already have an account?{' '}
-          <Link href="/login" className="underline">
+          <Link
+            href="/login"
+            className="text-white/80 underline decoration-[var(--gold)]/60 underline-offset-4 transition-colors hover:text-white"
+          >
             Sign in
           </Link>
-        </p>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <SignupForm />
+    </AuthShell>
   )
 }

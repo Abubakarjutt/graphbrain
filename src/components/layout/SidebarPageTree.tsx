@@ -71,26 +71,43 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
 
   return (
     <div className="mt-2">
-      <div className="flex items-center px-3 py-1 justify-between">
-        <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Pages</span>
+      <div className="flex items-center justify-between px-3 pt-2 pb-1">
+        <span className="text-[0.65rem] font-medium tracking-[0.18em] text-sidebar-foreground/35 uppercase">
+          Docs
+        </span>
         <button
           onClick={() => onCreatePage(null)}
-          className="text-muted-foreground hover:text-foreground text-sm"
-          aria-label="New page"
+          className="grid h-5 w-5 place-items-center rounded text-sidebar-foreground/45 transition-colors hover:bg-white/[0.06] hover:text-[var(--gold)]"
+          aria-label="New doc"
+          title="New doc"
         >
-          +
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
         </button>
       </div>
-      {roots.map(page => (
-        <PageNode
-          key={page.id}
-          page={page}
-          pages={pages}
-          workspaceId={workspaceId}
-          depth={0}
-          onCreatePage={onCreatePage}
-        />
-      ))}
+      {roots.length === 0 ? (
+        <button
+          onClick={() => onCreatePage(null)}
+          className="mx-2 mt-1 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md border border-dashed border-white/10 px-3 py-2 text-sm text-sidebar-foreground/45 transition-colors hover:border-[var(--gold)]/40 hover:text-[var(--gold)]"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+            <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          New doc
+        </button>
+      ) : (
+        roots.map(page => (
+          <PageNode
+            key={page.id}
+            page={page}
+            pages={pages}
+            workspaceId={workspaceId}
+            depth={0}
+            onCreatePage={onCreatePage}
+          />
+        ))
+      )}
     </div>
   )
 }

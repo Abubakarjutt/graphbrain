@@ -1,32 +1,41 @@
 import Link from 'next/link'
 import { LoginForm } from '@/components/auth/LoginForm'
+import { AuthShell } from '@/components/auth/AuthShell'
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { message?: string; error?: string }
+  searchParams: Promise<{ message?: string; error?: string }>
 }) {
+  const params = await searchParams
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="w-full max-w-sm space-y-6 p-8">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold">graphbrain</h1>
-          <p className="text-sm text-muted-foreground">Sign in to your workspace</p>
-        </div>
-        {searchParams.message && (
-          <p className="text-sm text-center text-muted-foreground">{searchParams.message}</p>
-        )}
-        {searchParams.error && (
-          <p className="text-sm text-center text-destructive">{searchParams.error}</p>
-        )}
-        <LoginForm />
-        <p className="text-center text-sm text-muted-foreground">
-          No account?{' '}
-          <Link href="/signup" className="underline">
-            Sign up
+    <AuthShell
+      eyebrow="Welcome back"
+      title="Sign in"
+      subtitle="Return to your knowledge graph."
+      footer={
+        <>
+          New here?{' '}
+          <Link
+            href="/signup"
+            className="text-white/80 underline decoration-[var(--gold)]/60 underline-offset-4 transition-colors hover:text-white"
+          >
+            Create an account
           </Link>
+        </>
+      }
+    >
+      {params.message && (
+        <p className="mb-4 rounded-lg border border-[var(--gold)]/25 bg-[var(--gold)]/10 px-3 py-2 text-sm text-[var(--gold)]">
+          {params.message}
         </p>
-      </div>
-    </div>
+      )}
+      {params.error && (
+        <p className="mb-4 rounded-lg border border-red-400/25 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {params.error}
+        </p>
+      )}
+      <LoginForm />
+    </AuthShell>
   )
 }

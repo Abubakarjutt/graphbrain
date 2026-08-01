@@ -2,9 +2,17 @@
 
 import { useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import EditorBubbleMenu from '@/components/editor/EditorBubbleMenu'
 import StarterKit from '@tiptap/starter-kit'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
-import { EditorToolbar } from './EditorToolbar'
+import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
+import { SlashCommand } from '@/components/editor/extensions/SlashCommand'
+import { Callout } from '@/components/editor/extensions/Callout'
+import { Toggle } from '@/components/editor/extensions/Toggle'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -20,12 +28,20 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Start writing…' }),
+      StarterKit.configure({ link: false }),
+      Link.configure({ openOnClick: false }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({ placeholder: "Type '/' for commands" }),
+      MarkdownRules,
+      SlashCommand,
+      Callout,
+      Toggle,
+      Image.configure({ inline: false, allowBase64: false }),
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
-      attributes: { class: 'prose max-w-none focus:outline-none min-h-[200px] p-4' },
+      attributes: { class: 'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh]' },
     },
     onUpdate({ editor }) {
       if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -54,9 +70,9 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
   if (!editor) return null
 
   return (
-    <div className="flex flex-col border rounded-md overflow-hidden">
-      <EditorToolbar editor={editor} />
+    <>
+      <EditorBubbleMenu editor={editor} />
       <EditorContent editor={editor} />
-    </div>
+    </>
   )
 }
