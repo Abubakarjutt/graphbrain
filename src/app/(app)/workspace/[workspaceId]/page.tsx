@@ -19,30 +19,37 @@ export default async function WorkspacePage({
   if (!workspace) notFound()
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-full py-20 px-8">
-      {/* Brand mark */}
-      <div className="mb-8 flex flex-col items-center gap-4">
-        <div className="grid h-14 w-14 place-items-center rounded-2xl border border-[var(--gold)]/30 bg-[var(--gold)]/8 shadow-sm">
-          <svg width="26" height="26" viewBox="0 0 18 18" fill="none" aria-hidden>
-            <path d="M4 13.5 9 4l5 9.5" stroke="rgba(226,198,138,0.45)" strokeWidth="1" />
-            <circle cx="9" cy="4" r="2" fill="#e2c68a" />
-            <circle cx="4" cy="13.5" r="1.6" fill="#e2c68a" />
-            <circle cx="14" cy="13.5" r="1.6" fill="#e2c68a" />
-          </svg>
-        </div>
-        <div className="text-center">
-          <h1 className="font-display text-3xl font-semibold tracking-tight text-foreground mb-1">
-            {workspace.name}
-          </h1>
-          <div className="gold-rule w-32 mx-auto mt-2" />
-        </div>
+    <div className="flex flex-col min-h-full">
+      {/* Thin header */}
+      <div className="h-11 flex items-center px-5 border-b border-border/40 shrink-0">
+        <span className="text-sm font-medium text-muted-foreground/70">{workspace.name}</span>
       </div>
 
-      <p className="text-muted-foreground text-sm mb-8 text-center max-w-xs leading-relaxed">
-        Your knowledge graph is ready. Create a doc to start capturing ideas, or pick one from the sidebar.
-      </p>
+      {/* Empty state — centered */}
+      <div className="flex flex-col items-center justify-center flex-1 py-20 px-8">
+        {/* Workspace icon */}
+        <div className="mb-6 text-5xl leading-none select-none" aria-hidden>
+          🧠
+        </div>
 
-      <NewPageButton workspaceId={workspaceId} />
+        {/* Title */}
+        <h1 className="text-[2rem] font-bold tracking-tight text-foreground mb-2 text-center">
+          {workspace.name}
+        </h1>
+
+        {/* Subtitle */}
+        <p className="text-muted-foreground/70 text-sm mb-8 text-center max-w-sm leading-relaxed">
+          Get started by creating a page, or pick one from the sidebar.
+        </p>
+
+        {/* CTA */}
+        <NewPageButton workspaceId={workspaceId} />
+
+        {/* Hint */}
+        <p className="mt-6 text-xs text-muted-foreground/40">
+          Press <kbd className="font-mono bg-muted/60 border border-border/40 rounded px-1 py-0.5">⌘K</kbd> to search
+        </p>
+      </div>
     </div>
   )
 }

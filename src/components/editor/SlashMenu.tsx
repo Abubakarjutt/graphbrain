@@ -70,12 +70,12 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
         aria-activedescendant={`slash-option-${selectedIndex}`}
         onKeyDown={(e) => handleKeyDown(e)}
         style={{
-          background: 'var(--background, #fff)',
-          border: '1px solid var(--border, #e5e7eb)',
-          borderRadius: 8,
-          boxShadow: '0 4px 24px rgba(0,0,0,0.12)',
-          minWidth: 220,
-          maxHeight: 320,
+          background: 'var(--background)',
+          border: '1px solid color-mix(in oklch, var(--border) 80%, transparent)',
+          borderRadius: 6,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
+          minWidth: 240,
+          maxHeight: 340,
           overflowY: 'auto',
           outline: 'none',
           padding: '4px 0',
@@ -85,11 +85,12 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
           <div key={label}>
             <div
               style={{
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: 600,
-                letterSpacing: '0.08em',
-                color: 'var(--muted-foreground, #6b7280)',
-                padding: '8px 12px 4px',
+                letterSpacing: '0.12em',
+                color: 'var(--muted-foreground)',
+                opacity: 0.7,
+                padding: '8px 16px 3px',
               }}
             >
               {label.toUpperCase()}
@@ -105,17 +106,18 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
                   aria-selected={isSelected}
                   onClick={() => onSelect(item)}
                   style={{
-                    padding: '6px 12px',
+                    padding: '5px 12px',
                     cursor: 'pointer',
                     background: isSelected
-                      ? 'var(--gold, #f5c842)'
+                      ? 'var(--accent)'
                       : 'transparent',
                     color: isSelected
-                      ? 'var(--gold-foreground, #1a1a1a)'
-                      : 'inherit',
+                      ? 'var(--accent-foreground)'
+                      : 'var(--foreground)',
                     borderRadius: 4,
                     margin: '1px 4px',
                     userSelect: 'none',
+                    fontSize: 14,
                   }}
                   onMouseEnter={() => setSelectedIndex(idx)}
                 >

@@ -17,12 +17,19 @@ export default async function PageViewPage({
 
   // Authorization is enforced by the pages_select RLS policy
   // (is_workspace_member); scope to the URL's workspace as well.
-  const { data: page } = await supabase
-    .from('pages')
-    .select('id, title, workspace_id')
-    .eq('id', pageId)
-    .eq('workspace_id', workspaceId)
-    .maybeSingle()
+  const [{ data: page }, { data: workspace }] = await Promise.all([
+    supabase
+      .from('pages')
+      .select('id, title, workspace_id')
+      .eq('id', pageId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle(),
+    supabase
+      .from('workspaces')
+      .select('name')
+      .eq('id', workspaceId)
+      .single(),
+  ])
 
   if (!page) notFound()
 
@@ -86,6 +93,7 @@ export default async function PageViewPage({
           initialTitle={page.title}
           initialDoc={doc}
           fileAttachments={fileAttachments}
+          workspaceName={workspace?.name}
         />
       </div>
       {dbRow && dbSchema && (

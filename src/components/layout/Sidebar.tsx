@@ -24,11 +24,12 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const [createDbError, setCreateDbError] = useState<string | null>(null)
   const currentWorkspaceId = params?.workspaceId as string | undefined
 
-  // Exclude database container pages and their direct children (row pages) from the Pages section
   const databasePageIds = new Set(databases.map(d => d.page_id))
   const regularPages = pages.filter(
     p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
   )
+
+  const currentWorkspace = workspaces.find(w => w.workspace_id === currentWorkspaceId)?.workspaces
 
   function handleCreatePage(parentId: string | null) {
     if (!currentWorkspaceId) return
@@ -54,22 +55,40 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const userInitial = (user.email?.[0] ?? '?').toUpperCase()
 
   return (
-    <aside className="bg-sidebar text-sidebar-foreground flex h-full w-64 flex-shrink-0 flex-col border-r border-sidebar-border">
-      {/* Brand */}
-      <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
-        <span className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--gold)]/40 bg-[var(--gold)]/10">
-          <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden>
-            <path d="M4 13.5 9 4l5 9.5" stroke="rgba(226,198,138,0.5)" strokeWidth="1" />
-            <circle cx="9" cy="4" r="2" fill="#e2c68a" />
-            <circle cx="4" cy="13.5" r="1.6" fill="#e2c68a" />
-            <circle cx="14" cy="13.5" r="1.6" fill="#e2c68a" />
+    <aside className="bg-sidebar text-sidebar-foreground flex h-full w-60 flex-shrink-0 flex-col border-r border-sidebar-border select-none">
+
+      {/* Brand + workspace header */}
+      <div className="flex items-center gap-2 px-3 py-3 border-b border-sidebar-border">
+        <span className="grid h-5 w-5 place-items-center rounded-[3px] border border-[var(--gold)]/40 bg-[var(--gold)]/10 shrink-0">
+          <svg width="10" height="10" viewBox="0 0 18 18" fill="none" aria-hidden>
+            <path d="M4 13.5 9 4l5 9.5" stroke="rgba(180,150,90,0.6)" strokeWidth="1" />
+            <circle cx="9" cy="4" r="2" fill="#b89650" />
+            <circle cx="4" cy="13.5" r="1.6" fill="#b89650" />
+            <circle cx="14" cy="13.5" r="1.6" fill="#b89650" />
           </svg>
         </span>
-        <span className="font-display text-lg tracking-tight text-sidebar-foreground">graphbrain</span>
+        <span className="font-display text-sm font-semibold tracking-tight text-sidebar-foreground">graphbrain</span>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
-        <p className="px-3 pt-2 pb-1 text-[0.65rem] font-medium tracking-[0.18em] text-sidebar-foreground/35 uppercase">
+      {/* Search */}
+      <div className="px-2 py-1.5">
+        <button
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-sidebar-foreground/50 hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors rounded-[4px] text-left"
+          aria-label="Search"
+        >
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+            <circle cx="5.5" cy="5.5" r="4" stroke="currentColor" strokeWidth="1.2" />
+            <path d="M9 9l2.5 2.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+          </svg>
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="text-[10px] text-sidebar-foreground/25 font-mono">⌘K</kbd>
+        </button>
+      </div>
+
+      {/* Scrollable nav */}
+      <nav className="flex-1 overflow-y-auto px-1 pb-2">
+        {/* Workspace list */}
+        <p className="px-2 pt-2 pb-0.5 text-[10.5px] font-medium tracking-[0.14em] text-sidebar-foreground/35 uppercase">
           Workspaces
         </p>
         {workspaces.map(({ workspaces: ws }) =>
@@ -77,19 +96,27 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
             <Link
               key={ws.id}
               href={`/workspace/${ws.id}`}
-              className={`relative block rounded-md px-3 py-2 text-sm transition-colors ${
+              className={`relative flex items-center gap-2 rounded-[4px] px-2 py-1.5 text-sm transition-colors ${
                 currentWorkspaceId === ws.id
                   ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
                   : 'text-sidebar-foreground/60 hover:bg-black/[0.04] hover:text-sidebar-foreground'
               }`}
             >
               {currentWorkspaceId === ws.id && (
-                <span className="absolute top-1/2 left-0 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[var(--gold)]" />
+                <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-full bg-[var(--gold-deep)]" />
               )}
-              {ws.name}
+              <span
+                className="grid h-5 w-5 shrink-0 place-items-center rounded-[3px] text-[10px] font-semibold text-white"
+                style={{ background: currentWorkspaceId === ws.id ? 'oklch(0.45 0.02 75)' : 'oklch(0.60 0.01 75)' }}
+              >
+                {ws.name[0].toUpperCase()}
+              </span>
+              <span className="truncate">{ws.name}</span>
             </Link>
           ) : null
         )}
+
+        {/* Pages + databases for active workspace */}
         {currentWorkspaceId && (
           <>
             <SidebarPageTree
@@ -98,7 +125,7 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
               onCreatePage={handleCreatePage}
             />
             {createDbError && (
-              <p className="px-3 py-1 text-xs text-destructive">{createDbError}</p>
+              <p className="px-2 py-1 text-xs text-destructive">{createDbError}</p>
             )}
             <SidebarDatabaseTree
               databases={databases}
@@ -108,13 +135,34 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
             />
           </>
         )}
+
+        {/* New page */}
+        {currentWorkspaceId && (
+          <button
+            onClick={() => handleCreatePage(null)}
+            className="mt-1 flex w-full items-center gap-2 rounded-[4px] px-2 py-1.5 text-sm text-sidebar-foreground/45 hover:bg-black/[0.04] hover:text-sidebar-foreground transition-colors"
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+              <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            </svg>
+            New page
+          </button>
+        )}
       </nav>
 
-      <div className="flex items-center gap-2.5 border-t border-sidebar-border px-4 py-3.5">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#d4c4a0,#b8a070)] text-xs font-semibold text-white">
-          {userInitial}
-        </span>
-        <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
+      {/* User footer */}
+      <div className="border-t border-sidebar-border px-2 py-1.5">
+        <div className="flex items-center gap-2 rounded-[4px] px-2 py-1.5 hover:bg-black/[0.04] cursor-pointer transition-colors">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gradient-to-br from-stone-400 to-stone-600 text-xs font-semibold text-white">
+            {userInitial}
+          </span>
+          <p className="truncate text-xs text-sidebar-foreground/60 flex-1">{user.email}</p>
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="text-sidebar-foreground/30 shrink-0" aria-hidden>
+            <circle cx="6.5" cy="6.5" r="1" fill="currentColor" />
+            <circle cx="6.5" cy="2.5" r="1" fill="currentColor" />
+            <circle cx="6.5" cy="10.5" r="1" fill="currentColor" />
+          </svg>
+        </div>
       </div>
     </aside>
   )

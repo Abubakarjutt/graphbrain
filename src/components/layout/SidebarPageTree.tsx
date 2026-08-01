@@ -31,7 +31,7 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
   return (
     <div>
       <div
-        className={`flex items-center gap-1 group rounded-md px-2 py-1 text-sm ${isActive ? 'bg-accent text-accent-foreground' : 'hover:bg-accent/50 text-muted-foreground'}`}
+        className={`flex items-center gap-1 group rounded-[4px] px-1.5 py-[3px] text-sm transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-black/[0.04] text-sidebar-foreground/65 hover:text-sidebar-foreground'}`}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
       >
         <button
@@ -46,8 +46,12 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
             </svg>
           ) : null}
         </button>
-        <Link href={`/workspace/${workspaceId}/page/${page.id}`} className="flex-1 truncate">
-          {page.title || 'Untitled'}
+        <Link href={`/workspace/${workspaceId}/page/${page.id}`} className="flex items-center gap-1.5 flex-1 truncate min-w-0">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="shrink-0 opacity-50" aria-hidden>
+            <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+            <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+          </svg>
+          <span className="truncate">{page.title || 'Untitled'}</span>
         </Link>
         <button
           onClick={() => onCreatePage(page.id)}

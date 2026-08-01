@@ -10,6 +10,28 @@ import { CalendarView } from './CalendarView'
 
 type View = 'table' | 'kanban' | 'calendar'
 
+const VIEW_ICONS: Record<View, React.ReactNode> = {
+  table: (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <rect x="1" y="1" width="11" height="11" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M1 4.5h11M4.5 4.5v7.5" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  ),
+  kanban: (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <rect x="1" y="1" width="3" height="11" rx="0.75" stroke="currentColor" strokeWidth="1.1" />
+      <rect x="5" y="1" width="3" height="8" rx="0.75" stroke="currentColor" strokeWidth="1.1" />
+      <rect x="9" y="1" width="3" height="5" rx="0.75" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  ),
+  calendar: (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <rect x="1" y="2.5" width="11" height="9.5" rx="1" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M1 6h11M4 1v3M9 1v3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  ),
+}
+
 interface DatabaseShellProps {
   databaseId: string
   workspaceId: string
@@ -83,35 +105,58 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
 
   return (
     <div className="flex flex-col h-full">
-      <div className="border-b px-6 py-3 flex items-center justify-between gap-4">
-        <h1 className="text-xl font-semibold shrink-0">{title}</h1>
-        <div className="flex items-center gap-1 border rounded-md p-0.5">
+      {/* Sticky header */}
+      <div className="sticky top-0 z-10 h-11 flex items-center px-5 bg-background/95 backdrop-blur-sm border-b border-border/40 shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0 text-sm">
+          <span className="text-muted-foreground/60 truncate font-medium">{title}</span>
+        </div>
+      </div>
+
+      {/* Title area */}
+      <div className="px-14 pt-12 pb-3">
+        <div className="flex items-center gap-3 mb-1">
+          <span className="text-4xl leading-none" aria-hidden>🗄️</span>
+          <h1 className="text-[2.5rem] font-bold leading-tight text-foreground">{title}</h1>
+        </div>
+      </div>
+
+      {/* View tabs + actions */}
+      <div className="border-b border-border/60 px-14 flex items-center justify-between">
+        <div className="flex items-center -mb-px">
           {(['table', 'kanban', 'calendar'] as View[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
               aria-pressed={view === v}
-              className={`px-3 py-1 text-sm rounded transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
                 view === v
-                  ? 'bg-accent text-accent-foreground'
-                  : 'hover:bg-accent/50 text-muted-foreground'
+                  ? 'border-foreground text-foreground font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
               }`}
             >
+              {VIEW_ICONS[v]}
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
           ))}
         </div>
-        <button
-          onClick={() => setSchemaEditorOpen(v => !v)}
-          aria-expanded={schemaEditorOpen}
-          className="text-sm text-muted-foreground hover:text-foreground border rounded-md px-3 py-1 shrink-0"
-        >
-          Fields
-        </button>
+        <div className="flex items-center gap-1 pb-1">
+          <button
+            onClick={() => setSchemaEditorOpen(v => !v)}
+            aria-expanded={schemaEditorOpen}
+            className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:bg-accent border border-border/60 hover:border-border rounded px-2.5 py-1 transition-colors"
+          >
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+              <rect x="1" y="1" width="9" height="9" rx="1" stroke="currentColor" strokeWidth="1.1" />
+              <path d="M1 4h9M4 1v9" stroke="currentColor" strokeWidth="1.1" />
+            </svg>
+            Properties
+          </button>
+        </div>
       </div>
-      {error && <p className="text-sm text-destructive px-6 py-2">{error}</p>}
+
+      {error && <p className="text-sm text-destructive px-14 py-2">{error}</p>}
       {schemaEditorOpen && (
-        <div className={isPending ? 'pointer-events-none opacity-50' : ''}>
+        <div className={`px-14 py-3 border-b border-border/40 ${isPending ? 'pointer-events-none opacity-50' : ''}`}>
           <SchemaEditor
             schema={currentSchema}
             onChange={handleSchemaChange}
@@ -119,6 +164,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
           />
         </div>
       )}
+
       {view === 'table' && (
         <TableView
           databaseId={databaseId}
