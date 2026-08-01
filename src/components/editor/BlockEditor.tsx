@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
+import EditorBubbleMenu from '@/components/editor/EditorBubbleMenu'
 import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
@@ -60,5 +61,10 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
 
   if (!editor) return null
 
-  return <EditorContent editor={editor} />
+  return (
+    <>
+      <EditorBubbleMenu editor={editor} />
+      <EditorContent editor={editor} />
+    </>
+  )
 }
