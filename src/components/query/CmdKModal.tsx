@@ -93,7 +93,8 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
     })
 
     if (!res.ok) {
-      setError('AI unavailable — start Ollama with `ollama serve`')
+      const body = await res.text().catch(() => '')
+      setError(body || 'AI unavailable — start Ollama with `ollama serve`')
       setLoading(false)
       return
     }

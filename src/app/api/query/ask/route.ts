@@ -63,10 +63,20 @@ export async function POST(req: Request): Promise<Response> {
   let sources: SearchResult[] = []
   let prompt: string
   try {
+    console.log('[ask] step 1 — embedding query…')
+    const { embed } = await import('@/lib/graph/ollama')
+    const vec = await embed(query)
+    console.log('[ask] step 1 — embed ok, dims:', vec.length)
+
+    console.log('[ask] step 2 — retrieveNodes…')
     sources = await retrieveNodes(workspaceId, query, scope)
+    console.log('[ask] step 2 — ok, sources:', sources.length)
+
     prompt = buildPrompt(query, sources)
-  } catch {
-    return new Response('AI unavailable — start Ollama with `ollama serve`', { status: 503 })
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[ask] failed:', msg)
+    return new Response(`AI unavailable: ${msg}`, { status: 503 })
   }
 
   const stream = new ReadableStream({
@@ -116,10 +126,15 @@ export async function POST(req: Request): Promise<Response> {
     excerpt: '',
   }))
 
+  // HTTP headers must be ISO-8859-1 (≤ 0xFF). Encode non-ASCII as \uXXXX so
+  // em-dashes and other Unicode in page titles don't crash the response.
+  const sourcesJson = JSON.stringify(sourcesHeader)
+    .replace(/[^\x00-\x7E]/g, c => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`)
+
   return new Response(stream, {
     headers: {
       'Content-Type': 'text/plain; charset=utf-8',
-      'X-Sources': JSON.stringify(sourcesHeader),
+      'X-Sources': sourcesJson,
     },
   })
 }
