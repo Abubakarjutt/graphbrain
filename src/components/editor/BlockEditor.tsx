@@ -41,7 +41,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
-      attributes: { class: 'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-display prose-headings:tracking-tight prose-headings:font-semibold prose-a:text-[var(--gold-deep)] prose-a:no-underline hover:prose-a:underline' },
+      attributes: { class: 'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh] prose-headings:font-semibold prose-headings:tracking-tight prose-a:text-[var(--gold-deep)] prose-a:no-underline hover:prose-a:underline' },
     },
     onUpdate({ editor }) {
       if (saveTimer.current) clearTimeout(saveTimer.current)

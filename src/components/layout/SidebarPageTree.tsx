@@ -51,7 +51,7 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
         </Link>
         <button
           onClick={() => onCreatePage(page.id)}
-          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-sidebar-foreground/45 transition-colors hover:text-[var(--gold)]"
+          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-sidebar-foreground/45 transition-colors hover:text-[var(--gold-deep)]"
           aria-label="New subpage"
         >
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
@@ -84,7 +84,7 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
         </span>
         <button
           onClick={() => onCreatePage(null)}
-          className="grid h-5 w-5 place-items-center rounded text-sidebar-foreground/45 transition-colors hover:bg-white/[0.06] hover:text-[var(--gold)]"
+          className="grid h-5 w-5 place-items-center rounded text-sidebar-foreground/45 transition-colors hover:bg-black/[0.06] hover:text-[var(--gold-deep)]"
           aria-label="New doc"
           title="New doc"
         >
@@ -96,7 +96,7 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
       {roots.length === 0 ? (
         <button
           onClick={() => onCreatePage(null)}
-          className="mx-2 mt-1 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md border border-dashed border-white/10 px-3 py-2 text-sm text-sidebar-foreground/45 transition-colors hover:border-[var(--gold)]/40 hover:text-[var(--gold)]"
+          className="mx-2 mt-1 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md border border-dashed border-sidebar-border px-3 py-2 text-sm text-sidebar-foreground/45 transition-colors hover:border-[var(--gold-deep)]/50 hover:text-[var(--gold-deep)]"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />

@@ -21,7 +21,7 @@ export function AppShell({ workspaces, user, pages, databases, ollamaAvailable =
       <OllamaStatusBanner ollamaAvailable={ollamaAvailable} />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar workspaces={workspaces} user={user} pages={pages} databases={databases} />
-        <main className="flex-1 overflow-auto bg-muted/40">{children}</main>
+        <main className="flex-1 overflow-auto bg-background">{children}</main>
       </div>
       <CmdKModal databases={databases} />
     </div>

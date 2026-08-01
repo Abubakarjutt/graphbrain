@@ -53,23 +53,22 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-12 my-8 bg-card rounded-xl shadow-sm border border-border/60">
+    <div className="max-w-2xl mx-auto px-12 pt-20 pb-16">
       {saveError && (
         <p className="text-sm text-destructive mb-4">{saveError}</p>
       )}
       <input
-        className="w-full text-[2.5rem] leading-tight font-semibold font-display bg-transparent border-none outline-none mb-3 placeholder:text-muted-foreground/40 tracking-tight"
+        className="w-full text-[2.75rem] leading-tight font-semibold font-display bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground/30 tracking-tight"
         value={title}
         onChange={e => setTitle(e.target.value)}
         onBlur={handleTitleBlur}
         placeholder="Untitled"
         aria-label="Page title"
       />
-      <div className="gold-rule mb-7" />
       <BlockEditor doc={initialDoc} onSave={handleSave} />
 
-      <div className="mt-8 border-t pt-6">
-        <h2 className="text-sm font-medium text-muted-foreground mb-3">Attachments</h2>
+      <div className="mt-10 border-t border-border/50 pt-6">
+        <h2 className="text-xs font-medium text-muted-foreground/60 uppercase tracking-wider mb-3">Attachments</h2>
         {attachments.length > 0 && (
           <ul className="space-y-1 mb-3">
             {attachments.map(a => (

@@ -54,7 +54,7 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
   const userInitial = (user.email?.[0] ?? '?').toUpperCase()
 
   return (
-    <aside className="dark bg-sidebar text-sidebar-foreground flex h-full w-64 flex-shrink-0 flex-col border-r border-sidebar-border">
+    <aside className="bg-sidebar text-sidebar-foreground flex h-full w-64 flex-shrink-0 flex-col border-r border-sidebar-border">
       {/* Brand */}
       <div className="flex items-center gap-2.5 border-b border-sidebar-border px-4 py-4">
         <span className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--gold)]/40 bg-[var(--gold)]/10">
@@ -65,7 +65,7 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
             <circle cx="14" cy="13.5" r="1.6" fill="#e2c68a" />
           </svg>
         </span>
-        <span className="font-display text-lg tracking-tight text-white">graphbrain</span>
+        <span className="font-display text-lg tracking-tight text-sidebar-foreground">graphbrain</span>
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-2">
@@ -80,7 +80,7 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
               className={`relative block rounded-md px-3 py-2 text-sm transition-colors ${
                 currentWorkspaceId === ws.id
                   ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground/60 hover:bg-white/[0.04] hover:text-sidebar-foreground'
+                  : 'text-sidebar-foreground/60 hover:bg-black/[0.04] hover:text-sidebar-foreground'
               }`}
             >
               {currentWorkspaceId === ws.id && (
@@ -111,10 +111,10 @@ export function Sidebar({ workspaces, user, pages, databases }: SidebarProps) {
       </nav>
 
       <div className="flex items-center gap-2.5 border-t border-sidebar-border px-4 py-3.5">
-        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#ecd7a0,#cdae6e)] text-xs font-semibold text-[#2a2413]">
+        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#d4c4a0,#b8a070)] text-xs font-semibold text-white">
           {userInitial}
         </span>
-        <p className="truncate text-xs text-sidebar-foreground/55">{user.email}</p>
+        <p className="truncate text-xs text-sidebar-foreground/50">{user.email}</p>
       </div>
     </aside>
   )
