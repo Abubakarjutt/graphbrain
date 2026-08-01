@@ -98,8 +98,15 @@ export const slashItems: SlashItem[] = [
     title: 'Callout',
     keywords: ['callout', 'note', 'info', 'warning', 'tip'],
     group: 'Media',
+    // The callout node requires `block+` content, so seed it with an empty
+    // paragraph — inserting a childless callout fails schema validation.
     command: (editor, range) =>
-      editor.chain().focus().deleteRange(range).insertContent({ type: 'callout' }).run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'callout', content: [{ type: 'paragraph' }] })
+        .run(),
   },
   {
     title: 'Toggle',

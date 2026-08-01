@@ -10,6 +10,7 @@ import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
 import { SlashCommand } from '@/components/editor/extensions/SlashCommand'
+import { Callout } from '@/components/editor/extensions/Callout'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -32,6 +33,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
       Placeholder.configure({ placeholder: "Type '/' for commands" }),
       MarkdownRules,
       SlashCommand,
+      Callout,
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {

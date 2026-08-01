@@ -142,6 +142,10 @@ export interface TiptapNode {
   text?: string
 }
 
+export interface CalloutAttrs {
+  emoji: string
+}
+
 export interface SearchResult {
   nodeId: string
   entityType: EntityType
