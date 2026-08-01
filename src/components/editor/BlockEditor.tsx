@@ -7,7 +7,6 @@ import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
-import { EditorToolbar } from './EditorToolbar'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -31,7 +30,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
-      attributes: { class: 'prose max-w-none focus:outline-none min-h-[200px] p-4' },
+      attributes: { class: 'prose prose-neutral dark:prose-invert max-w-none focus:outline-none min-h-[60vh]' },
     },
     onUpdate({ editor }) {
       if (saveTimer.current) clearTimeout(saveTimer.current)
@@ -59,10 +58,5 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
 
   if (!editor) return null
 
-  return (
-    <div className="flex flex-col border rounded-md overflow-hidden">
-      <EditorToolbar editor={editor} />
-      <EditorContent editor={editor} />
-    </div>
-  )
+  return <EditorContent editor={editor} />
 }

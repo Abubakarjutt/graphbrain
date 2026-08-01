@@ -11,9 +11,9 @@ describe('BlockEditor', () => {
     expect(document.querySelector('.ProseMirror')).toBeInTheDocument()
   })
 
-  it('renders toolbar with bold and italic buttons', () => {
+  it('does not render a fixed toolbar', () => {
     render(<BlockEditor doc={emptyDoc} onSave={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /bold/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /italic/i })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /bold/i })).toBeNull()
+    expect(screen.queryByRole('button', { name: /italic/i })).toBeNull()
   })
 })
