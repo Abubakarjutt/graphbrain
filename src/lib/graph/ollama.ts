@@ -53,7 +53,7 @@ export async function* streamChat(prompt: string, timeoutMs = 120_000): AsyncGen
     const res = await fetch(`${OLLAMA_BASE}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model: 'llama3.1:8b', prompt, stream: true }),
+      body: JSON.stringify({ model: 'gemma4:12b-mlx', prompt, stream: true }),
       signal: controller.signal,
     })
     if (!res.ok) throw new Error(`Ollama generate failed: ${res.status}`)
