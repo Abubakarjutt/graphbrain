@@ -7,6 +7,7 @@ import StarterKit from '@tiptap/starter-kit'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
+import Image from '@tiptap/extension-image'
 import Placeholder from '@tiptap/extension-placeholder'
 import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
 import { SlashCommand } from '@/components/editor/extensions/SlashCommand'
@@ -36,6 +37,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
       SlashCommand,
       Callout,
       Toggle,
+      Image.configure({ inline: false, allowBase64: false }),
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
