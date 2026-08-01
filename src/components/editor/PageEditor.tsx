@@ -53,7 +53,7 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-8 py-12">
+    <div className="max-w-3xl mx-auto px-8 py-12 my-8 bg-card rounded-xl shadow-sm border border-border/60">
       {saveError && (
         <p className="text-sm text-destructive mb-4">{saveError}</p>
       )}
