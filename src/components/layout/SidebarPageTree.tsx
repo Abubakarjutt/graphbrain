@@ -31,7 +31,7 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
   return (
     <div>
       <div
-        className={`flex items-center gap-1 group rounded-[4px] px-1.5 py-[3px] text-sm transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-black/[0.04] text-sidebar-foreground/65 hover:text-sidebar-foreground'}`}
+        className={`flex items-center gap-1 group rounded-[4px] px-1.5 py-[3px] text-[13px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-black/[0.06] text-sidebar-foreground/78 hover:text-sidebar-foreground'}`}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
       >
         <button
@@ -82,8 +82,8 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between px-3 pt-2 pb-1">
-        <span className="text-[0.65rem] font-medium tracking-[0.18em] text-sidebar-foreground/35 uppercase">
+      <div className="flex items-center justify-between px-3 pt-3 pb-1">
+        <span className="font-display italic text-[11px] text-sidebar-foreground/60 tracking-wide">
           Docs
         </span>
         <button

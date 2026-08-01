@@ -5,16 +5,17 @@ import { useParams } from 'next/navigation'
 import { searchQuery } from '@/lib/actions/query'
 import { SearchResults } from './SearchResults'
 import { AskPanel } from './AskPanel'
-import type { Database, SearchResult } from '@/lib/types/database'
+import type { Database, Page, SearchResult } from '@/lib/types/database'
 import type { QueryScope } from '@/lib/graph/query'
 
 interface CmdKModalProps {
   databases: Database[]
+  pages: Page[]
 }
 
 type Mode = 'search' | 'ask'
 
-export function CmdKModal({ databases }: CmdKModalProps) {
+export function CmdKModal({ databases, pages }: CmdKModalProps) {
   const params = useParams()
   const workspaceId = params?.workspaceId as string | undefined
   const currentDatabaseId = params?.databaseId as string | undefined
@@ -126,7 +127,10 @@ export function CmdKModal({ databases }: CmdKModalProps) {
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center px-4 py-3 border-b border-border gap-2">
-          <span className="text-muted-foreground text-sm">🔍</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="text-muted-foreground shrink-0" aria-hidden>
+            <circle cx="6" cy="6" r="4.5" stroke="currentColor" strokeWidth="1.3" />
+            <path d="M10 10l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          </svg>
           <input
             ref={inputRef}
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-muted-foreground"
@@ -157,9 +161,10 @@ export function CmdKModal({ databases }: CmdKModalProps) {
             aria-label="Scope"
           >
             <option value="">Entire workspace</option>
-            {databases.map(db => (
-              <option key={db.id} value={db.id}>{db.id}</option>
-            ))}
+            {databases.map(db => {
+              const title = pages.find(p => p.id === db.page_id)?.title || 'Untitled Database'
+              return <option key={db.id} value={db.id}>{title}</option>
+            })}
           </select>
         </div>
 

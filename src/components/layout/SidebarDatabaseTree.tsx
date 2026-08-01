@@ -23,8 +23,8 @@ export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDat
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between px-3 pt-2 pb-1">
-        <span className="text-[0.65rem] font-medium tracking-[0.18em] text-sidebar-foreground/35 uppercase">
+      <div className="flex items-center justify-between px-3 pt-3 pb-1">
+        <span className="font-display italic text-[11px] text-sidebar-foreground/60 tracking-wide">
           Databases
         </span>
         <button
@@ -46,10 +46,10 @@ export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDat
           <div key={db.id}>
             <Link
               href={`/workspace/${workspaceId}/database/${db.id}`}
-              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-sm transition-colors ${
+              className={`flex items-center gap-1.5 rounded-md px-3 py-1 text-[13px] transition-colors ${
                 isActive
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-                  : 'text-sidebar-foreground/60 hover:bg-black/[0.04] hover:text-sidebar-foreground'
+                  : 'text-sidebar-foreground/78 hover:bg-black/[0.06] hover:text-sidebar-foreground'
               }`}
             >
               <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="shrink-0 opacity-60" aria-hidden>
@@ -62,7 +62,7 @@ export function SidebarDatabaseTree({ databases, pages, workspaceId, onCreateDat
               <Link
                 key={rp.id}
                 href={`/workspace/${workspaceId}/page/${rp.id}`}
-                className="flex items-center rounded-md text-sm text-sidebar-foreground/55 hover:bg-black/[0.04] hover:text-sidebar-foreground pl-8 py-1 pr-2 transition-colors"
+                className="flex items-center rounded-md text-[12px] text-sidebar-foreground/70 hover:bg-black/[0.06] hover:text-sidebar-foreground pl-8 py-1 pr-2 transition-colors"
               >
                 {rp.title || 'Untitled'}
               </Link>

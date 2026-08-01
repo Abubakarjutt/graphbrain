@@ -90,23 +90,25 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
       </div>
 
       {/* Page content */}
-      <div className="flex-1 overflow-auto">
-        <div className="max-w-[720px] mx-auto px-14 pt-14 pb-16">
+      <div className="flex-1 overflow-auto bg-muted/40">
+        <div className="max-w-[720px] mx-auto px-14 pt-14 pb-16 min-h-full bg-background shadow-sm">
           {saveError && (
             <p className="text-sm text-destructive mb-4">{saveError}</p>
           )}
 
           {/* Page icon */}
           <div className="mb-3 -ml-1">
-            <button
-              className="text-4xl leading-none px-1 py-0.5 rounded-lg opacity-80 hover:opacity-100 hover:bg-accent transition-all cursor-default"
-              type="button"
-              tabIndex={-1}
-              aria-label="Page icon"
-              title="Page icon"
+            <span
+              className="inline-grid h-10 w-10 place-items-center rounded-lg opacity-70"
+              style={{ background: 'oklch(0.78 0.11 79 / 8%)', border: '1px solid oklch(0.78 0.11 79 / 20%)' }}
+              aria-hidden
             >
-              📄
-            </button>
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style={{ color: 'var(--gold)' }}>
+                <path d="M5 3h9.5L18 6.5V19H5V3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                <path d="M14.5 3v3.5H18" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
+                <path d="M8 10.5h6M8 13.5h6M8 16.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+              </svg>
+            </span>
           </div>
 
           {/* Title */}

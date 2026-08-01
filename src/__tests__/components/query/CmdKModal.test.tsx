@@ -19,32 +19,33 @@ vi.mock('@/components/query/AskPanel', () => ({
 }))
 
 import { CmdKModal } from '@/components/query/CmdKModal'
-import type { Database } from '@/lib/types/database'
+import type { Database, Page } from '@/lib/types/database'
 
 const fakeDatabases: Database[] = [{ id: 'db1', page_id: 'p1', schema: [], created_at: '' }]
+const fakePages: Page[] = [{ id: 'p1', workspace_id: 'ws1', parent_id: null, title: 'Projects', created_by: 'u1', created_at: '', updated_at: '' }]
 
 describe('CmdKModal', () => {
   beforeEach(() => vi.clearAllMocks())
 
   it('is not visible on initial render', () => {
-    render(<CmdKModal databases={fakeDatabases} />)
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   })
 
   it('opens on Cmd+K', () => {
-    render(<CmdKModal databases={fakeDatabases} />)
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('opens on Ctrl+K', () => {
-    render(<CmdKModal databases={fakeDatabases} />)
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
     fireEvent.keyDown(window, { key: 'k', ctrlKey: true })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
   })
 
   it('closes on Escape', () => {
-    render(<CmdKModal databases={fakeDatabases} />)
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     expect(screen.getByRole('dialog')).toBeInTheDocument()
     fireEvent.keyDown(window, { key: 'Escape' })
@@ -52,7 +53,7 @@ describe('CmdKModal', () => {
   })
 
   it('closes when clicking the overlay', () => {
-    render(<CmdKModal databases={fakeDatabases} />)
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     fireEvent.click(screen.getByTestId('modal-overlay'))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
