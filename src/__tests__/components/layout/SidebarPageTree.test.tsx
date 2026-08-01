@@ -35,7 +35,17 @@ describe('SidebarPageTree', () => {
   it('calls onCreatePage with null parentId when + button clicked', () => {
     const onCreatePage = vi.fn()
     render(<SidebarPageTree pages={mockPages} workspaceId="ws1" onCreatePage={onCreatePage} />)
-    fireEvent.click(screen.getByRole('button', { name: /new page/i }))
+    fireEvent.click(screen.getByRole('button', { name: /new doc/i }))
+    expect(onCreatePage).toHaveBeenCalledWith(null)
+  })
+
+  it('renders a New doc empty state when there are no pages', () => {
+    const onCreatePage = vi.fn()
+    render(<SidebarPageTree pages={[]} workspaceId="ws1" onCreatePage={onCreatePage} />)
+    // Both the header "+" and the empty-state CTA expose the "New doc" name.
+    const buttons = screen.getAllByRole('button', { name: /new doc/i })
+    expect(buttons).toHaveLength(2)
+    fireEvent.click(buttons[buttons.length - 1])
     expect(onCreatePage).toHaveBeenCalledWith(null)
   })
 })

@@ -33,7 +33,7 @@ describe('Sidebar', () => {
   it('highlights the active workspace', () => {
     render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
     const activeLink = screen.getByText('My Workspace').closest('a')
-    expect(activeLink?.className).toContain('bg-accent')
+    expect(activeLink?.className).toContain('bg-sidebar-accent')
   })
 
   it('renders user email at bottom', () => {
