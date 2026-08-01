@@ -207,6 +207,53 @@
   animation: drift 14s ease-in-out infinite;
 }
 
+/* ------------------------------------------------------------------ *
+ *  Ink & Constellation — prose overrides
+ *  Target `.prose` elements to carry the brand palette into the editor.
+ * ------------------------------------------------------------------ */
+
+/* Blockquote: gold left rule instead of generic gray */
+.prose blockquote {
+  border-left-color: color-mix(in oklch, var(--gold) 55%, transparent);
+  background: color-mix(in oklch, var(--gold) 6%, var(--background));
+  border-radius: 0 6px 6px 0;
+  padding: 0.6em 1em;
+  font-style: normal;
+  color: var(--foreground);
+}
+.prose blockquote p::before,
+.prose blockquote p::after {
+  content: none;
+}
+
+/* Inline code: warm accent surface, no backtick decoration */
+.prose :not(pre) > code {
+  background: color-mix(in oklch, var(--accent) 80%, transparent);
+  color: var(--accent-foreground);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-size: 0.875em;
+  font-weight: 500;
+}
+.prose :not(pre) > code::before,
+.prose :not(pre) > code::after {
+  content: none;
+}
+
+/* Code block: dark ink surface matching the dark sidebar tone */
+.prose pre {
+  background: oklch(0.19 0.014 265);
+  border: 1px solid oklch(1 0 0 / 8%);
+  border-radius: 8px;
+  color: oklch(0.9 0.008 85);
+}
+.prose pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: 0.875em;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
   .animate-drift {
