@@ -117,6 +117,28 @@ describe('BubbleMenuButtons', () => {
     expect(run).toHaveBeenCalled()
   })
 
+  it('clicking H2 button calls toggleHeading with level 2', async () => {
+    const user = userEvent.setup()
+    const { editor, chain, run } = makeMockEditor()
+    render(<BubbleMenuButtons editor={editor as never} />)
+
+    await user.click(screen.getByRole('button', { name: /heading 2|h2/i }))
+
+    expect(chain.toggleHeading).toHaveBeenCalledWith({ level: 2 })
+    expect(run).toHaveBeenCalled()
+  })
+
+  it('clicking H3 button calls toggleHeading with level 3', async () => {
+    const user = userEvent.setup()
+    const { editor, chain, run } = makeMockEditor()
+    render(<BubbleMenuButtons editor={editor as never} />)
+
+    await user.click(screen.getByRole('button', { name: /heading 3|h3/i }))
+
+    expect(chain.toggleHeading).toHaveBeenCalledWith({ level: 3 })
+    expect(run).toHaveBeenCalled()
+  })
+
   it('clicking Quote button calls toggleBlockquote', async () => {
     const user = userEvent.setup()
     const { editor, chain, run } = makeMockEditor()
