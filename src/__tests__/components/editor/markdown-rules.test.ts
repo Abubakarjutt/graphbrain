@@ -39,7 +39,6 @@ function makeEditor() {
 // ---------------------------------------------------------------------------
 function typeText(editor: Editor, text: string) {
   const view = editor.view
-  const { from, to } = view.state.selection
   // Fire each character one at a time so every character triggers the
   // handleTextInput path and the input rule sees the accumulated text.
   for (const char of text) {
