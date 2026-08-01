@@ -3,6 +3,9 @@
 import { useEffect, useRef } from 'react'
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
+import TaskList from '@tiptap/extension-task-list'
+import TaskItem from '@tiptap/extension-task-item'
+import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { EditorToolbar } from './EditorToolbar'
 import type { TiptapDocument } from '@/lib/types/database'
@@ -20,8 +23,11 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
 
   const editor = useEditor({
     extensions: [
-      StarterKit,
-      Placeholder.configure({ placeholder: 'Start writing…' }),
+      StarterKit.configure({ link: false }),
+      Link.configure({ openOnClick: false }),
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({ placeholder: "Type '/' for commands" }),
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
