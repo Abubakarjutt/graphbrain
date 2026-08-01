@@ -9,6 +9,7 @@ import TaskItem from '@tiptap/extension-task-item'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
+import { SlashCommand } from '@/components/editor/extensions/SlashCommand'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -30,6 +31,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
       TaskItem.configure({ nested: true }),
       Placeholder.configure({ placeholder: "Type '/' for commands" }),
       MarkdownRules,
+      SlashCommand,
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
