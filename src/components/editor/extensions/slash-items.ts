@@ -112,8 +112,15 @@ export const slashItems: SlashItem[] = [
     title: 'Toggle',
     keywords: ['toggle', 'collapsible', 'accordion', 'details'],
     group: 'Media',
+    // The toggle node requires `block+` content, so seed it with an empty
+    // paragraph — inserting a childless toggle fails schema validation.
     command: (editor, range) =>
-      editor.chain().focus().deleteRange(range).insertContent({ type: 'toggle' }).run(),
+      editor
+        .chain()
+        .focus()
+        .deleteRange(range)
+        .insertContent({ type: 'toggle', content: [{ type: 'paragraph' }] })
+        .run(),
   },
 ]
 

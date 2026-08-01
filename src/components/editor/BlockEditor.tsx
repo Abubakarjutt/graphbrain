@@ -11,6 +11,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import { MarkdownRules } from '@/components/editor/extensions/markdown-rules'
 import { SlashCommand } from '@/components/editor/extensions/SlashCommand'
 import { Callout } from '@/components/editor/extensions/Callout'
+import { Toggle } from '@/components/editor/extensions/Toggle'
 import type { TiptapDocument } from '@/lib/types/database'
 
 interface BlockEditorProps {
@@ -34,6 +35,7 @@ export function BlockEditor({ doc, onSave }: BlockEditorProps) {
       MarkdownRules,
       SlashCommand,
       Callout,
+      Toggle,
     ],
     content: doc.content.length > 0 ? doc : { type: 'doc', content: [{ type: 'paragraph' }] },
     editorProps: {
