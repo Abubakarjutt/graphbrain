@@ -50,7 +50,12 @@ export const SlashCommand = Extension.create({
                 editor: props.editor,
               })
 
-              if (!renderer.element) return
+              if (!renderer.element) {
+                // Surface silent mount failures during development rather than
+                // leaving the suggestion popup invisibly broken.
+                console.warn('SlashCommand: ReactRenderer produced no element; menu not mounted')
+                return
+              }
 
               const el = renderer.element as HTMLElement
 

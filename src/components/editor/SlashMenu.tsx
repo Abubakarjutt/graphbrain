@@ -66,6 +66,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
       <div
         role="listbox"
         tabIndex={0}
+        aria-activedescendant={`slash-option-${selectedIndex}`}
         onKeyDown={(e) => handleKeyDown(e)}
         style={{
           background: 'var(--background, #fff)',
@@ -98,6 +99,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
               return (
                 <div
                   key={item.title}
+                  id={`slash-option-${idx}`}
                   role="option"
                   aria-selected={isSelected}
                   onClick={() => onSelect(item)}
