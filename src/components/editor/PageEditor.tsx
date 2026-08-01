@@ -58,13 +58,14 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
         <p className="text-sm text-destructive mb-4">{saveError}</p>
       )}
       <input
-        className="w-full text-4xl font-bold bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground"
+        className="w-full text-[2.5rem] leading-tight font-semibold font-display bg-transparent border-none outline-none mb-3 placeholder:text-muted-foreground/40 tracking-tight"
         value={title}
         onChange={e => setTitle(e.target.value)}
         onBlur={handleTitleBlur}
         placeholder="Untitled"
         aria-label="Page title"
       />
+      <div className="gold-rule mb-7" />
       <BlockEditor doc={initialDoc} onSave={handleSave} />
 
       <div className="mt-8 border-t pt-6">
