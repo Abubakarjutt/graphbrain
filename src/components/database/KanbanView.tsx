@@ -263,7 +263,7 @@ interface KanbanViewProps {
   workspaceId: string
   board: TodoBoard
   pages: Page[]
-  onBoardChange: (board: TodoBoard) => void
+  onBoardChange: (update: TodoBoard | ((prev: TodoBoard) => TodoBoard)) => void
 }
 
 export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChange }: KanbanViewProps) {
@@ -277,14 +277,21 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
     return board.items.filter(i => i.list_id === listId)
   }
 
+  // Every mutation below applies via the functional onBoardChange form and
+  // reverts (on failure) by restoring only the specific field(s) it touched,
+  // rather than the whole `board` captured at render time. Two concurrent
+  // edits finishing out of order — e.g. adding list B while adding list A is
+  // still in flight — would otherwise have B's completion overwrite the
+  // board with a stale snapshot that doesn't include A, silently dropping it.
+
   function handleAddList() {
     const name = newListName.trim()
     if (!name) return
-    setNewListName('')
     startTransition(async () => {
       try {
         const list = await createTodoList(databaseId, workspaceId, name)
-        onBoardChange({ ...board, lists: [...board.lists, list] })
+        onBoardChange(prev => ({ ...prev, lists: [...prev.lists, list] }))
+        setNewListName('')
         setError(null)
       } catch {
         setError('Failed to create list')
@@ -293,14 +300,17 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
   }
 
   function handleRenameList(listId: string, name: string) {
-    const previous = board.lists
-    onBoardChange({ ...board, lists: board.lists.map(l => l.id === listId ? { ...l, name } : l) })
+    const originalName = board.lists.find(l => l.id === listId)?.name
+    onBoardChange(prev => ({ ...prev, lists: prev.lists.map(l => l.id === listId ? { ...l, name } : l) }))
     startTransition(async () => {
       try {
         await renameTodoList(listId, databaseId, workspaceId, name)
         setError(null)
       } catch {
-        onBoardChange({ ...board, lists: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          lists: prev.lists.map(l => l.id === listId ? { ...l, name: originalName ?? l.name } : l),
+        }))
         setError('Failed to rename list')
       }
     })
@@ -312,38 +322,50 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
     if (idx === -1 || swapIdx < 0 || swapIdx >= sortedLists.length) return
     const a = sortedLists[idx]
     const b = sortedLists[swapIdx]
-    const previous = board.lists
-    onBoardChange({
-      ...board,
-      lists: board.lists.map(l => {
+    onBoardChange(prev => ({
+      ...prev,
+      lists: prev.lists.map(l => {
         if (l.id === a.id) return { ...l, position: b.position }
         if (l.id === b.id) return { ...l, position: a.position }
         return l
       }),
-    })
+    }))
     startTransition(async () => {
       try {
         await reorderTodoList(listId, databaseId, workspaceId, direction)
         setError(null)
       } catch {
-        onBoardChange({ ...board, lists: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          lists: prev.lists.map(l => {
+            if (l.id === a.id) return { ...l, position: a.position }
+            if (l.id === b.id) return { ...l, position: b.position }
+            return l
+          }),
+        }))
         setError('Failed to move list')
       }
     })
   }
 
   function handleDeleteList(listId: string) {
-    const previous = board
-    onBoardChange({
-      lists: board.lists.filter(l => l.id !== listId),
-      items: board.items.filter(i => i.list_id !== listId),
-    })
+    const deletedList = board.lists.find(l => l.id === listId)
+    const deletedItems = board.items.filter(i => i.list_id === listId)
+    onBoardChange(prev => ({
+      lists: prev.lists.filter(l => l.id !== listId),
+      items: prev.items.filter(i => i.list_id !== listId),
+    }))
     startTransition(async () => {
       try {
         await deleteTodoList(listId, databaseId, workspaceId)
         setError(null)
       } catch {
-        onBoardChange(previous)
+        if (deletedList) {
+          onBoardChange(prev => ({
+            lists: [...prev.lists, deletedList],
+            items: [...prev.items, ...deletedItems],
+          }))
+        }
         setError('Failed to delete list')
       }
     })
@@ -353,7 +375,7 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
     startTransition(async () => {
       try {
         const item = await createTodoItem(listId, databaseId, workspaceId, title)
-        onBoardChange({ ...board, items: [...board.items, item] })
+        onBoardChange(prev => ({ ...prev, items: [...prev.items, item] }))
         setError(null)
       } catch {
         setError('Failed to create item')
@@ -362,76 +384,108 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
   }
 
   function handleRenameItem(itemId: string, title: string) {
-    const previous = board.items
-    onBoardChange({ ...board, items: board.items.map(i => i.id === itemId ? { ...i, title } : i) })
+    const originalTitle = board.items.find(i => i.id === itemId)?.title
+    onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, title } : i) }))
     startTransition(async () => {
       try {
         await updateTodoItem(itemId, databaseId, workspaceId, { title })
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, title: originalTitle ?? i.title } : i),
+        }))
         setError('Failed to rename item')
       }
     })
   }
 
   function handleSetDueDate(itemId: string, dueDate: string | null) {
-    const previous = board.items
-    onBoardChange({ ...board, items: board.items.map(i => i.id === itemId ? { ...i, due_date: dueDate } : i) })
+    const originalDueDate = board.items.find(i => i.id === itemId)?.due_date ?? null
+    onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, due_date: dueDate } : i) }))
     startTransition(async () => {
       try {
         await updateTodoItem(itemId, databaseId, workspaceId, { due_date: dueDate })
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, due_date: originalDueDate } : i),
+        }))
         setError('Failed to update due date')
       }
     })
   }
 
   function handleDeleteItem(itemId: string) {
-    const previous = board.items
-    onBoardChange({ ...board, items: board.items.filter(i => i.id !== itemId) })
+    const deleteIndex = board.items.findIndex(i => i.id === itemId)
+    const deletedItem = board.items[deleteIndex]
+    onBoardChange(prev => ({ ...prev, items: prev.items.filter(i => i.id !== itemId) }))
     startTransition(async () => {
       try {
         await deleteTodoItem(itemId, databaseId, workspaceId)
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        if (deletedItem) {
+          // Re-insert at its original index (not appended) so it reappears
+          // where the user expects, not jumped to the bottom of the list.
+          onBoardChange(prev => {
+            const next = [...prev.items]
+            next.splice(Math.min(deleteIndex, next.length), 0, deletedItem)
+            return { ...prev, items: next }
+          })
+        }
         setError('Failed to delete item')
       }
     })
   }
 
   function handleAttach(itemId: string, page: Page) {
-    const previous = board.items
-    onBoardChange({
-      ...board,
-      items: board.items.map(i => i.id === itemId ? { ...i, attached_page_id: page.id, attached_page_title: page.title } : i),
-    })
+    const original = board.items.find(i => i.id === itemId)
+    onBoardChange(prev => ({
+      ...prev,
+      items: prev.items.map(i => i.id === itemId ? { ...i, attached_page_id: page.id, attached_page_title: page.title } : i),
+    }))
     startTransition(async () => {
       try {
-        await attachPageToTodoItem(itemId, databaseId, workspaceId, page.id)
+        // Reconcile with the server-verified title rather than trusting the
+        // client-supplied `page.title` (sourced from a `pages` list fetched
+        // once at server-render time, so it could be stale by now).
+        const { title } = await attachPageToTodoItem(itemId, databaseId, workspaceId, page.id)
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, attached_page_title: title } : i),
+        }))
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId
+            ? { ...i, attached_page_id: original?.attached_page_id ?? null, attached_page_title: original?.attached_page_title ?? null }
+            : i),
+        }))
         setError('Failed to attach document')
       }
     })
   }
 
   function handleDetach(itemId: string) {
-    const previous = board.items
-    onBoardChange({
-      ...board,
-      items: board.items.map(i => i.id === itemId ? { ...i, attached_page_id: null, attached_page_title: null } : i),
-    })
+    const original = board.items.find(i => i.id === itemId)
+    onBoardChange(prev => ({
+      ...prev,
+      items: prev.items.map(i => i.id === itemId ? { ...i, attached_page_id: null, attached_page_title: null } : i),
+    }))
     startTransition(async () => {
       try {
         await attachPageToTodoItem(itemId, databaseId, workspaceId, null)
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId
+            ? { ...i, attached_page_id: original?.attached_page_id ?? null, attached_page_title: original?.attached_page_title ?? null }
+            : i),
+        }))
         setError('Failed to remove attached document')
       }
     })
@@ -448,14 +502,17 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
     if (item.list_id === targetListId) return
     if (!board.lists.some(l => l.id === targetListId)) return
 
-    const previous = board.items
-    onBoardChange({ ...board, items: board.items.map(i => i.id === item.id ? { ...i, list_id: targetListId } : i) })
+    const originalListId = item.list_id
+    onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === item.id ? { ...i, list_id: targetListId } : i) }))
     startTransition(async () => {
       try {
         await updateTodoItem(item.id, databaseId, workspaceId, { list_id: targetListId })
         setError(null)
       } catch {
-        onBoardChange({ ...board, items: previous })
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === item.id ? { ...i, list_id: originalListId } : i),
+        }))
         setError('Failed to move item')
       }
     })

@@ -27,6 +27,24 @@ async function assertDatabaseAccess(
   if (!containerPage) throw new Error('Database not found or access denied')
 }
 
+// Neither the todo_items FK nor its RLS policy constrain a list to the same
+// database as the item — both only require the list row to exist. Without
+// this check, a crafted list_id could point an item at a list in a
+// different database, silently dropping it off its own board.
+async function assertListBelongsToDatabase(
+  supabase: SupabaseServerClient,
+  listId: string,
+  databaseId: string
+): Promise<void> {
+  const { data: list } = await supabase
+    .from('todo_lists')
+    .select('id')
+    .eq('id', listId)
+    .eq('database_id', databaseId)
+    .single()
+  if (!list) throw new Error('List not found')
+}
+
 export async function getTodoBoard(databaseId: string, workspaceId: string): Promise<TodoBoard> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -38,6 +56,7 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
     .select('id, database_id, name, position, created_at')
     .eq('database_id', databaseId)
     .order('position', { ascending: true })
+    .order('created_at', { ascending: true })
   if (listsError) throw new Error(listsError.message)
 
   const { data: items, error: itemsError } = await supabase
@@ -135,10 +154,15 @@ export async function reorderTodoList(
 
   const a = ordered[idx]
   const b = ordered[swapIdx]
-  const { error: err1 } = await supabase.from('todo_lists').update({ position: b.position }).eq('id', a.id)
-  if (err1) throw new Error(err1.message)
-  const { error: err2 } = await supabase.from('todo_lists').update({ position: a.position }).eq('id', b.id)
-  if (err2) throw new Error(err2.message)
+  // Both positions are swapped inside a single function body (one implicit
+  // transaction) so the pair can't be left sharing a duplicate position if
+  // one write succeeds and the other doesn't.
+  const { error } = await supabase.rpc('swap_todo_list_positions', {
+    id_a: a.id,
+    id_b: b.id,
+    target_database_id: databaseId,
+  })
+  if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
 }
@@ -170,6 +194,7 @@ export async function createTodoItem(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
+  await assertListBelongsToDatabase(supabase, listId, databaseId)
 
   const { data, error } = await supabase
     .from('todo_items')
@@ -192,6 +217,7 @@ export async function updateTodoItem(
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
+  if (patch.list_id) await assertListBelongsToDatabase(supabase, patch.list_id, databaseId)
 
   const { error } = await supabase
     .from('todo_items')

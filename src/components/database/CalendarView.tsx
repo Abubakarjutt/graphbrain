@@ -33,12 +33,12 @@ interface CalendarViewProps {
   databaseId: string
   workspaceId: string
   board: TodoBoard
-  onBoardChange: (board: TodoBoard) => void
+  onBoardChange: (update: TodoBoard | ((prev: TodoBoard) => TodoBoard)) => void
 }
 
-// Date-only strings (YYYY-MM-DD, and the date portion of a timestamptz) must
-// be parsed as local midnight, not UTC — otherwise the event can appear to
-// land on the wrong day depending on the viewer's timezone offset.
+// due_date is a DATE column (a bare YYYY-MM-DD with no timezone) and must be
+// parsed as local midnight — appending a UTC offset would shift it a day for
+// viewers on either side of UTC.
 function parseLocalDate(dateOnly: string): Date {
   return new Date(dateOnly + 'T00:00:00')
 }
@@ -49,7 +49,11 @@ export function CalendarView({ databaseId, workspaceId, board, onBoardChange }: 
   const [error, setError] = useState<string | null>(null)
 
   const events: TodoCalendarEvent[] = board.items.flatMap(item => {
-    const created = parseLocalDate(item.created_at.slice(0, 10))
+    // created_at is a timestamptz — the runtime correctly converts its UTC
+    // instant to the viewer's local time zone; slicing the UTC date first
+    // (as parseLocalDate's callers do for the date-only due_date column)
+    // would show the wrong day for anyone not in UTC.
+    const created = new Date(item.created_at)
     const evts: TodoCalendarEvent[] = [
       { id: `${item.id}:created`, title: `Created: ${item.title}`, start: created, end: created, resource: item, kind: 'created' },
     ]
@@ -76,7 +80,7 @@ export function CalendarView({ databaseId, workspaceId, board, onBoardChange }: 
     startTransition(async () => {
       try {
         const item = await createTodoItem(firstList.id, databaseId, workspaceId, 'New to-do', dateStr)
-        onBoardChange({ ...board, items: [...board.items, item] })
+        onBoardChange(prev => ({ ...prev, items: [...prev.items, item] }))
         setError(null)
       } catch {
         setError('Failed to create to-do item')

@@ -58,6 +58,15 @@ const items: TodoItemWithPage[] = [
   { id: 'item-2', database_id: 'db-1', list_id: 'list-1', title: 'No due date yet', due_date: null, attached_page_id: null, attached_page_title: null, created_at: '2026-03-02T00:00:00Z' },
 ]
 
+// created_at is a timestamptz — the "Created" event must land on whatever
+// calendar day that UTC instant falls on in the viewer's local time zone,
+// NOT the UTC calendar date. Expected values are derived the same way the
+// component should compute them (`new Date(item.created_at)`) rather than
+// hardcoded, so these tests stay correct (and still catch a regression to
+// slicing the UTC date string) regardless of which time zone they run in.
+const item1CreatedDate = format(new Date(items[0].created_at), 'yyyy-MM-dd')
+const item2CreatedDate = format(new Date(items[1].created_at), 'yyyy-MM-dd')
+
 const board: TodoBoard = { lists, items }
 
 function renderCalendar(overrides: Partial<React.ComponentProps<typeof CalendarView>> = {}) {
@@ -83,8 +92,28 @@ describe('CalendarView', () => {
 
   it('shows a "Created" event for every item, on its created date', () => {
     renderCalendar()
-    expect(screen.getByText('Created: Write report — 2026-03-01')).toBeInTheDocument()
-    expect(screen.getByText('Created: No due date yet — 2026-03-02')).toBeInTheDocument()
+    expect(screen.getByText(`Created: Write report — ${item1CreatedDate}`)).toBeInTheDocument()
+    expect(screen.getByText(`Created: No due date yet — ${item2CreatedDate}`)).toBeInTheDocument()
+  })
+
+  it('converts created_at to the viewer\'s local calendar day rather than the raw UTC date', () => {
+    // Regression test for a bug where the "Created" date was derived by
+    // slicing the UTC date string and reconstructing local midnight from it
+    // (the correct technique for the date-only due_date column, but wrong
+    // for a timestamptz) — which silently discarded the actual time-of-day
+    // and so never converted across the UTC/local day boundary at all.
+    // Fixed by pinning TZ far enough from UTC that a late-UTC-evening
+    // timestamp unambiguously lands on the next local calendar day.
+    vi.stubEnv('TZ', 'Pacific/Kiritimati') // UTC+14
+    const lateUtcEvening = '2026-03-01T23:00:00Z'
+    const lateItem: TodoItemWithPage = {
+      id: 'item-late', database_id: 'db-1', list_id: 'list-1', title: 'Late task',
+      due_date: null, attached_page_id: null, attached_page_title: null, created_at: lateUtcEvening,
+    }
+    renderCalendar({ board: { ...board, items: [lateItem] } })
+
+    expect(screen.getByText('Created: Late task — 2026-03-02')).toBeInTheDocument()
+    vi.unstubAllEnvs()
   })
 
   it('additionally shows a "Due" event only for items that have a due date', () => {
@@ -95,7 +124,7 @@ describe('CalendarView', () => {
 
   it('gives due-date events a visually distinct style from created-date events', () => {
     renderCalendar()
-    const created = screen.getByText('Created: Write report — 2026-03-01')
+    const created = screen.getByText(`Created: Write report — ${item1CreatedDate}`)
     const due = screen.getByText('Due: Write report — 2026-03-15')
     expect(created.style.backgroundColor).not.toBe(due.style.backgroundColor)
   })
@@ -108,13 +137,13 @@ describe('CalendarView', () => {
 
   it('navigates to the attached page when a created-date event is clicked', () => {
     renderCalendar()
-    fireEvent.click(screen.getByText('Created: Write report — 2026-03-01'))
+    fireEvent.click(screen.getByText(`Created: Write report — ${item1CreatedDate}`))
     expect(mockPush).toHaveBeenCalledWith('/workspace/ws-1/page/page-1')
   })
 
   it('does not navigate when the item has no attached document', () => {
     renderCalendar()
-    fireEvent.click(screen.getByText('Created: No due date yet — 2026-03-02'))
+    fireEvent.click(screen.getByText(`Created: No due date yet — ${item2CreatedDate}`))
     expect(mockPush).not.toHaveBeenCalled()
   })
 
@@ -128,9 +157,9 @@ describe('CalendarView', () => {
     await waitFor(() => {
       expect(createTodoItem).toHaveBeenCalledWith('list-1', 'db-1', 'ws-1', 'New to-do', '2026-04-01')
     })
-    expect(onBoardChange).toHaveBeenCalledWith(expect.objectContaining({
-      items: expect.arrayContaining([expect.objectContaining({ id: 'new-item' })]),
-    }))
+    const arg = onBoardChange.mock.calls[0][0]
+    const result = typeof arg === 'function' ? arg(board) : arg
+    expect(result.items).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'new-item' })]))
   })
 
   it('shows an error instead of creating an item when the board has no lists yet', async () => {

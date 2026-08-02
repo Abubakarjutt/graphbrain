@@ -71,6 +71,11 @@ const pages: Page[] = [
   { id: 'page-1', workspace_id: 'ws-1', parent_id: null, title: 'Launch Notes', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
+const SHIP_FEATURE_CREATED_AT = '2026-03-01T00:00:00Z'
+// created_at is a timestamptz — CalendarView converts it to the viewer's
+// local calendar day, which may not match the UTC date string above.
+const shipFeatureCreatedDate = format(new Date(SHIP_FEATURE_CREATED_AT), 'yyyy-MM-dd')
+
 describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration', () => {
   beforeEach(() => {
     vi.mocked(updateDatabaseSchema).mockReset().mockResolvedValue(undefined)
@@ -84,7 +89,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
     vi.mocked(createTodoList).mockResolvedValueOnce({ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' })
     const createdItem: TodoItemWithPage = {
       id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Ship feature',
-      due_date: null, attached_page_id: null, attached_page_title: null, created_at: '2026-03-01T00:00:00Z',
+      due_date: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
     }
     vi.mocked(createTodoItem).mockResolvedValueOnce(createdItem)
 
@@ -119,13 +124,13 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
     // currentTodoBoard state in DatabaseShell is genuinely shared between
     // the two views rather than each holding its own local copy.
     fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
-    expect(screen.getByText('Created: Ship feature — 2026-03-01')).toBeInTheDocument()
+    expect(screen.getByText(`Created: Ship feature — ${shipFeatureCreatedDate}`)).toBeInTheDocument()
   })
 
   it('lets attaching a document to a to-do item in the real Kanban board make its real Calendar event navigable', async () => {
     const item: TodoItemWithPage = {
       id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Ship feature',
-      due_date: null, attached_page_id: null, attached_page_title: null, created_at: '2026-03-01T00:00:00Z',
+      due_date: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
     }
     const board: TodoBoard = {
       lists: [{ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' }],
@@ -154,7 +159,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
     })
 
     fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
-    fireEvent.click(screen.getByText('Created: Ship feature — 2026-03-01'))
+    fireEvent.click(screen.getByText(`Created: Ship feature — ${shipFeatureCreatedDate}`))
 
     expect(mockPush).toHaveBeenCalledWith('/workspace/ws-1/page/page-1')
   })
