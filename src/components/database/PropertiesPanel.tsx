@@ -35,7 +35,6 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
 
   function handleChange(fieldId: string, value: unknown, displayValue?: string) {
     const previous = fields
-    const previousLocal = localValues
     const newFields = { ...fields, [fieldId]: value }
     setFields(newFields)
     if (displayValue !== undefined) setLocalValues(prev => ({ ...prev, [fieldId]: displayValue }))
@@ -44,8 +43,12 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
         await updateRowFields(rowId, databaseId, workspaceId, newFields)
         setError(null)
       } catch {
+        // Revert only the edited field's displayed value, derived from the
+        // pre-edit `fields` snapshot — `localValues` itself was already
+        // overwritten by onChange before this ran, so it can't be used as
+        // the "previous" snapshot to restore.
         setFields(previous)
-        setLocalValues(previousLocal)
+        setLocalValues(prev => ({ ...prev, [fieldId]: String(previous[fieldId] ?? '') }))
         setError('Failed to save')
       }
     })
