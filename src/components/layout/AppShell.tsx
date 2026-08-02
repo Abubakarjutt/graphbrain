@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import type { User } from '@supabase/supabase-js'
-import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
+import type { WorkspaceEntry, Page, Database, DatabaseRowLink } from '@/lib/types/database'
 import { Sidebar } from './Sidebar'
 import { OllamaStatusBanner } from './OllamaStatusBanner'
 import { CmdKModal } from '@/components/query/CmdKModal'
@@ -12,11 +12,12 @@ interface AppShellProps {
   user: User
   pages: Page[]
   databases: Database[]
+  databaseRows: DatabaseRowLink[]
   ollamaAvailable?: boolean
   children: React.ReactNode
 }
 
-export function AppShell({ workspaces, user, pages, databases, ollamaAvailable = true, children }: AppShellProps) {
+export function AppShell({ workspaces, user, pages, databases, databaseRows, ollamaAvailable = true, children }: AppShellProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
@@ -38,7 +39,7 @@ export function AppShell({ workspaces, user, pages, databases, ollamaAvailable =
             <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="font-display text-sm font-semibold tracking-tight" style={{ color: 'var(--sidebar-foreground)' }}>
+        <span className="font-display text-[15px] font-medium tracking-tight" style={{ color: 'var(--sidebar-foreground)' }}>
           graphbrain
         </span>
       </div>
@@ -58,6 +59,7 @@ export function AppShell({ workspaces, user, pages, databases, ollamaAvailable =
           user={user}
           pages={pages}
           databases={databases}
+          databaseRows={databaseRows}
           mobileOpen={sidebarOpen}
           onMobileClose={() => setSidebarOpen(false)}
         />

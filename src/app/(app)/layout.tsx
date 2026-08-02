@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { AppShell } from '@/components/layout/AppShell'
 import { checkHealth } from '@/lib/graph/ollama'
-import type { WorkspaceEntry, Page, Database } from '@/lib/types/database'
+import type { WorkspaceEntry, Page, Database, DatabaseRowLink } from '@/lib/types/database'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -33,10 +33,26 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       ).data ?? []
     : []
 
+  const databaseIds = databases.map(d => d.id)
+  const databaseRows: DatabaseRowLink[] = databaseIds.length > 0
+    ? (await supabase
+        .from('database_rows')
+        .select('id, database_id, page_id')
+        .in('database_id', databaseIds)
+      ).data ?? []
+    : []
+
   const ollamaAvailable = await checkHealth()
 
   return (
-    <AppShell workspaces={workspaces ?? []} user={user} pages={pages} databases={databases} ollamaAvailable={ollamaAvailable}>
+    <AppShell
+      workspaces={workspaces ?? []}
+      user={user}
+      pages={pages}
+      databases={databases}
+      databaseRows={databaseRows}
+      ollamaAvailable={ollamaAvailable}
+    >
       {children}
     </AppShell>
   )

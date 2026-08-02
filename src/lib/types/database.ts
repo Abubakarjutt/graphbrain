@@ -96,6 +96,12 @@ export interface DatabaseRowWithTitle extends DatabaseRow {
   page_title: string | null
 }
 
+export interface DatabaseRowLink {
+  id: string
+  database_id: string
+  page_id: string | null
+}
+
 export interface DatabaseWithRows extends Database {
   rows: DatabaseRowWithTitle[]
 }
