@@ -26,10 +26,14 @@ function SparkIcon({ className }: { className?: string }) {
 }
 
 export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskPageClientProps) {
-  const { query, setQuery, scope, setScope, response, sources, loading, error, ask, reset, loadSaved } = useAsk(workspaceId)
+  const { query, setQuery, askedQuery, scope, setScope, response, sources, loading, error, ask, reset, loadSaved } = useAsk(workspaceId)
   const searchParams = useSearchParams()
   const inputRef = useRef<HTMLInputElement>(null)
-  const autoAskedRef = useRef(false)
+  // Latched on the *value* of q, not a boolean — a boolean would ignore a
+  // second Cmd+K "Ask AI about ..." deep-link fired while already on this
+  // page, since React reuses the same component instance across a
+  // searchParams-only navigation.
+  const lastAutoAskedRef = useRef<string | null>(null)
 
   useEffect(() => {
     inputRef.current?.focus()
@@ -37,15 +41,17 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
 
   useEffect(() => {
     const q = searchParams.get('q')
-    if (q && !autoAskedRef.current) {
-      autoAskedRef.current = true
+    if (q && lastAutoAskedRef.current !== q) {
+      lastAutoAskedRef.current = q
       ask(q)
     }
-    // Only ever auto-run once per page load, regardless of later query changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  const hasAsked = loading || response || error || query
+  // Derived from askedQuery, not the live input — otherwise typing a single
+  // character (before submitting anything) would prematurely hide "Recent
+  // questions" and render the answer panel with the half-typed text.
+  const hasAsked = loading || Boolean(response) || Boolean(error) || Boolean(askedQuery)
 
   return (
     <div className="flex-1 overflow-y-auto">
@@ -124,9 +130,9 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
           <p className="mt-8 text-sm text-destructive">{error}</p>
         )}
 
-        {!error && hasAsked && query && (
+        {!error && hasAsked && askedQuery && (
           <div className="mt-10">
-            <h2 className="text-lg font-semibold text-foreground mb-5">{query}</h2>
+            <h2 className="text-lg font-semibold text-foreground mb-5">{askedQuery}</h2>
 
             {loading && sources.length === 0 && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">

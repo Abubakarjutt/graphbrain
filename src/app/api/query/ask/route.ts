@@ -87,8 +87,9 @@ export async function POST(req: Request): Promise<Response> {
           controller.enqueue(new TextEncoder().encode(token))
           fullResponse += token
         }
-      } catch {
-        controller.enqueue(new TextEncoder().encode('\n\n[Response cut short — Ollama timed out]'))
+      } catch (err) {
+        console.error('[ask] streamChat failed mid-response:', err)
+        controller.enqueue(new TextEncoder().encode('\n\n[Response interrupted — an error occurred while generating this answer]'))
       }
       try {
         await supabase.from('query_logs').insert({

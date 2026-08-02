@@ -23,6 +23,7 @@ function fakeAskState(overrides: Partial<ReturnType<typeof useAsk>> = {}) {
   return {
     query: '',
     setQuery: vi.fn(),
+    askedQuery: '',
     scope: {},
     setScope: vi.fn(),
     response: '',
@@ -70,8 +71,18 @@ describe('AskPageClient', () => {
     expect(screen.getByText('What is graphbrain?')).toBeInTheDocument()
   })
 
-  it('hides recent questions once a query is active', () => {
-    renderPage(fakeAskState({ query: 'something', response: 'an answer' }))
+  it('does not treat mid-typing input as an asked question', () => {
+    // query is set (the user is typing) but askedQuery is still empty since
+    // nothing has been submitted — recent questions must stay visible and
+    // the answer panel must not appear.
+    renderPage(fakeAskState({ query: 'still typ' }))
+    expect(screen.getByText('What is graphbrain?')).toBeInTheDocument()
+    expect(screen.queryByText('still typ')).not.toBeInTheDocument()
+    expect(screen.queryByText('Ask a new question')).not.toBeInTheDocument()
+  })
+
+  it('hides recent questions once a question has actually been asked', () => {
+    renderPage(fakeAskState({ query: 'something', askedQuery: 'something', response: 'an answer' }))
     expect(screen.queryByText('What is graphbrain?')).not.toBeInTheDocument()
   })
 
@@ -98,7 +109,7 @@ describe('AskPageClient', () => {
   })
 
   it('shows a loading indicator while waiting for sources', () => {
-    renderPage(fakeAskState({ query: 'q', loading: true }))
+    renderPage(fakeAskState({ query: 'q', askedQuery: 'q', loading: true }))
     expect(screen.getByText('Searching knowledge graph…')).toBeInTheDocument()
   })
 
@@ -106,7 +117,7 @@ describe('AskPageClient', () => {
     const sources: SearchResult[] = [
       { nodeId: 'n1', entityType: 'page', entityId: 'e1', title: 'Doc One', excerpt: '', projectName: 'Vertex Labs', projectDatabaseId: null, score: 1 },
     ]
-    renderPage(fakeAskState({ query: 'q', sources }))
+    renderPage(fakeAskState({ query: 'q', askedQuery: 'q', sources }))
 
     expect(screen.getByText('Doc One')).toBeInTheDocument()
     expect(screen.getByText('Vertex Labs')).toBeInTheDocument()
@@ -114,17 +125,23 @@ describe('AskPageClient', () => {
   })
 
   it('renders the streamed answer text', () => {
-    renderPage(fakeAskState({ query: 'q', response: 'The answer is 42.' }))
+    renderPage(fakeAskState({ query: 'q', askedQuery: 'q', response: 'The answer is 42.' }))
     expect(screen.getByText('The answer is 42.')).toBeInTheDocument()
   })
 
+  it('renders the asked question as the heading, not the live (possibly since-edited) input', () => {
+    renderPage(fakeAskState({ query: 'edited after asking', askedQuery: 'original question', response: 'answer' }))
+    expect(screen.getByText('original question')).toBeInTheDocument()
+    expect(screen.queryByText('edited after asking')).not.toBeInTheDocument()
+  })
+
   it('shows the error message when present', () => {
-    renderPage(fakeAskState({ query: 'q', error: 'AI unavailable' }))
+    renderPage(fakeAskState({ query: 'q', askedQuery: 'q', error: 'AI unavailable' }))
     expect(screen.getByText('AI unavailable')).toBeInTheDocument()
   })
 
   it('resets when "Ask a new question" is clicked, shown only once settled', () => {
-    const state = fakeAskState({ query: 'q', response: 'answer' })
+    const state = fakeAskState({ query: 'q', askedQuery: 'q', response: 'answer' })
     renderPage(state)
 
     const resetButton = screen.getByText('Ask a new question')
@@ -133,7 +150,7 @@ describe('AskPageClient', () => {
   })
 
   it('does not show "Ask a new question" while still loading', () => {
-    renderPage(fakeAskState({ query: 'q', loading: true }))
+    renderPage(fakeAskState({ query: 'q', askedQuery: 'q', loading: true }))
     expect(screen.queryByText('Ask a new question')).not.toBeInTheDocument()
   })
 
@@ -151,5 +168,29 @@ describe('AskPageClient', () => {
     const state = fakeAskState()
     renderPage(state)
     expect(state.ask).not.toHaveBeenCalled()
+  })
+
+  it('auto-asks again when a second, different ?q= arrives without a remount (e.g. a repeat Cmd+K deep-link)', () => {
+    mockSearchParamsGet.mockReturnValue('first question')
+    const state = fakeAskState()
+    const { rerender } = renderPage(state)
+    expect(state.ask).toHaveBeenCalledWith('first question')
+
+    mockSearchParamsGet.mockReturnValue('second question')
+    rerender(<AskPageClient workspaceId="ws-1" scopeOptions={scopeOptions} recentQueries={recentQueries} />)
+
+    expect(state.ask).toHaveBeenCalledWith('second question')
+    expect(state.ask).toHaveBeenCalledTimes(2)
+  })
+
+  it('does not re-ask on a re-render when the ?q= value is unchanged', () => {
+    mockSearchParamsGet.mockReturnValue('same question')
+    const state = fakeAskState()
+    const { rerender } = renderPage(state)
+    expect(state.ask).toHaveBeenCalledTimes(1)
+
+    rerender(<AskPageClient workspaceId="ws-1" scopeOptions={scopeOptions} recentQueries={recentQueries} />)
+
+    expect(state.ask).toHaveBeenCalledTimes(1)
   })
 })

@@ -16,10 +16,14 @@ export async function getRecentQueries(workspaceId: string, limit = 8): Promise<
     .eq('workspace_id', workspaceId)
     .eq('user_id', user.id)
     .not('response', 'is', null)
+    .neq('response', '')
     .order('created_at', { ascending: false })
     .limit(limit)
 
-  if (error) return []
+  if (error) {
+    console.error('[getRecentQueries] failed to load history:', workspaceId, error)
+    return []
+  }
   return (data ?? []) as QueryLog[]
 }
 

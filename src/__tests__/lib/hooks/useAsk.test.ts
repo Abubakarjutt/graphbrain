@@ -171,4 +171,120 @@ describe('useAsk', () => {
     expect(result.current.loading).toBe(false)
     expect(fetch).not.toHaveBeenCalled()
   })
+
+  it('sets askedQuery to the submitted question, separate from the live query', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockStreamResponse({ chunks: [] }))
+    const { result } = renderHook(() => useAsk('ws-1'))
+
+    await act(async () => { await result.current.ask('a real question') })
+
+    expect(result.current.askedQuery).toBe('a real question')
+  })
+
+  it('clears askedQuery on reset', async () => {
+    vi.mocked(fetch).mockResolvedValue(mockStreamResponse({ chunks: [] }))
+    const { result } = renderHook(() => useAsk('ws-1'))
+    await act(async () => { await result.current.ask('a question') })
+
+    act(() => { result.current.reset() })
+
+    expect(result.current.askedQuery).toBe('')
+  })
+
+  it('aborts a still-in-flight request when a new ask starts before it finishes', async () => {
+    let capturedFirstSignal: AbortSignal | undefined
+    vi.mocked(fetch).mockImplementationOnce((_url, init) => {
+      capturedFirstSignal = (init as RequestInit).signal as AbortSignal
+      return new Promise(() => {}) // never resolves — simulates a slow in-flight request
+    })
+    const { result } = renderHook(() => useAsk('ws-1'))
+
+    act(() => { void result.current.ask('first question') })
+
+    vi.mocked(fetch).mockResolvedValueOnce(mockStreamResponse({ chunks: ['second answer'] }))
+    await act(async () => { await result.current.ask('second question') })
+
+    expect(capturedFirstSignal?.aborted).toBe(true)
+    expect(result.current.query).toBe('second question')
+    expect(result.current.response).toBe('second answer')
+  })
+
+  it('aborts an in-flight request when reset is called', async () => {
+    let capturedSignal: AbortSignal | undefined
+    vi.mocked(fetch).mockImplementationOnce((_url, init) => {
+      capturedSignal = (init as RequestInit).signal as AbortSignal
+      return new Promise(() => {})
+    })
+    const { result } = renderHook(() => useAsk('ws-1'))
+    act(() => { void result.current.ask('question') })
+
+    act(() => { result.current.reset() })
+
+    expect(capturedSignal?.aborted).toBe(true)
+    expect(result.current.loading).toBe(false)
+  })
+
+  it('does not fail the whole request when the X-Sources header is malformed JSON', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: (name: string) => (name === 'X-Sources' ? 'not-valid-json{' : null) },
+      text: async () => '',
+      body: { getReader: () => ({ read: async () => ({ done: true, value: undefined }) }) },
+    } as unknown as Response)
+
+    const { result } = renderHook(() => useAsk('ws-1'))
+    await act(async () => { await result.current.ask('question') })
+
+    expect(result.current.error).toBeNull()
+    expect(result.current.sources).toEqual([])
+    expect(consoleErrorSpy).toHaveBeenCalled()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('preserves a partial response and shows no error when the stream fails after some content arrived', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    let readCount = 0
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: async () => '',
+      body: {
+        getReader: () => ({
+          read: async () => {
+            readCount += 1
+            if (readCount === 1) return { done: false, value: new TextEncoder().encode('partial answer') }
+            throw new Error('connection dropped')
+          },
+        }),
+      },
+    } as unknown as Response)
+
+    const { result } = renderHook(() => useAsk('ws-1'))
+    await act(async () => { await result.current.ask('question') })
+
+    expect(result.current.response).toBe('partial answer')
+    expect(result.current.error).toBeNull()
+    consoleErrorSpy.mockRestore()
+  })
+
+  it('sets an error when the stream fails before any content arrives', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => null },
+      text: async () => '',
+      body: { getReader: () => ({ read: async () => { throw new Error('dropped immediately') } }) },
+    } as unknown as Response)
+
+    const { result } = renderHook(() => useAsk('ws-1'))
+    await act(async () => { await result.current.ask('question') })
+
+    expect(result.current.response).toBe('')
+    expect(result.current.error).toMatch(/interrupted/)
+    consoleErrorSpy.mockRestore()
+  })
 })

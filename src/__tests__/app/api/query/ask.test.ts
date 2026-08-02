@@ -2,7 +2,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 vi.mock('@/lib/graph/query', () => ({ retrieveNodes: vi.fn() }))
-vi.mock('@/lib/graph/ollama', () => ({ streamChat: vi.fn() }))
+vi.mock('@/lib/graph/ollama', () => ({
+  streamChat: vi.fn(),
+  // route.ts dynamically imports embed() from this module — without it,
+  // destructuring `embed` is undefined and every request 503s before
+  // reaching the streaming/logging logic these tests exist to check.
+  embed: vi.fn().mockResolvedValue(new Array(768).fill(0)),
+}))
 
 import { createClient } from '@/lib/supabase/server'
 import { retrieveNodes } from '@/lib/graph/query'
@@ -67,5 +73,26 @@ describe('POST /api/query/ask', () => {
     const res = await POST(new Request('http://localhost/api/query/ask', { method: 'POST', body: JSON.stringify({ workspaceId: WORKSPACE_ID, query: 'test' }) }))
     await res.text()
     expect(supabase._mockInsert).toHaveBeenCalledWith(expect.objectContaining({ query: 'test', response: 'Answer' }))
+  })
+
+  it('logs the real error and appends a neutral interruption notice when streamChat fails mid-response', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const supabase = makeSupabase({ id: 'u1' })
+    ;(createClient as Mock).mockResolvedValue(supabase)
+    ;(retrieveNodes as Mock).mockResolvedValue([fakeSource])
+    async function* gen() {
+      yield 'Partial answer'
+      throw new Error('model crashed')
+    }
+    ;(streamChat as Mock).mockReturnValue(gen())
+    const { POST } = await import('@/app/api/query/ask/route')
+    const res = await POST(new Request('http://localhost/api/query/ask', { method: 'POST', body: JSON.stringify({ workspaceId: WORKSPACE_ID, query: 'test' }) }))
+    const text = await res.text()
+
+    expect(text).toContain('Partial answer')
+    expect(text).toContain('Response interrupted')
+    expect(text).not.toContain('timed out') // don't assert a specific, likely-wrong cause
+    expect(consoleErrorSpy).toHaveBeenCalledWith('[ask] streamChat failed mid-response:', expect.any(Error))
+    consoleErrorSpy.mockRestore()
   })
 })

@@ -1,4 +1,5 @@
 import { Suspense } from 'react'
+import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getRecentQueries } from '@/lib/actions/query'
 import { AskPageClient } from '@/components/query/AskPageClient'
@@ -11,10 +12,22 @@ export default async function AskPage({
   const { workspaceId } = await params
   const supabase = await createClient()
 
-  const { data: pages } = await supabase
-    .from('pages')
-    .select('id, title')
-    .eq('workspace_id', workspaceId)
+  // Authorization is enforced by RLS, but every sibling route also checks
+  // existence/membership explicitly so an unknown or foreign workspace id
+  // 404s instead of rendering a fully-functional Ask UI with an empty scope.
+  const [{ data: workspace }, { data: pages }] = await Promise.all([
+    supabase
+      .from('workspaces')
+      .select('id, workspace_members!inner(user_id)')
+      .eq('id', workspaceId)
+      .single(),
+    supabase
+      .from('pages')
+      .select('id, title')
+      .eq('workspace_id', workspaceId),
+  ])
+  if (!workspace) notFound()
+
   const pageMap = new Map((pages ?? []).map(p => [p.id as string, p.title as string]))
   const pageIds = [...pageMap.keys()]
 
