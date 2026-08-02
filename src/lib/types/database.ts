@@ -106,6 +106,35 @@ export interface DatabaseWithRows extends Database {
   rows: DatabaseRowWithTitle[]
 }
 
+// A database's Kanban board is an independent to-do list feature — its cards
+// are not database_rows, and an attached page is incidental, not required.
+export interface TodoList {
+  id: string
+  database_id: string
+  name: string
+  position: number
+  created_at: string
+}
+
+export interface TodoItem {
+  id: string
+  database_id: string
+  list_id: string
+  title: string
+  due_date: string | null
+  attached_page_id: string | null
+  created_at: string
+}
+
+export interface TodoItemWithPage extends TodoItem {
+  attached_page_title: string | null
+}
+
+export interface TodoBoard {
+  lists: TodoList[]
+  items: TodoItemWithPage[]
+}
+
 export interface Node {
   id: string
   workspace_id: string

@@ -1,6 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { getDatabase } from '@/lib/actions/databases'
+import { getTodoBoard } from '@/lib/actions/todos'
+import { getPages } from '@/lib/actions/pages'
+import type { TodoBoard, Page } from '@/lib/types/database'
 
 class NotFoundError extends Error {}
 
@@ -18,13 +21,24 @@ vi.mock('@/lib/actions/databases', () => ({
   getDatabase: vi.fn(),
 }))
 
+vi.mock('@/lib/actions/todos', () => ({
+  getTodoBoard: vi.fn(),
+}))
+
+vi.mock('@/lib/actions/pages', () => ({
+  getPages: vi.fn(),
+}))
+
 vi.mock('@/components/database/DatabaseShell', () => ({
-  DatabaseShell: (props: { title: string; schema: unknown[]; rows: unknown[] }) => (
+  DatabaseShell: (props: { title: string; schema: unknown[]; rows: unknown[]; todoBoard: TodoBoard; pages: Page[] }) => (
     <div data-testid="database-shell-stub">
-      title:{props.title} fields:{props.schema.length} rows:{props.rows.length}
+      title:{props.title} fields:{props.schema.length} rows:{props.rows.length} lists:{props.todoBoard.lists.length} pages:{props.pages.length}
     </div>
   ),
 }))
+
+const defaultTodoBoard: TodoBoard = { lists: [], items: [] }
+const defaultPages: Page[] = []
 
 function makeChain(data: unknown) {
   return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), single: vi.fn().mockResolvedValue({ data }) }
@@ -48,7 +62,7 @@ describe('DatabasePage', () => {
     await expect(renderPage()).rejects.toThrow(NotFoundError)
   })
 
-  it('renders DatabaseShell with the container page title, schema, and rows', async () => {
+  it('renders DatabaseShell with the container page title, schema, rows, todo board, and workspace pages', async () => {
     vi.mocked(getDatabase).mockResolvedValue({
       id: 'db-1',
       page_id: 'page-1',
@@ -57,6 +71,13 @@ describe('DatabasePage', () => {
       rows: [{ id: 'row-1', database_id: 'db-1', page_id: 'page-1', fields: {}, created_at: '', page_title: 'Row One' }],
     })
     mockFrom.mockReturnValueOnce(makeChain({ title: 'My Database' }))
+    vi.mocked(getTodoBoard).mockResolvedValue({
+      lists: [{ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' }],
+      items: [],
+    })
+    vi.mocked(getPages).mockResolvedValue([
+      { id: 'page-2', workspace_id: 'ws-1', parent_id: null, title: 'Other Page', created_by: 'u1', created_at: '', updated_at: '' },
+    ])
 
     await renderPage()
 
@@ -64,6 +85,8 @@ describe('DatabasePage', () => {
     expect(shell).toHaveTextContent('title:My Database')
     expect(shell).toHaveTextContent('fields:1')
     expect(shell).toHaveTextContent('rows:1')
+    expect(shell).toHaveTextContent('lists:1')
+    expect(shell).toHaveTextContent('pages:1')
   })
 
   it('falls back to "Untitled Database" when the container page has no title', async () => {
@@ -71,6 +94,8 @@ describe('DatabasePage', () => {
       id: 'db-1', page_id: 'page-1', schema: [], created_at: '', rows: [],
     })
     mockFrom.mockReturnValueOnce(makeChain(null))
+    vi.mocked(getTodoBoard).mockResolvedValue(defaultTodoBoard)
+    vi.mocked(getPages).mockResolvedValue(defaultPages)
 
     await renderPage()
 

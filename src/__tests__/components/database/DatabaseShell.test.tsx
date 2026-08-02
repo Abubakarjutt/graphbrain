@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { DatabaseShell } from '@/components/database/DatabaseShell'
 import { updateDatabaseSchema, createRow, deleteRow } from '@/lib/actions/databases'
-import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
+import type { DatabaseField, DatabaseRowWithTitle, Page, TodoBoard } from '@/lib/types/database'
 
 // TableView/KanbanView/CalendarView/SchemaEditor each have their own test
 // suites — stubbed here so this file stays focused on what DatabaseShell
@@ -49,27 +49,24 @@ vi.mock('@/components/database/TableView', () => ({
 }))
 
 vi.mock('@/components/database/KanbanView', () => ({
-  KanbanView: ({ rows }: { rows: DatabaseRowWithTitle[] }) => (
-    <div data-testid="kanban-view-stub">kanban-rows:{rows.length}</div>
+  KanbanView: ({ board, onBoardChange }: { board: TodoBoard; onBoardChange: (b: TodoBoard) => void }) => (
+    <div data-testid="kanban-view-stub">
+      kanban-lists:{board.lists.length}
+      <button
+        onClick={() => onBoardChange({
+          ...board,
+          lists: [...board.lists, { id: 'new-list', database_id: 'db-1', name: 'New List', position: board.lists.length, created_at: '' }],
+        })}
+      >
+        trigger-add-list
+      </button>
+    </div>
   ),
 }))
 
 vi.mock('@/components/database/CalendarView', () => ({
-  CalendarView: ({ rows, onRowCreated }: {
-    rows: DatabaseRowWithTitle[]
-    onRowCreated: (row: DatabaseRowWithTitle) => void
-  }) => (
-    <div data-testid="calendar-view-stub">
-      calendar-rows:{rows.length}
-      <button
-        onClick={() => onRowCreated({
-          id: 'new-cal-row', database_id: 'db-1', page_id: null,
-          page_title: 'New Cal Row', fields: {}, created_at: '',
-        })}
-      >
-        trigger-row-created
-      </button>
-    </div>
+  CalendarView: ({ board }: { board: TodoBoard }) => (
+    <div data-testid="calendar-view-stub">calendar-lists:{board.lists.length}</div>
   ),
 }))
 
@@ -87,6 +84,9 @@ const rows: DatabaseRowWithTitle[] = [
   { id: 'row-3', database_id: 'db-1', page_id: 'p3', page_title: 'Row Three', fields: {}, created_at: '' },
 ]
 
+const todoBoard: TodoBoard = { lists: [], items: [] }
+const pages: Page[] = []
+
 function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShell>> = {}) {
   return render(
     <DatabaseShell
@@ -95,6 +95,8 @@ function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShel
       title="My Database"
       schema={schema}
       rows={rows}
+      todoBoard={todoBoard}
+      pages={pages}
       {...overrides}
     />
   )
@@ -146,15 +148,20 @@ describe('DatabaseShell', () => {
     expect(screen.getByRole('button', { name: /Table/ })).toHaveAttribute('aria-pressed', 'false')
   })
 
-  it('keeps row state shared across views', () => {
+  it('keeps the to-do board state shared between Kanban and Calendar, independent of the table', () => {
     renderShell()
     expect(screen.getByTestId('table-view-stub')).toHaveTextContent('table-fields:1')
 
+    fireEvent.click(screen.getByRole('button', { name: /Kanban/ }))
+    expect(screen.getByTestId('kanban-view-stub')).toHaveTextContent('kanban-lists:0')
+    fireEvent.click(screen.getByText('trigger-add-list'))
+    expect(screen.getByTestId('kanban-view-stub')).toHaveTextContent('kanban-lists:1')
+
     fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
-    fireEvent.click(screen.getByText('trigger-row-created'))
+    expect(screen.getByTestId('calendar-view-stub')).toHaveTextContent('calendar-lists:1')
 
     fireEvent.click(screen.getByRole('button', { name: /Table/ }))
-    expect(rowIds()).toEqual(['row-1', 'row-2', 'row-3', 'new-cal-row'])
+    expect(rowIds()).toEqual(['row-1', 'row-2', 'row-3'])
   })
 
   it('the Properties button toggles the schema editor, hidden by default', () => {

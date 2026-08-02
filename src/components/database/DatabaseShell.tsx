@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
+import type { DatabaseField, DatabaseRowWithTitle, Page, TodoBoard } from '@/lib/types/database'
 import { updateDatabaseSchema, createRow, deleteRow } from '@/lib/actions/databases'
 import { SchemaEditor } from './SchemaEditor'
 import { TableView } from './TableView'
@@ -38,12 +38,18 @@ interface DatabaseShellProps {
   title: string
   schema: DatabaseField[]
   rows: DatabaseRowWithTitle[]
+  todoBoard: TodoBoard
+  pages: Page[]
 }
 
-export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: DatabaseShellProps) {
+export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, todoBoard, pages }: DatabaseShellProps) {
   const [view, setView] = useState<View>('table')
   const [currentSchema, setCurrentSchema] = useState(schema)
   const [currentRows, setCurrentRows] = useState(rows)
+  // The Kanban/Calendar to-do board is an independent feature from the
+  // table's schema/rows — it has its own lifted state, updated the same
+  // optimistic way, but never reads or writes currentSchema/currentRows.
+  const [currentTodoBoard, setCurrentTodoBoard] = useState(todoBoard)
   const [schemaEditorOpen, setSchemaEditorOpen] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -101,10 +107,6 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
         setError('Failed to delete row')
       }
     })
-  }
-
-  function handleRowCreated(row: DatabaseRowWithTitle) {
-    setCurrentRows(prev => [...prev, row])
   }
 
   return (
@@ -189,18 +191,17 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
         <KanbanView
           databaseId={databaseId}
           workspaceId={workspaceId}
-          schema={currentSchema}
-          rows={currentRows}
-          onRowUpdate={handleRowUpdate}
+          board={currentTodoBoard}
+          pages={pages}
+          onBoardChange={setCurrentTodoBoard}
         />
       )}
       {view === 'calendar' && (
         <CalendarView
           databaseId={databaseId}
           workspaceId={workspaceId}
-          schema={currentSchema}
-          rows={currentRows}
-          onRowCreated={handleRowCreated}
+          board={currentTodoBoard}
+          onBoardChange={setCurrentTodoBoard}
         />
       )}
     </div>

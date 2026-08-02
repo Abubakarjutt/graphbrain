@@ -1,6 +1,8 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getDatabase } from '@/lib/actions/databases'
+import { getTodoBoard } from '@/lib/actions/todos'
+import { getPages } from '@/lib/actions/pages'
 import { DatabaseShell } from '@/components/database/DatabaseShell'
 
 export default async function DatabasePage({
@@ -24,6 +26,11 @@ export default async function DatabasePage({
     .eq('id', db.page_id)
     .single()
 
+  const [todoBoard, pages] = await Promise.all([
+    getTodoBoard(databaseId, workspaceId),
+    getPages(workspaceId),
+  ])
+
   return (
     <DatabaseShell
       databaseId={databaseId}
@@ -31,6 +38,8 @@ export default async function DatabasePage({
       title={containerPage?.title ?? 'Untitled Database'}
       schema={db.schema}
       rows={db.rows}
+      todoBoard={todoBoard}
+      pages={pages}
     />
   )
 }
