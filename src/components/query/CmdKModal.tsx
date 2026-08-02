@@ -140,7 +140,7 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter' && mode === 'ask') handleAsk() }}
           />
-          <button onClick={close} className="text-xs text-muted-foreground hover:text-foreground px-1" aria-label="Close">Esc</button>
+          <button onClick={close} className="text-xs text-muted-foreground hover:text-foreground px-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60" aria-label="Close">Esc</button>
         </div>
 
         <div className="flex items-center justify-between px-4 py-2 border-b border-border">
@@ -149,8 +149,19 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
               <button
                 key={m}
                 onClick={() => { setMode(m); setResults([]); setResponse(''); setError(null) }}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${mode === m ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+                  mode !== m
+                    ? 'text-muted-foreground hover:text-foreground'
+                    : m === 'ask'
+                      ? 'bg-spark/15 text-spark'
+                      : 'bg-accent text-accent-foreground'
+                }`}
               >
+                {m === 'ask' && (
+                  <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+                    <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" fill="currentColor" />
+                  </svg>
+                )}
                 {m === 'search' ? 'Search' : 'Ask'}
               </button>
             ))}

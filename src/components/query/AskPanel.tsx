@@ -16,7 +16,10 @@ export function AskPanel({ response, sources, loading, error, workspaceId }: Ask
 
   if (loading && !response) {
     return (
-      <div className="px-4 py-6 text-sm text-muted-foreground animate-pulse">
+      <div className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+        <svg width="13" height="13" viewBox="0 0 11 11" fill="none" className="text-spark animate-pulse shrink-0" aria-hidden>
+          <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" fill="currentColor" />
+        </svg>
         Searching knowledge graph…
       </div>
     )
@@ -25,11 +28,11 @@ export function AskPanel({ response, sources, loading, error, workspaceId }: Ask
   if (!response) return null
 
   return (
-    <div className="px-4 py-4 space-y-4">
-      <p className="text-sm leading-relaxed whitespace-pre-wrap">{response}</p>
+    <div className="px-4 py-4 space-y-4 border-l-2 border-spark/40">
+      <p className="text-sm leading-relaxed whitespace-pre-wrap pl-3">{response}</p>
       {sources.length > 0 && (
-        <div>
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+        <div className="pl-3">
+          <p className="text-xs font-semibold text-spark uppercase tracking-wider mb-1">
             Sources
           </p>
           <ul className="space-y-1">

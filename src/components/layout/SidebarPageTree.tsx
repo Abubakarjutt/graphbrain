@@ -31,12 +31,12 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
   return (
     <div>
       <div
-        className={`flex items-center gap-1 group rounded-[4px] px-1.5 py-[3px] text-[13px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'hover:bg-black/[0.06] text-sidebar-foreground/78 hover:text-sidebar-foreground'}`}
+        className={`flex items-center gap-1 group rounded-md px-1.5 py-[5px] text-[13px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/60 text-sidebar-foreground/85 hover:text-sidebar-foreground'}`}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
       >
         <button
           onClick={() => setExpanded(v => !v)}
-          className="w-4 h-4 flex items-center justify-center shrink-0 text-sidebar-foreground/40 transition-transform"
+          className="w-4 h-4 flex items-center justify-center shrink-0 rounded-sm text-muted-foreground transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label={expanded ? 'Collapse' : 'Expand'}
           style={{ transform: children.length > 0 && expanded ? 'rotate(90deg)' : undefined }}
         >
@@ -46,8 +46,8 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
             </svg>
           ) : null}
         </button>
-        <Link href={`/workspace/${workspaceId}/page/${page.id}`} className="flex items-center gap-1.5 flex-1 truncate min-w-0">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="shrink-0 opacity-50" aria-hidden>
+        <Link href={`/workspace/${workspaceId}/page/${page.id}`} className="flex items-center gap-1.5 flex-1 truncate min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="shrink-0 text-muted-foreground" aria-hidden>
             <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
             <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
           </svg>
@@ -55,7 +55,7 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
         </Link>
         <button
           onClick={() => onCreatePage(page.id)}
-          className="opacity-0 group-hover:opacity-100 w-4 h-4 flex items-center justify-center text-sidebar-foreground/45 transition-colors hover:text-[var(--gold-deep)]"
+          className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 w-4 h-4 flex items-center justify-center rounded-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="New subpage"
         >
           <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
@@ -82,13 +82,11 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
 
   return (
     <div className="mt-2">
-      <div className="flex items-center justify-between px-3 pt-3 pb-1">
-        <span className="font-display italic text-[11px] text-sidebar-foreground/60 tracking-wide">
-          Docs
-        </span>
+      <div className="flex items-center justify-between px-2 pt-3 pb-1">
+        <span className="nav-label">Docs</span>
         <button
           onClick={() => onCreatePage(null)}
-          className="grid h-5 w-5 place-items-center rounded text-sidebar-foreground/45 transition-colors hover:bg-black/[0.06] hover:text-[var(--gold-deep)]"
+          className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="New doc"
           title="New doc"
         >
@@ -100,7 +98,7 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
       {roots.length === 0 ? (
         <button
           onClick={() => onCreatePage(null)}
-          className="mx-2 mt-1 flex w-[calc(100%-1rem)] items-center gap-2 rounded-md border border-dashed border-sidebar-border px-3 py-2 text-sm text-sidebar-foreground/45 transition-colors hover:border-[var(--gold-deep)]/50 hover:text-[var(--gold-deep)]"
+          className="mx-0.5 mt-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-sm text-muted-foreground transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />

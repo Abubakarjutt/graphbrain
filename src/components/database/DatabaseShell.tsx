@@ -115,12 +115,8 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
       {/* Title area */}
       <div className="px-14 pt-12 pb-3">
         <div className="flex items-center gap-3 mb-1">
-          <span
-            className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-lg"
-            style={{ background: 'oklch(0.78 0.11 79 / 8%)', border: '1px solid oklch(0.78 0.11 79 / 20%)' }}
-            aria-hidden
-          >
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style={{ color: 'var(--gold)' }}>
+          <span className="inline-grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-accent border border-border">
+            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="text-accent-foreground">
               <rect x="3" y="3" width="16" height="16" rx="2" stroke="currentColor" strokeWidth="1.4" />
               <path d="M3 8h16M8 8v11" stroke="currentColor" strokeWidth="1.4" />
             </svg>

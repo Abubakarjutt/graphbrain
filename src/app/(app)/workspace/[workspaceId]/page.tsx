@@ -27,10 +27,15 @@ export default async function WorkspacePage({
 
       {/* Empty state — centered */}
       <div className="flex flex-col items-center justify-center flex-1 py-20 px-8">
-        {/* Workspace icon */}
-        <div className="mb-6 text-5xl leading-none select-none" aria-hidden>
-          🧠
-        </div>
+        {/* Workspace mark — the same three-node graph used as the brand mark */}
+        <span className="mb-6 grid h-14 w-14 place-items-center rounded-2xl bg-accent border border-border" aria-hidden>
+          <svg width="28" height="28" viewBox="0 0 18 18" fill="none">
+            <circle cx="9" cy="4.5" r="2.2" fill="var(--accent-foreground)" />
+            <circle cx="4" cy="13.5" r="1.8" fill="var(--accent-foreground)" opacity="0.7" />
+            <circle cx="14" cy="13.5" r="1.8" fill="var(--accent-foreground)" opacity="0.7" />
+            <path d="M9 6.5 4.8 11.8M9 6.5l4.2 5.3M4.8 13.5h8.4" stroke="var(--accent-foreground)" strokeWidth="1" opacity="0.4" />
+          </svg>
+        </span>
 
         {/* Title */}
         <h1 className="text-[2rem] font-bold tracking-tight text-foreground mb-2 text-center">
@@ -39,7 +44,7 @@ export default async function WorkspacePage({
 
         {/* Subtitle */}
         <p className="text-muted-foreground/70 text-sm mb-8 text-center max-w-sm leading-relaxed">
-          Get started by creating a page, or pick one from the sidebar.
+          Nothing here yet — start a page and it&apos;ll show up in the sidebar, linked to whatever you write next.
         </p>
 
         {/* CTA */}

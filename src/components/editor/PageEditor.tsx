@@ -98,12 +98,8 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
 
           {/* Page icon */}
           <div className="mb-3 -ml-1">
-            <span
-              className="inline-grid h-10 w-10 place-items-center rounded-lg opacity-70"
-              style={{ background: 'oklch(0.78 0.11 79 / 8%)', border: '1px solid oklch(0.78 0.11 79 / 20%)' }}
-              aria-hidden
-            >
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" style={{ color: 'var(--gold)' }}>
+            <span className="inline-grid h-10 w-10 place-items-center rounded-lg bg-accent border border-border">
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="text-accent-foreground">
                 <path d="M5 3h9.5L18 6.5V19H5V3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
                 <path d="M14.5 3v3.5H18" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
                 <path d="M8 10.5h6M8 13.5h6M8 16.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />

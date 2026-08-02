@@ -47,10 +47,10 @@ export function LoginForm() {
 
   if (magicLinkSent) {
     return (
-      <div className="rounded-xl border border-[var(--gold)]/25 bg-[var(--gold)]/10 px-4 py-5 text-center">
+      <div className="rounded-xl border border-indigo-400/25 bg-indigo-400/10 px-4 py-5 text-center">
         <p className="text-sm text-white/80">
           Magic link sent to{' '}
-          <span className="font-medium text-[var(--gold)]">{email}</span>.
+          <span className="font-medium text-indigo-300">{email}</span>.
         </p>
         <p className="mt-1 text-xs text-white/40">Check your inbox to continue.</p>
       </div>

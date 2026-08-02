@@ -4,8 +4,8 @@ import { useEffect, useRef } from 'react'
 
 /**
  * The product's own metaphor as atmosphere: a slow-drifting field of nodes
- * and edges — a knowledge graph — rendered behind the auth scene. Gold points
- * on ink, links fading with distance, a faint pulse travelling the network.
+ * and edges — a knowledge graph — rendered behind the auth scene. Indigo
+ * points on ink, links fading with distance, a faint pulse travelling the network.
  *
  * Cheap by design (~46 nodes), pauses when the tab is hidden, and collapses to
  * a static frame under prefers-reduced-motion.
@@ -70,7 +70,7 @@ export function ConstellationField() {
           const d = Math.hypot(dx, dy)
           if (d < LINK_DIST) {
             const strength = 1 - d / LINK_DIST
-            ctx!.strokeStyle = `rgba(214, 184, 122, ${strength * 0.16})`
+            ctx!.strokeStyle = `rgba(129, 140, 248, ${strength * 0.18})`
             ctx!.lineWidth = 0.6
             ctx!.beginPath()
             ctx!.moveTo(a.x, a.y)
@@ -91,14 +91,14 @@ export function ConstellationField() {
         const pulse = 0.55 + 0.45 * Math.sin(t * 2 + n.hot * 7)
         const glow = n.r * (2.6 + pulse * 1.4)
         const g = ctx!.createRadialGradient(n.x, n.y, 0, n.x, n.y, glow)
-        g.addColorStop(0, `rgba(226, 198, 138, ${0.5 + pulse * 0.4})`)
-        g.addColorStop(1, 'rgba(226, 198, 138, 0)')
+        g.addColorStop(0, `rgba(165, 180, 252, ${0.5 + pulse * 0.4})`)
+        g.addColorStop(1, 'rgba(165, 180, 252, 0)')
         ctx!.fillStyle = g
         ctx!.beginPath()
         ctx!.arc(n.x, n.y, glow, 0, Math.PI * 2)
         ctx!.fill()
 
-        ctx!.fillStyle = `rgba(244, 226, 178, ${0.75 + pulse * 0.2})`
+        ctx!.fillStyle = `rgba(224, 231, 255, ${0.75 + pulse * 0.2})`
         ctx!.beginPath()
         ctx!.arc(n.x, n.y, n.r, 0, Math.PI * 2)
         ctx!.fill()

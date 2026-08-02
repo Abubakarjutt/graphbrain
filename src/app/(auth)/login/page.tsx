@@ -18,7 +18,7 @@ export default async function LoginPage({
           New here?{' '}
           <Link
             href="/signup"
-            className="text-white/80 underline decoration-[var(--gold)]/60 underline-offset-4 transition-colors hover:text-white"
+            className="text-white/80 underline decoration-indigo-400/60 underline-offset-4 transition-colors hover:text-white"
           >
             Create an account
           </Link>
@@ -26,7 +26,7 @@ export default async function LoginPage({
       }
     >
       {params.message && (
-        <p className="mb-4 rounded-lg border border-[var(--gold)]/25 bg-[var(--gold)]/10 px-3 py-2 text-sm text-[var(--gold)]">
+        <p className="mb-4 rounded-lg border border-indigo-400/25 bg-indigo-400/10 px-3 py-2 text-sm text-indigo-300">
           {params.message}
         </p>
       )}

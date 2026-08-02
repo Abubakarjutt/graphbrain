@@ -7,9 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-geist-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -35,6 +35,8 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-spark-foreground: var(--spark-foreground);
+  --color-spark: var(--spark);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -48,81 +50,81 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  /* Ink & Constellation — warm paper, ink text, champagne-gold accents. */
-  --gold: oklch(0.78 0.11 79);
-  --gold-deep: oklch(0.62 0.11 67);
+/* ------------------------------------------------------------------ *
+ *  Slate — clean neutral, light-first, single indigo accent.
+ * ------------------------------------------------------------------ */
 
+:root {
   --background: oklch(1 0 0);
-  --foreground: oklch(0.23 0.016 75);
+  --foreground: oklch(0.208 0.042 265.755);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.23 0.016 75);
-  --popover: oklch(0.995 0.001 85);
-  --popover-foreground: oklch(0.23 0.016 75);
-  --primary: oklch(0.23 0.016 75);
-  --primary-foreground: oklch(0.98 0.001 85);
-  --secondary: oklch(0.965 0.004 85);
-  --secondary-foreground: oklch(0.23 0.016 75);
-  --muted: oklch(0.965 0.004 85);
-  --muted-foreground: oklch(0.56 0.01 75);
-  --accent: oklch(0.94 0.005 75);
-  --accent-foreground: oklch(0.23 0.016 75);
-  --destructive: oklch(0.55 0.2 27);
-  --border: oklch(0.905 0.008 85);
-  --input: oklch(0.9 0.008 85);
-  --ring: oklch(0.76 0.1 79);
-  --chart-1: oklch(0.78 0.11 79);
-  --chart-2: oklch(0.62 0.11 67);
-  --chart-3: oklch(0.5 0.08 55);
-  --chart-4: oklch(0.55 0.06 250);
-  --chart-5: oklch(0.4 0.05 268);
-  --radius: 0.25rem;
-  --sidebar: oklch(0.973 0.003 85);
-  --sidebar-foreground: oklch(0.23 0.016 75);
-  --sidebar-primary: oklch(0.23 0.016 75);
-  --sidebar-primary-foreground: oklch(0.98 0.002 85);
-  --sidebar-accent: oklch(0.935 0.005 75);
-  --sidebar-accent-foreground: oklch(0.23 0.016 75);
-  --sidebar-border: oklch(0.91 0.003 85);
-  --sidebar-ring: oklch(0.76 0.1 79);
+  --card-foreground: oklch(0.208 0.042 265.755);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.511 0.262 276.966);
+  --primary-foreground: oklch(0.984 0.003 247.858);
+  --spark: oklch(0.666 0.179 58.318);
+  --spark-foreground: oklch(0.987 0.022 95.277);
+  --secondary: oklch(0.968 0.007 247.896);
+  --secondary-foreground: oklch(0.208 0.042 265.755);
+  --muted: oklch(0.968 0.007 247.896);
+  --muted-foreground: oklch(0.554 0.046 257.417);
+  --accent: oklch(0.962 0.018 272.314);
+  --accent-foreground: oklch(0.457 0.24 277.023);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.929 0.013 255.508);
+  --input: oklch(0.869 0.022 252.894);
+  --ring: oklch(0.585 0.233 277.117);
+  --chart-1: oklch(0.511 0.262 276.966);
+  --chart-2: oklch(0.6 0.15 200);
+  --chart-3: oklch(0.65 0.17 165);
+  --chart-4: oklch(0.72 0.17 55);
+  --chart-5: oklch(0.6 0.2 15);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.279 0.041 260.031);
+  --sidebar-primary: oklch(0.511 0.262 276.966);
+  --sidebar-primary-foreground: oklch(0.984 0.003 247.858);
+  --sidebar-accent: oklch(0.929 0.013 255.508);
+  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
+  --sidebar-border: oklch(0.929 0.013 255.508);
+  --sidebar-ring: oklch(0.585 0.233 277.117);
 }
 
 .dark {
-  /* Ink & Constellation, dark side — warm ink surfaces, gold accents. */
-  --gold: oklch(0.82 0.11 82);
-  --gold-deep: oklch(0.7 0.11 74);
-
-  --background: oklch(0.19 0.014 265);
-  --foreground: oklch(0.94 0.008 85);
-  --card: oklch(0.23 0.016 265);
-  --card-foreground: oklch(0.94 0.008 85);
-  --popover: oklch(0.23 0.016 265);
-  --popover-foreground: oklch(0.94 0.008 85);
-  --primary: oklch(0.82 0.11 82);
-  --primary-foreground: oklch(0.24 0.03 70);
-  --secondary: oklch(0.28 0.016 265);
-  --secondary-foreground: oklch(0.94 0.008 85);
-  --muted: oklch(0.28 0.016 265);
-  --muted-foreground: oklch(0.7 0.012 265);
-  --accent: oklch(0.32 0.03 78);
-  --accent-foreground: oklch(0.9 0.06 82);
-  --destructive: oklch(0.7 0.19 22);
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 12%);
-  --ring: oklch(0.72 0.1 80);
-  --chart-1: oklch(0.82 0.11 82);
-  --chart-2: oklch(0.7 0.11 74);
-  --chart-3: oklch(0.6 0.08 60);
-  --chart-4: oklch(0.6 0.07 250);
-  --chart-5: oklch(0.5 0.05 265);
-  --sidebar: oklch(0.165 0.014 265);
-  --sidebar-foreground: oklch(0.9 0.008 85);
-  --sidebar-primary: oklch(0.82 0.11 82);
-  --sidebar-primary-foreground: oklch(0.24 0.03 70);
-  --sidebar-accent: oklch(0.3 0.028 78);
-  --sidebar-accent-foreground: oklch(0.9 0.06 82);
+  --background: oklch(0.129 0.042 264.695);
+  --foreground: oklch(0.968 0.007 247.896);
+  --card: oklch(0.208 0.042 265.755);
+  --card-foreground: oklch(0.968 0.007 247.896);
+  --popover: oklch(0.208 0.042 265.755);
+  --popover-foreground: oklch(0.968 0.007 247.896);
+  --primary: oklch(0.673 0.182 276.935);
+  --primary-foreground: oklch(0.129 0.042 264.695);
+  --spark: oklch(0.828 0.189 84.429);
+  --spark-foreground: oklch(0.279 0.077 45.635);
+  --secondary: oklch(0.279 0.041 260.031);
+  --secondary-foreground: oklch(0.968 0.007 247.896);
+  --muted: oklch(0.279 0.041 260.031);
+  --muted-foreground: oklch(0.704 0.04 256.788);
+  --accent: oklch(1 0 0 / 8%);
+  --accent-foreground: oklch(0.785 0.115 274.713);
+  --destructive: oklch(0.637 0.237 25.331);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.673 0.182 276.935);
+  --chart-1: oklch(0.673 0.182 276.935);
+  --chart-2: oklch(0.65 0.15 200);
+  --chart-3: oklch(0.68 0.17 165);
+  --chart-4: oklch(0.75 0.17 55);
+  --chart-5: oklch(0.65 0.2 15);
+  --sidebar: oklch(0.208 0.042 265.755);
+  --sidebar-foreground: oklch(0.869 0.022 252.894);
+  --sidebar-primary: oklch(0.673 0.182 276.935);
+  --sidebar-primary-foreground: oklch(0.129 0.042 264.695);
+  --sidebar-accent: oklch(0.279 0.041 260.031);
+  --sidebar-accent-foreground: oklch(0.968 0.007 247.896);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.72 0.1 80);
+  --sidebar-ring: oklch(0.673 0.182 276.935);
 }
 
 @layer base {
@@ -133,20 +135,30 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    font-family: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 }
 
 /* ------------------------------------------------------------------ *
- *  Ink & Constellation — shared aesthetic utilities
+ *  Display font — brand wordmark and auth hero only, never UI chrome.
  * ------------------------------------------------------------------ */
-
 .font-display {
   font-family: var(--font-display), Georgia, serif;
   font-optical-sizing: auto;
 }
 
-/* Fine film-grain texture layered over dark scenes for depth. */
+/* Uppercase nav-group label — replaces italic-serif labels that were
+   hard to scan at small sizes. */
+.nav-label {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+/* Fine film-grain texture layered over dark scenes for depth (auth page). */
 .grain::before {
   content: "";
   position: absolute;
@@ -158,13 +170,13 @@
   mix-blend-mode: overlay;
 }
 
-/* Champagne-gold hairline used as a decorative rule. */
-.gold-rule {
+/* Indigo hairline used as a decorative rule (auth page). */
+.indigo-rule {
   height: 1px;
   background: linear-gradient(
     90deg,
     transparent,
-    color-mix(in oklch, var(--gold) 70%, transparent),
+    color-mix(in oklch, var(--primary) 55%, transparent),
     transparent
   );
 }
@@ -190,12 +202,14 @@
   }
 }
 
-@keyframes gold-shimmer {
-  0% {
-    background-position: -180% 0;
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.99);
   }
-  100% {
-    background-position: 180% 0;
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }
 
@@ -207,15 +221,17 @@
   animation: drift 14s ease-in-out infinite;
 }
 
+.animate-fade-in {
+  animation: fade-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 /* ------------------------------------------------------------------ *
- *  Ink & Constellation — prose overrides
- *  Target `.prose` elements to carry the brand palette into the editor.
+ *  Prose overrides — editor content
  * ------------------------------------------------------------------ */
 
-/* Blockquote: gold left rule instead of generic gray */
 .prose blockquote {
-  border-left-color: color-mix(in oklch, var(--gold) 55%, transparent);
-  background: color-mix(in oklch, var(--gold) 6%, var(--background));
+  border-left-color: color-mix(in oklch, var(--primary) 45%, transparent);
+  background: color-mix(in oklch, var(--primary) 5%, var(--background));
   border-radius: 0 6px 6px 0;
   padding: 0.6em 1em;
   font-style: normal;
@@ -226,9 +242,8 @@
   content: none;
 }
 
-/* Inline code: warm accent surface, no backtick decoration */
 .prose :not(pre) > code {
-  background: color-mix(in oklch, var(--accent) 80%, transparent);
+  background: var(--muted);
   color: var(--accent-foreground);
   border-radius: 4px;
   padding: 0.15em 0.4em;
@@ -240,12 +255,11 @@
   content: none;
 }
 
-/* Code block: dark ink surface matching the dark sidebar tone */
 .prose pre {
-  background: oklch(0.19 0.014 265);
-  border: 1px solid oklch(1 0 0 / 8%);
+  background: oklch(0.208 0.042 265.755);
+  border: 1px solid oklch(1 0 0 / 10%);
   border-radius: 8px;
-  color: oklch(0.9 0.008 85);
+  color: oklch(0.929 0.013 255.508);
 }
 .prose pre code {
   background: transparent;
@@ -256,7 +270,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-rise,
-  .animate-drift {
+  .animate-drift,
+  .animate-fade-in {
     animation: none;
   }
 }

@@ -13,7 +13,7 @@ export default function SignupPage() {
           Already have an account?{' '}
           <Link
             href="/login"
-            className="text-white/80 underline decoration-[var(--gold)]/60 underline-offset-4 transition-colors hover:text-white"
+            className="text-white/80 underline decoration-indigo-400/60 underline-offset-4 transition-colors hover:text-white"
           >
             Sign in
           </Link>

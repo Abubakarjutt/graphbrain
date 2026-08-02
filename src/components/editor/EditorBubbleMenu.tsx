@@ -55,10 +55,10 @@ export function BubbleMenuButtons({ editor }: BubbleMenuButtonsProps) {
   const baseBtn =
     'inline-flex items-center justify-center rounded px-2 py-1 text-xs font-medium' +
     ' text-popover-foreground transition-colors' +
-    ' hover:bg-[color-mix(in_oklch,var(--gold)_15%,transparent)]' +
-    ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--gold)]'
+    ' hover:bg-accent' +
+    ' focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
-  const activeBtn = 'bg-[color-mix(in_oklch,var(--gold)_25%,transparent)] text-[var(--gold-deep)]'
+  const activeBtn = 'bg-accent text-accent-foreground'
 
   const btnClass = (active: boolean) =>
     `${baseBtn} ${active ? activeBtn : ''}`.trim()

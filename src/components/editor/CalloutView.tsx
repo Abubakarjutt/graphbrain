@@ -16,8 +16,8 @@ export function CalloutView({ node }: NodeViewProps) {
         alignItems: 'flex-start',
         padding: '0.75rem 1rem',
         borderRadius: 8,
-        border: '1px solid color-mix(in oklch, var(--gold) 40%, transparent)',
-        background: 'color-mix(in oklch, var(--gold) 12%, var(--background))',
+        border: '1px solid color-mix(in oklch, var(--primary) 30%, transparent)',
+        background: 'var(--accent)',
         margin: '0.5rem 0',
       }}
     >

@@ -29,9 +29,9 @@ export function AuthShell({
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(60rem 60rem at 18% 12%, rgba(96,84,52,0.28), transparent 60%),' +
-            'radial-gradient(50rem 50rem at 90% 90%, rgba(40,52,88,0.30), transparent 55%),' +
-            'radial-gradient(30rem 30rem at 75% 20%, rgba(120,96,48,0.14), transparent 60%)',
+            'radial-gradient(60rem 60rem at 18% 12%, rgba(79,70,229,0.22), transparent 60%),' +
+            'radial-gradient(50rem 50rem at 90% 90%, rgba(49,46,129,0.35), transparent 55%),' +
+            'radial-gradient(30rem 30rem at 75% 20%, rgba(99,102,241,0.14), transparent 60%)',
         }}
       />
       <ConstellationField />
@@ -45,7 +45,7 @@ export function AuthShell({
 
           <div className="hidden max-w-md lg:block">
             <p
-              className="animate-rise text-xs font-medium tracking-[0.32em] text-[var(--gold)] uppercase"
+              className="animate-rise text-xs font-medium tracking-[0.32em] text-indigo-300 uppercase"
               style={{ animationDelay: '120ms' }}
             >
               A second brain
@@ -55,7 +55,7 @@ export function AuthShell({
               style={{ animationDelay: '200ms' }}
             >
               Think in{' '}
-              <em className="font-display text-[var(--gold)] italic">connections</em>,
+              <em className="font-display text-indigo-300 italic">connections</em>,
               not folders.
             </h2>
             <ul className="mt-9 space-y-3.5">
@@ -65,7 +65,7 @@ export function AuthShell({
                   className="animate-rise flex items-start gap-3 text-sm text-white/55"
                   style={{ animationDelay: `${320 + i * 90}ms` }}
                 >
-                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[var(--gold)] shadow-[0_0_10px_2px_rgba(214,184,122,0.6)]" />
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-indigo-400 shadow-[0_0_10px_2px_rgba(129,140,248,0.6)]" />
                   {line}
                 </li>
               ))}
@@ -90,7 +90,7 @@ export function AuthShell({
               {/* top inner-highlight hairline */}
               <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
 
-              <p className="text-[0.7rem] font-medium tracking-[0.28em] text-[var(--gold)] uppercase">
+              <p className="text-[0.7rem] font-medium tracking-[0.28em] text-indigo-300 uppercase">
                 {eyebrow}
               </p>
               <h1 className="font-display mt-2 text-[1.9rem] leading-tight font-normal text-white">
@@ -98,7 +98,7 @@ export function AuthShell({
               </h1>
               <p className="mt-1.5 text-sm text-white/45">{subtitle}</p>
 
-              <div className="gold-rule my-6" />
+              <div className="indigo-rule my-6" />
 
               {children}
             </div>
@@ -115,12 +115,12 @@ function BrandMark() {
   return (
     <Link href="/" className="inline-flex items-center gap-3">
       {/* Monogram: a tiny three-node graph. */}
-      <span className="relative grid h-9 w-9 place-items-center rounded-xl border border-[var(--gold)]/40 bg-[var(--gold)]/10">
+      <span className="relative grid h-9 w-9 place-items-center rounded-xl border border-indigo-400/40 bg-indigo-400/10">
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-          <path d="M4 13.5 9 4l5 9.5" stroke="rgba(226,198,138,0.5)" strokeWidth="1" />
-          <circle cx="9" cy="4" r="2.1" fill="#e2c68a" />
-          <circle cx="4" cy="13.5" r="1.7" fill="#e2c68a" />
-          <circle cx="14" cy="13.5" r="1.7" fill="#e2c68a" />
+          <path d="M4 13.5 9 4l5 9.5" stroke="rgba(165,180,252,0.5)" strokeWidth="1" />
+          <circle cx="9" cy="4" r="2.1" fill="#a5b4fc" />
+          <circle cx="4" cy="13.5" r="1.7" fill="#a5b4fc" />
+          <circle cx="14" cy="13.5" r="1.7" fill="#a5b4fc" />
         </svg>
       </span>
       <span className="font-display text-xl tracking-tight text-white">graphbrain</span>
