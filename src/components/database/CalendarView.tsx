@@ -7,8 +7,8 @@ import { useRouter } from 'next/navigation'
 import { Calendar, dateFnsLocalizer, SlotInfo } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
-import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
-import { createRow } from '@/lib/actions/databases'
+import type { TodoBoard, TodoItemWithPage } from '@/lib/types/database'
+import { createTodoItem } from '@/lib/actions/todos'
 
 const localizer = dateFnsLocalizer({
   format,
@@ -18,66 +18,68 @@ const localizer = dateFnsLocalizer({
   locales: { 'en-US': enUS },
 })
 
-interface CalendarEvent {
+type EventKind = 'created' | 'due'
+
+interface TodoCalendarEvent {
   id: string
   title: string
   start: Date
   end: Date
-  resource: DatabaseRowWithTitle
+  resource: TodoItemWithPage
+  kind: EventKind
 }
 
 interface CalendarViewProps {
   databaseId: string
   workspaceId: string
-  schema: DatabaseField[]
-  rows: DatabaseRowWithTitle[]
-  onRowCreated: (row: DatabaseRowWithTitle) => void
+  board: TodoBoard
+  onBoardChange: (board: TodoBoard) => void
 }
 
-export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreated }: CalendarViewProps) {
+// Date-only strings (YYYY-MM-DD, and the date portion of a timestamptz) must
+// be parsed as local midnight, not UTC — otherwise the event can appear to
+// land on the wrong day depending on the viewer's timezone offset.
+function parseLocalDate(dateOnly: string): Date {
+  return new Date(dateOnly + 'T00:00:00')
+}
+
+export function CalendarView({ databaseId, workspaceId, board, onBoardChange }: CalendarViewProps) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
-  const dateField = schema.find(f => f.type === 'date')
 
-  if (!dateField) {
-    return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground text-sm">
-        Add a Date field to use Calendar view.
-      </div>
-    )
-  }
+  const events: TodoCalendarEvent[] = board.items.flatMap(item => {
+    const created = parseLocalDate(item.created_at.slice(0, 10))
+    const evts: TodoCalendarEvent[] = [
+      { id: `${item.id}:created`, title: `Created: ${item.title}`, start: created, end: created, resource: item, kind: 'created' },
+    ]
+    if (item.due_date) {
+      const due = parseLocalDate(item.due_date)
+      evts.push({ id: `${item.id}:due`, title: `Due: ${item.title}`, start: due, end: due, resource: item, kind: 'due' })
+    }
+    return evts
+  })
 
-  const events: CalendarEvent[] = rows
-    .filter(r => r.fields[dateField.id] != null && r.fields[dateField.id] !== '')
-    .map(r => {
-      const dateStr = String(r.fields[dateField.id])
-      // Date strings from date inputs are YYYY-MM-DD — parse as local midnight
-      const date = new Date(dateStr + 'T00:00:00')
-      return {
-        id: r.id,
-        title: r.page_title || 'Untitled',
-        start: date,
-        end: date,
-        resource: r,
-      }
-    })
-
-  function handleSelectEvent(event: CalendarEvent) {
-    if (event.resource.page_id) {
-      router.push(`/workspace/${workspaceId}/page/${event.resource.page_id}`)
+  function handleSelectEvent(event: TodoCalendarEvent) {
+    if (event.resource.attached_page_id) {
+      router.push(`/workspace/${workspaceId}/page/${event.resource.attached_page_id}`)
     }
   }
 
   function handleSelectSlot(slot: SlotInfo) {
+    const firstList = [...board.lists].sort((a, b) => a.position - b.position)[0]
+    if (!firstList) {
+      setError('Add a list in Kanban view before creating to-do items here')
+      return
+    }
     const dateStr = format(slot.start, 'yyyy-MM-dd')
     startTransition(async () => {
       try {
-        const row = await createRow(databaseId, workspaceId, { [dateField!.id]: dateStr })
-        onRowCreated(row)
+        const item = await createTodoItem(firstList.id, databaseId, workspaceId, 'New to-do', dateStr)
+        onBoardChange({ ...board, items: [...board.items, item] })
         setError(null)
       } catch {
-        setError('Failed to create row')
+        setError('Failed to create to-do item')
       }
     })
   }
@@ -93,6 +95,11 @@ export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreat
         selectable
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
+        eventPropGetter={event => ({
+          style: {
+            backgroundColor: (event as TodoCalendarEvent).kind === 'due' ? '#d97706' : '#6b7280',
+          },
+        })}
         style={{ height: '100%' }}
         views={['month']}
         defaultView="month"
