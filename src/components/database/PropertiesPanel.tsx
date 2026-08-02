@@ -21,7 +21,7 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
     return init
   })
   const [error, setError] = useState<string | null>(null)
-  const [, startTransition] = useTransition()
+  const [isPending, startTransition] = useTransition()
 
   useEffect(() => {
     setLocalValues(prev => {
@@ -69,42 +69,56 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
                 onChange={e => handleChange(field.id, e.target.checked)}
                 aria-label={field.name}
               />
-            ) : field.type === 'select' ? (
-              <select
-                value={typeof fields[field.id] === 'string' ? fields[field.id] as string : ''}
-                onChange={e => handleChange(field.id, e.target.value || null)}
-                className="w-full text-sm border rounded-md px-2 py-1 bg-background"
-                aria-label={field.name}
-              >
-                <option value="">—</option>
-                {(field.options ?? []).map(opt => (
-                  <option key={opt} value={opt}>{opt}</option>
-                ))}
-              </select>
-            ) : field.type === 'multi_select' ? (
-              <div className="flex flex-wrap gap-1">
-                {(field.options ?? []).map(opt => {
-                  const selected = Array.isArray(fields[field.id]) ? fields[field.id] as string[] : []
-                  const isSelected = selected.includes(opt)
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => handleChange(field.id, isSelected ? selected.filter(o => o !== opt) : [...selected, opt])}
-                      aria-pressed={isSelected}
-                      className={`text-xs rounded px-1.5 py-0.5 transition-colors ${
-                        isSelected ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  )
-                })}
-                {(field.options ?? []).length === 0 && (
-                  <span className="text-xs text-muted-foreground/50">No options yet</span>
-                )}
-              </div>
-            ) : field.type === 'date' ? (
+            ) : field.type === 'select' ? (() => {
+              const value = fields[field.id]
+              const knownOptions = field.options ?? []
+              const isOrphaned = typeof value === 'string' && value !== '' && !knownOptions.includes(value)
+              return (
+                <select
+                  value={typeof value === 'string' ? value : ''}
+                  onChange={e => handleChange(field.id, e.target.value || null)}
+                  disabled={isPending}
+                  className="w-full text-sm border rounded-md px-2 py-1 bg-background disabled:opacity-50"
+                  aria-label={field.name}
+                >
+                  <option value="">—</option>
+                  {isOrphaned && <option value={value as string}>{value as string} (removed)</option>}
+                  {knownOptions.map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              )
+            })() : field.type === 'multi_select' ? (() => {
+              const selected = Array.isArray(fields[field.id]) ? fields[field.id] as string[] : []
+              const knownOptions = field.options ?? []
+              const orphanedSelected = selected.filter(opt => !knownOptions.includes(opt))
+              return (
+                <div role="group" aria-label={field.name} className="flex flex-wrap gap-1">
+                  {[...knownOptions, ...orphanedSelected].map(opt => {
+                    const isSelected = selected.includes(opt)
+                    const isOrphan = orphanedSelected.includes(opt)
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => handleChange(field.id, isSelected ? selected.filter(o => o !== opt) : [...selected, opt])}
+                        aria-pressed={isSelected}
+                        disabled={isPending}
+                        title={isOrphan ? 'This option was removed from the field' : undefined}
+                        className={`text-xs rounded px-1.5 py-0.5 transition-colors disabled:opacity-50 ${
+                          isSelected ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+                        } ${isOrphan ? 'italic' : ''}`}
+                      >
+                        {opt}
+                      </button>
+                    )
+                  })}
+                  {knownOptions.length === 0 && orphanedSelected.length === 0 && (
+                    <span className="text-xs text-muted-foreground/50">No options yet</span>
+                  )}
+                </div>
+              )
+            })() : field.type === 'date' ? (
               <input
                 type="date"
                 value={localValues[field.id] ?? ''}

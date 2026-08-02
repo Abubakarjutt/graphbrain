@@ -48,17 +48,21 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows }: 
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
-  function handleSchemaChange(newSchema: DatabaseField[]) {
+  function handleSchemaChange(newSchema: DatabaseField[]): Promise<boolean> {
     const previousSchema = currentSchema
     setCurrentSchema(newSchema)
-    startTransition(async () => {
-      try {
-        await updateDatabaseSchema(databaseId, workspaceId, newSchema)
-        setError(null)
-      } catch {
-        setCurrentSchema(previousSchema)
-        setError('Failed to update schema')
-      }
+    return new Promise<boolean>(resolve => {
+      startTransition(async () => {
+        try {
+          await updateDatabaseSchema(databaseId, workspaceId, newSchema)
+          setError(null)
+          resolve(true)
+        } catch {
+          setCurrentSchema(previousSchema)
+          setError('Failed to update schema')
+          resolve(false)
+        }
+      })
     })
   }
 

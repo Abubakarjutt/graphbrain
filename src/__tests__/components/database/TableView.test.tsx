@@ -249,6 +249,129 @@ describe('TableView', () => {
     expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-multi': [] }))
   })
 
+  it('groups multi_select toggles under an accessible group labeled with the field name', () => {
+    renderTable()
+    expect(within(rowFor('Row One')).getByRole('group', { name: 'Tags' })).toBeInTheDocument()
+  })
+
+  it('shows a select value whose option was removed from the field as a distinct, visible entry', () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+    ]
+    const orphanedRows: DatabaseRowWithTitle[] = [
+      { id: 'row-1', database_id: 'db-1', page_id: null, page_title: 'Row One', fields: { 'f-select': 'Archived' }, created_at: '' },
+    ]
+    render(
+      <TableView
+        databaseId="db-1"
+        workspaceId="ws-1"
+        schema={orphanedSchema}
+        rows={orphanedRows}
+        onAddRow={vi.fn()}
+        onRowUpdate={vi.fn()}
+        onDeleteRow={vi.fn()}
+      />
+    )
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('Archived')
+    expect(within(select).getByText('Archived (removed)')).toBeInTheDocument()
+  })
+
+  it('shows a multi_select value whose option was removed from the field as a distinct, still-toggleable chip', () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent'] },
+    ]
+    const orphanedRows: DatabaseRowWithTitle[] = [
+      { id: 'row-1', database_id: 'db-1', page_id: null, page_title: 'Row One', fields: { 'f-multi': ['Legacy'] }, created_at: '' },
+    ]
+    const onRowUpdate = vi.fn()
+    render(
+      <TableView
+        databaseId="db-1"
+        workspaceId="ws-1"
+        schema={orphanedSchema}
+        rows={orphanedRows}
+        onAddRow={vi.fn()}
+        onRowUpdate={onRowUpdate}
+        onDeleteRow={vi.fn()}
+      />
+    )
+    const chip = screen.getByText('Legacy')
+    expect(chip).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(chip)
+    expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-multi': [] }))
+  })
+
+  it('disables select and multi_select cells while a write is pending, re-enabling once it settles', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderTable()
+    const tr = rowFor('Row One')
+    const select = within(tr).getByLabelText('Status')
+    const tagToggle = within(tr).getByText('Urgent')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+    expect(tagToggle).toBeDisabled()
+
+    resolveUpdate!()
+    await waitFor(() => expect(select).not.toBeDisabled())
+  })
+
+  it('treats a non-array multi_select value defensively, rendering as if nothing were selected', () => {
+    const badValueSchema: DatabaseField[] = [
+      { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent', 'Bug'] },
+    ]
+    render(
+      <TableView
+        databaseId="db-1"
+        workspaceId="ws-1"
+        schema={badValueSchema}
+        rows={[{ id: 'row-x', database_id: 'db-1', page_id: null, page_title: 'Row X', fields: { 'f-multi': 'not-an-array' }, created_at: '' }]}
+        onAddRow={vi.fn()}
+        onRowUpdate={vi.fn()}
+        onDeleteRow={vi.fn()}
+      />
+    )
+    expect(screen.getByText('Urgent')).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('Bug')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('accumulates multiple multi_select toggles across a sequence of clicks', async () => {
+    // TableView derives the selection purely from the `rows` prop (no internal
+    // state), so each step here re-renders with the fields onRowUpdate would
+    // have produced in the real optimistic-update flow driven by DatabaseShell,
+    // waiting for each write's transition to settle before the next click.
+    const onRowUpdate = vi.fn()
+    const { rerender } = render(
+      <TableView
+        databaseId="db-1" workspaceId="ws-1" schema={schema} rows={rows}
+        onAddRow={vi.fn()} onRowUpdate={onRowUpdate} onDeleteRow={vi.fn()}
+      />
+    )
+
+    fireEvent.click(within(rowFor('Row One')).getByText('Urgent'))
+    expect(onRowUpdate).toHaveBeenLastCalledWith('row-1', expect.objectContaining({ 'f-multi': ['Bug', 'Urgent'] }))
+    await waitFor(() => expect(updateRowFields).toHaveBeenCalledTimes(1))
+
+    const afterFirstToggle = [
+      { ...rows[0], fields: { ...rows[0].fields, 'f-multi': ['Bug', 'Urgent'] } },
+      rows[1],
+    ]
+    rerender(
+      <TableView
+        databaseId="db-1" workspaceId="ws-1" schema={schema} rows={afterFirstToggle}
+        onAddRow={vi.fn()} onRowUpdate={onRowUpdate} onDeleteRow={vi.fn()}
+      />
+    )
+
+    fireEvent.click(within(rowFor('Row One')).getByText('Bug'))
+    expect(onRowUpdate).toHaveBeenLastCalledWith('row-1', expect.objectContaining({ 'f-multi': ['Urgent'] }))
+    await waitFor(() => expect(updateRowFields).toHaveBeenCalledTimes(2))
+  })
+
   it('shows a placeholder for a multi_select field with no options defined yet', () => {
     const noOptionsSchema: DatabaseField[] = [{ id: 'f-empty-multi', name: 'Labels', type: 'multi_select', options: [] }]
     render(

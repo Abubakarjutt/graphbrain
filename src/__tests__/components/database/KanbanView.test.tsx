@@ -127,6 +127,16 @@ describe('KanbanView', () => {
     expect(onRowUpdate).not.toHaveBeenCalled()
   })
 
+  it('does nothing when a row whose stored value is an orphaned (removed) option is dropped back onto No Status', () => {
+    const { onRowUpdate } = renderBoard({
+      rows: [
+        { id: 'row-orphan', database_id: 'db-1', page_id: null, page_title: 'Orphan Task', fields: { status: 'Archived' }, created_at: '' },
+      ],
+    })
+    capturedOnDragEnd!({ active: { id: 'row-orphan' }, over: { id: NO_STATUS_ID } })
+    expect(onRowUpdate).not.toHaveBeenCalled()
+  })
+
   it('does nothing and does not crash when the dragged row id is unknown', () => {
     const { onRowUpdate } = renderBoard()
     expect(() => capturedOnDragEnd!({ active: { id: 'ghost-row' }, over: { id: 'Done' } })).not.toThrow()

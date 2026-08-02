@@ -244,4 +244,54 @@ describe('PropertiesPanel', () => {
       )
     })
   })
+
+  it('groups multi_select toggles under an accessible group labeled with the field name', () => {
+    renderPanel()
+    expect(screen.getByRole('group', { name: 'Tags' })).toBeInTheDocument()
+  })
+
+  it('shows a select value whose option was removed from the field as a distinct, visible entry', () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+    ]
+    renderPanel({ schema: orphanedSchema, initialFields: { 'f-select': 'Archived' } })
+
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('Archived')
+    expect(screen.getByText('Archived (removed)')).toBeInTheDocument()
+  })
+
+  it('shows a multi_select value whose option was removed from the field as a distinct, still-toggleable chip', async () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent'] },
+    ]
+    renderPanel({ schema: orphanedSchema, initialFields: { 'f-multi': ['Legacy'] } })
+
+    const chip = screen.getByText('Legacy')
+    expect(chip).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(chip)
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': [] })
+      )
+    })
+  })
+
+  it('disables select and multi_select controls while a write is pending, re-enabling once it settles', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderPanel()
+    const select = screen.getByLabelText('Status')
+    const tagToggle = screen.getByText('Urgent')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+    expect(tagToggle).toBeDisabled()
+
+    resolveUpdate!()
+    await waitFor(() => expect(select).not.toBeDisabled())
+  })
 })

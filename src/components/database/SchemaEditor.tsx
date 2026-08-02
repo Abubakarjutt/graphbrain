@@ -5,7 +5,9 @@ import type { DatabaseField } from '@/lib/types/database'
 
 interface SchemaEditorProps {
   schema: DatabaseField[]
-  onChange: (schema: DatabaseField[]) => void
+  // Returning false signals a failed persist — SchemaEditor keeps the
+  // user's draft input intact so they don't lose typed text and can retry.
+  onChange: (schema: DatabaseField[]) => Promise<boolean> | void
   onClose: () => void
 }
 
@@ -15,6 +17,10 @@ const FIELD_TYPES: DatabaseField['type'][] = [
 
 const OPTION_TYPES: DatabaseField['type'][] = ['select', 'multi_select']
 
+function isDuplicateOption(options: string[], candidate: string): boolean {
+  return options.some(o => o.toLowerCase() === candidate.toLowerCase())
+}
+
 export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
   const [newName, setNewName] = useState('')
   const [newType, setNewType] = useState<DatabaseField['type']>('text')
@@ -22,15 +28,24 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
   const [newOptionDraft, setNewOptionDraft] = useState('')
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
 
-  function addField() {
+  async function addField() {
     if (!newName.trim()) return
+    // Flush whatever's still sitting in the option box, uncommitted — a user
+    // who types an option and then hits Enter in the name field (or clicks
+    // Add) without first pressing Enter there shouldn't lose it.
+    const pending = newOptionDraft.trim()
+    const finalOptions = pending && !isDuplicateOption(newOptions, pending)
+      ? [...newOptions, pending]
+      : newOptions
+
     const field: DatabaseField = {
       id: crypto.randomUUID(),
       name: newName.trim(),
       type: newType,
-      options: OPTION_TYPES.includes(newType) ? newOptions : undefined,
+      options: OPTION_TYPES.includes(newType) ? finalOptions : undefined,
     }
-    onChange([...schema, field])
+    const result = await onChange([...schema, field])
+    if (result === false) return
     setNewName('')
     setNewType('text')
     setNewOptions([])
@@ -43,7 +58,7 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
 
   function addNewFieldOption() {
     const opt = newOptionDraft.trim()
-    if (!opt || newOptions.includes(opt)) return
+    if (!opt || isDuplicateOption(newOptions, opt)) return
     setNewOptions(prev => [...prev, opt])
     setNewOptionDraft('')
   }
@@ -52,12 +67,13 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
     setNewOptions(prev => prev.filter(o => o !== opt))
   }
 
-  function addExistingOption(fieldId: string) {
+  async function addExistingOption(fieldId: string) {
     const draft = (optionDrafts[fieldId] ?? '').trim()
     if (!draft) return
     const field = schema.find(f => f.id === fieldId)
-    if (!field || (field.options ?? []).includes(draft)) return
-    onChange(schema.map(f => f.id === fieldId ? { ...f, options: [...(f.options ?? []), draft] } : f))
+    if (!field || isDuplicateOption(field.options ?? [], draft)) return
+    const result = await onChange(schema.map(f => f.id === fieldId ? { ...f, options: [...(f.options ?? []), draft] } : f))
+    if (result === false) return
     setOptionDrafts(prev => ({ ...prev, [fieldId]: '' }))
   }
 

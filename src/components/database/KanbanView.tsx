@@ -109,8 +109,13 @@ export function KanbanView({ databaseId, workspaceId, schema, rows, onRowUpdate 
   function getColumnRows(columnId: string) {
     return rows.filter(r => {
       const val = r.fields[selectField!.id]
-      if (columnId === NO_STATUS_ID) return val === null || val === undefined || val === ''
-      return val === columnId
+      // A value can go stale if its option was removed from the field after
+      // the row was set — without this, such a row would match no column at
+      // all and silently disappear from the board instead of falling back
+      // to "No Status".
+      const isKnownValue = typeof val === 'string' && val !== '' && options.includes(val)
+      if (columnId === NO_STATUS_ID) return !isKnownValue
+      return isKnownValue && val === columnId
     })
   }
 
@@ -123,10 +128,8 @@ export function KanbanView({ databaseId, workspaceId, schema, rows, onRowUpdate 
     if (!row) return
 
     const currentValue = row.fields[selectField!.id]
-    const isAlreadyInColumn =
-      over.id === NO_STATUS_ID
-        ? currentValue === null || currentValue === undefined || currentValue === ''
-        : currentValue === over.id
+    const isKnownValue = typeof currentValue === 'string' && currentValue !== '' && options.includes(currentValue)
+    const isAlreadyInColumn = over.id === NO_STATUS_ID ? !isKnownValue : currentValue === over.id
     if (isAlreadyInColumn) return
 
     const originalFields = { ...row.fields }

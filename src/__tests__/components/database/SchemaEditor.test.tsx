@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { SchemaEditor } from '@/components/database/SchemaEditor'
 import type { DatabaseField } from '@/lib/types/database'
 
@@ -113,12 +113,12 @@ describe('SchemaEditor', () => {
     expect(onChange).not.toHaveBeenCalled()
   })
 
-  it('clears the name input and resets the type after adding a field', () => {
+  it('clears the name input and resets the type after adding a field', async () => {
     renderEditor()
     fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'number' } })
     addField('Score')
 
-    expect(screen.getByLabelText('New field name')).toHaveValue('')
+    await waitFor(() => expect(screen.getByLabelText('New field name')).toHaveValue(''))
     expect(screen.getByLabelText('Field type')).toHaveValue('text')
   })
 
@@ -164,13 +164,13 @@ describe('SchemaEditor', () => {
     ])
   })
 
-  it('clears the option draft input after adding an option', () => {
+  it('clears the option draft input after adding an option', async () => {
     renderEditor()
     const input = screen.getByLabelText('New option for Status')
     fireEvent.change(input, { target: { value: 'In Progress' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    expect(input).toHaveValue('')
+    await waitFor(() => expect(input).toHaveValue(''))
   })
 
   it('does not add a duplicate option to an existing field', () => {
@@ -233,7 +233,7 @@ describe('SchemaEditor', () => {
     expect(screen.queryByText('Low')).not.toBeInTheDocument()
   })
 
-  it('resets pending options after the field is created', () => {
+  it('resets pending options after the field is created', async () => {
     const { onChange } = renderEditor()
     fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
     const optionInput = screen.getByLabelText('New field option')
@@ -243,6 +243,67 @@ describe('SchemaEditor', () => {
     addField('Priority')
 
     expect(onChange.mock.calls[0][0][2]).toMatchObject({ options: ['Low'] })
-    expect(screen.queryByText('Low')).not.toBeInTheDocument()
+    await waitFor(() => expect(screen.queryByText('Low')).not.toBeInTheDocument())
+  })
+
+  it('does not add a duplicate option to an existing field, case-insensitively', () => {
+    const { onChange } = renderEditor()
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.change(input, { target: { value: 'to do' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('flushes an uncommitted pending option when the new field is submitted without pressing Enter on it', async () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+
+    // Type a pending option but never press Enter or click anything to commit it —
+    // only the field-name Enter/Add should be responsible for flushing it.
+    fireEvent.change(screen.getByLabelText('New field option'), { target: { value: 'Low' } })
+
+    addField('Priority')
+
+    await waitFor(() => {
+      expect(onChange.mock.calls[0][0][2]).toMatchObject({ name: 'Priority', options: ['Low'] })
+    })
+  })
+
+  it('does not duplicate a pending option that was both committed and left in the draft box', async () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+
+    const optionInput = screen.getByLabelText('New field option')
+    fireEvent.change(optionInput, { target: { value: 'Low' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter' })
+    // Re-type the same text without re-committing it.
+    fireEvent.change(optionInput, { target: { value: 'Low' } })
+
+    addField('Priority')
+
+    await waitFor(() => {
+      expect(onChange.mock.calls[0][0][2]).toMatchObject({ options: ['Low'] })
+    })
+  })
+
+  it('keeps the name input filled when the persist fails, so the user can retry', async () => {
+    const onChange = vi.fn().mockResolvedValue(false)
+    render(<SchemaEditor schema={schema} onChange={onChange} onClose={vi.fn()} />)
+    addField('Priority')
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+    expect(screen.getByLabelText('New field name')).toHaveValue('Priority')
+  })
+
+  it('keeps the option draft filled when adding an option to an existing field fails', async () => {
+    const onChange = vi.fn().mockResolvedValue(false)
+    render(<SchemaEditor schema={schema} onChange={onChange} onClose={vi.fn()} />)
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.change(input, { target: { value: 'In Progress' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledTimes(1))
+    expect(input).toHaveValue('In Progress')
   })
 })
