@@ -59,6 +59,49 @@ function Cell({ field, value, onChange }: CellProps) {
       />
     )
   }
+  if (field.type === 'select') {
+    return (
+      <select
+        value={typeof value === 'string' ? value : ''}
+        onChange={e => onChange(e.target.value || null)}
+        className="w-full bg-transparent text-sm outline-none text-foreground"
+        aria-label={field.name}
+      >
+        <option value="">—</option>
+        {(field.options ?? []).map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    )
+  }
+  if (field.type === 'multi_select') {
+    const selected = Array.isArray(value) ? value as string[] : []
+    function toggle(opt: string) {
+      onChange(selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt])
+    }
+    return (
+      <div className="flex flex-wrap gap-1">
+        {(field.options ?? []).map(opt => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            aria-pressed={selected.includes(opt)}
+            className={`text-xs rounded px-1.5 py-0.5 transition-colors ${
+              selected.includes(opt)
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {opt}
+          </button>
+        ))}
+        {(field.options ?? []).length === 0 && (
+          <span className="text-xs text-muted-foreground/50">No options yet</span>
+        )}
+      </div>
+    )
+  }
   if (field.type === 'date') {
     return (
       <input

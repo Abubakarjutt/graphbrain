@@ -19,6 +19,8 @@ const schema: DatabaseField[] = [
   { id: 'f-number', name: 'Score', type: 'number' },
   { id: 'f-date', name: 'Due', type: 'date' },
   { id: 'f-checkbox', name: 'Done', type: 'checkbox' },
+  { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+  { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent', 'Bug'] },
 ]
 
 const rows: DatabaseRowWithTitle[] = [
@@ -27,7 +29,7 @@ const rows: DatabaseRowWithTitle[] = [
     database_id: 'db-1',
     page_id: 'page-1',
     page_title: 'Row One',
-    fields: { 'f-text': 'hello', 'f-number': 5, 'f-date': '2026-01-01', 'f-checkbox': true },
+    fields: { 'f-text': 'hello', 'f-number': 5, 'f-date': '2026-01-01', 'f-checkbox': true, 'f-select': 'To Do', 'f-multi': ['Bug'] },
     created_at: '',
   },
   {
@@ -199,5 +201,67 @@ describe('TableView', () => {
     const deleteButtons = screen.getAllByRole('button', { name: 'Delete row' })
     fireEvent.click(deleteButtons[1])
     expect(onDeleteRow).toHaveBeenCalledWith('row-2')
+  })
+
+  it('renders a select field as a dropdown pre-filled with the current value, offering every option', () => {
+    renderTable()
+    const select = within(rowFor('Row One')).getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('To Do')
+    expect(Array.from(select.options).map(o => o.value)).toEqual(['', 'To Do', 'Complete'])
+  })
+
+  it('saves a select field immediately on change, without needing blur', () => {
+    const { onRowUpdate } = renderTable()
+    const select = within(rowFor('Row One')).getByLabelText('Status')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-select': 'Complete' }))
+  })
+
+  it('sets a select field to null when cleared back to the blank option', () => {
+    const { onRowUpdate } = renderTable()
+    const select = within(rowFor('Row One')).getByLabelText('Status')
+
+    fireEvent.change(select, { target: { value: '' } })
+
+    expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-select': null }))
+  })
+
+  it('renders multi_select options as toggles reflecting the current selection', () => {
+    renderTable()
+    const tr = rowFor('Row One')
+    expect(within(tr).getByText('Bug')).toHaveAttribute('aria-pressed', 'true')
+    expect(within(tr).getByText('Urgent')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('adds an option to a multi_select field when an unselected toggle is clicked', () => {
+    const { onRowUpdate } = renderTable()
+    fireEvent.click(within(rowFor('Row One')).getByText('Urgent'))
+
+    expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-multi': ['Bug', 'Urgent'] }))
+  })
+
+  it('removes an option from a multi_select field when a selected toggle is clicked', () => {
+    const { onRowUpdate } = renderTable()
+    fireEvent.click(within(rowFor('Row One')).getByText('Bug'))
+
+    expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-multi': [] }))
+  })
+
+  it('shows a placeholder for a multi_select field with no options defined yet', () => {
+    const noOptionsSchema: DatabaseField[] = [{ id: 'f-empty-multi', name: 'Labels', type: 'multi_select', options: [] }]
+    render(
+      <TableView
+        databaseId="db-1"
+        workspaceId="ws-1"
+        schema={noOptionsSchema}
+        rows={[{ id: 'row-x', database_id: 'db-1', page_id: null, page_title: 'Row X', fields: {}, created_at: '' }]}
+        onAddRow={vi.fn()}
+        onRowUpdate={vi.fn()}
+        onDeleteRow={vi.fn()}
+      />
+    )
+    expect(screen.getByText('No options yet')).toBeInTheDocument()
   })
 })

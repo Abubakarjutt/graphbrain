@@ -140,4 +140,109 @@ describe('SchemaEditor', () => {
 
     expect(onChange).not.toHaveBeenCalled()
   })
+
+  it('shows the current options for an existing select field', () => {
+    renderEditor()
+    expect(screen.getByText('To Do')).toBeInTheDocument()
+    expect(screen.getByText('Done')).toBeInTheDocument()
+  })
+
+  it('does not show an options editor for a non-option field type', () => {
+    renderEditor()
+    expect(screen.queryByLabelText('New option for Notes')).not.toBeInTheDocument()
+  })
+
+  it('adds a new option to an existing select field', () => {
+    const { onChange } = renderEditor()
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.change(input, { target: { value: 'In Progress' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onChange).toHaveBeenCalledWith([
+      { ...schema[0], options: ['To Do', 'Done', 'In Progress'] },
+      schema[1],
+    ])
+  })
+
+  it('clears the option draft input after adding an option', () => {
+    renderEditor()
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.change(input, { target: { value: 'In Progress' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(input).toHaveValue('')
+  })
+
+  it('does not add a duplicate option to an existing field', () => {
+    const { onChange } = renderEditor()
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.change(input, { target: { value: 'To Do' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('does not add a blank option', () => {
+    const { onChange } = renderEditor()
+    const input = screen.getByLabelText('New option for Status')
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    expect(onChange).not.toHaveBeenCalled()
+  })
+
+  it('removes an option from an existing select field', () => {
+    const { onChange } = renderEditor()
+    fireEvent.click(screen.getByLabelText('Remove option To Do from Status'))
+
+    expect(onChange).toHaveBeenCalledWith([
+      { ...schema[0], options: ['Done'] },
+      schema[1],
+    ])
+  })
+
+  it('lets options be added while creating a new select field, included when it is added', () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+
+    const optionInput = screen.getByLabelText('New field option')
+    fireEvent.change(optionInput, { target: { value: 'Low' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter' })
+    fireEvent.change(optionInput, { target: { value: 'High' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter' })
+
+    expect(screen.getByText('Low')).toBeInTheDocument()
+    expect(screen.getByText('High')).toBeInTheDocument()
+
+    addField('Priority')
+
+    expect(onChange.mock.calls[0][0][2]).toMatchObject({
+      name: 'Priority', type: 'select', options: ['Low', 'High'],
+    })
+  })
+
+  it('removes a pending option before the field is created', () => {
+    renderEditor()
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+
+    const optionInput = screen.getByLabelText('New field option')
+    fireEvent.change(optionInput, { target: { value: 'Low' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter' })
+    expect(screen.getByText('Low')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByLabelText('Remove option Low'))
+    expect(screen.queryByText('Low')).not.toBeInTheDocument()
+  })
+
+  it('resets pending options after the field is created', () => {
+    const { onChange } = renderEditor()
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+    const optionInput = screen.getByLabelText('New field option')
+    fireEvent.change(optionInput, { target: { value: 'Low' } })
+    fireEvent.keyDown(optionInput, { key: 'Enter' })
+
+    addField('Priority')
+
+    expect(onChange.mock.calls[0][0][2]).toMatchObject({ options: ['Low'] })
+    expect(screen.queryByText('Low')).not.toBeInTheDocument()
+  })
 })

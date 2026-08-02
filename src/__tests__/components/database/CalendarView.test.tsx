@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { format } from 'date-fns'
 import { CalendarView } from '@/components/database/CalendarView'
 import { createRow } from '@/lib/actions/databases'
@@ -8,20 +8,22 @@ import type { DatabaseField, DatabaseRowWithTitle } from '@/lib/types/database'
 // react-big-calendar's real Calendar does month-grid layout that needs
 // browser APIs jsdom doesn't provide, and its rendering isn't CalendarView's
 // own logic anyway. Stubbed to expose the mapped events and a way to invoke
-// onSelectSlot directly, so this file tests CalendarView's event-mapping and
-// row-creation logic, not the third-party widget.
+// onSelectSlot/onSelectEvent directly, so this file tests CalendarView's
+// event-mapping, row-creation, and navigation logic, not the third-party widget.
+interface StubEvent { id: string; title: string; start: Date; resource: DatabaseRowWithTitle }
 let capturedOnSelectSlot: ((slot: { start: Date; end: Date }) => void) | null = null
 
 vi.mock('react-big-calendar', () => ({
-  Calendar: ({ events, onSelectSlot }: {
-    events: { id: string; title: string; start: Date }[]
+  Calendar: ({ events, onSelectSlot, onSelectEvent }: {
+    events: StubEvent[]
     onSelectSlot: (slot: { start: Date; end: Date }) => void
+    onSelectEvent: (event: StubEvent) => void
   }) => {
     capturedOnSelectSlot = onSelectSlot
     return (
       <div data-testid="calendar-stub">
         {events.map(e => (
-          <div key={e.id}>{e.title} — {format(e.start, 'yyyy-MM-dd')}</div>
+          <button key={e.id} onClick={() => onSelectEvent(e)}>{e.title} — {format(e.start, 'yyyy-MM-dd')}</button>
         ))}
       </div>
     )
@@ -33,6 +35,11 @@ vi.mock('@/lib/actions/databases', () => ({
   createRow: vi.fn(),
 }))
 
+const mockPush = vi.fn()
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush }),
+}))
+
 const dateSchema: DatabaseField[] = [
   { id: 'due', name: 'Due Date', type: 'date' },
 ]
@@ -42,6 +49,7 @@ const rows: DatabaseRowWithTitle[] = [
   { id: 'row-2', database_id: 'db-1', page_id: 'p2', page_title: null, fields: { due: '2026-03-20' }, created_at: '' },
   { id: 'row-3', database_id: 'db-1', page_id: 'p3', page_title: 'Empty Date Task', fields: { due: '' }, created_at: '' },
   { id: 'row-4', database_id: 'db-1', page_id: 'p4', page_title: 'No Field Task', fields: {}, created_at: '' },
+  { id: 'row-5', database_id: 'db-1', page_id: null, page_title: 'Pageless Task', fields: { due: '2026-05-01' }, created_at: '' },
 ]
 
 function renderCalendar(overrides: Partial<React.ComponentProps<typeof CalendarView>> = {}) {
@@ -63,6 +71,7 @@ describe('CalendarView', () => {
   beforeEach(() => {
     capturedOnSelectSlot = null
     vi.mocked(createRow).mockReset()
+    mockPush.mockReset()
   })
 
   it('shows a prompt instead of a calendar when the schema has no date field', () => {
@@ -131,5 +140,21 @@ describe('CalendarView', () => {
     await waitFor(() => {
       expect(screen.queryByText('Failed to create row')).not.toBeInTheDocument()
     })
+  })
+
+  it('navigates to the underlying page when an existing event is clicked', () => {
+    renderCalendar()
+
+    fireEvent.click(screen.getByText('Task One — 2026-03-15'))
+
+    expect(mockPush).toHaveBeenCalledWith('/workspace/ws-1/page/p1')
+  })
+
+  it('does not navigate when the event has no associated page', () => {
+    renderCalendar()
+
+    fireEvent.click(screen.getByText('Pageless Task — 2026-05-01'))
+
+    expect(mockPush).not.toHaveBeenCalled()
   })
 })

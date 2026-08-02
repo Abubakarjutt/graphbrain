@@ -69,6 +69,41 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
                 onChange={e => handleChange(field.id, e.target.checked)}
                 aria-label={field.name}
               />
+            ) : field.type === 'select' ? (
+              <select
+                value={typeof fields[field.id] === 'string' ? fields[field.id] as string : ''}
+                onChange={e => handleChange(field.id, e.target.value || null)}
+                className="w-full text-sm border rounded-md px-2 py-1 bg-background"
+                aria-label={field.name}
+              >
+                <option value="">—</option>
+                {(field.options ?? []).map(opt => (
+                  <option key={opt} value={opt}>{opt}</option>
+                ))}
+              </select>
+            ) : field.type === 'multi_select' ? (
+              <div className="flex flex-wrap gap-1">
+                {(field.options ?? []).map(opt => {
+                  const selected = Array.isArray(fields[field.id]) ? fields[field.id] as string[] : []
+                  const isSelected = selected.includes(opt)
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => handleChange(field.id, isSelected ? selected.filter(o => o !== opt) : [...selected, opt])}
+                      aria-pressed={isSelected}
+                      className={`text-xs rounded px-1.5 py-0.5 transition-colors ${
+                        isSelected ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  )
+                })}
+                {(field.options ?? []).length === 0 && (
+                  <span className="text-xs text-muted-foreground/50">No options yet</span>
+                )}
+              </div>
             ) : field.type === 'date' ? (
               <input
                 type="date"

@@ -13,6 +13,8 @@ const schema: DatabaseField[] = [
   { id: 'f-number', name: 'Score', type: 'number' },
   { id: 'f-date', name: 'Due', type: 'date' },
   { id: 'f-checkbox', name: 'Done', type: 'checkbox' },
+  { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+  { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent', 'Bug'] },
 ]
 
 const initialFields = {
@@ -20,6 +22,8 @@ const initialFields = {
   'f-number': 5,
   'f-date': '2026-01-01',
   'f-checkbox': true,
+  'f-select': 'To Do',
+  'f-multi': ['Bug'],
 }
 
 function renderPanel(overrides: Partial<React.ComponentProps<typeof PropertiesPanel>> = {}) {
@@ -178,5 +182,66 @@ describe('PropertiesPanel', () => {
 
     expect(screen.getByLabelText('Priority')).toHaveValue('')
     expect(screen.getByLabelText('Notes')).toHaveValue('hello')
+  })
+
+  it('pre-fills a select field and offers every option', () => {
+    renderPanel()
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('To Do')
+    expect(Array.from(select.options).map(o => o.value)).toEqual(['', 'To Do', 'Complete'])
+  })
+
+  it('saves a select field immediately on change, without needing blur', async () => {
+    renderPanel()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'Complete' } })
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-select': 'Complete' })
+      )
+    })
+  })
+
+  it('sets a select field to null when cleared back to the blank option', async () => {
+    renderPanel()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: '' } })
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-select': null })
+      )
+    })
+  })
+
+  it('renders multi_select options as toggles reflecting the current selection', () => {
+    renderPanel()
+    expect(screen.getByText('Bug')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Urgent')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('adds an option to a multi_select field when an unselected toggle is clicked', async () => {
+    renderPanel()
+    fireEvent.click(screen.getByText('Urgent'))
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': ['Bug', 'Urgent'] })
+      )
+    })
+  })
+
+  it('removes an option from a multi_select field when a selected toggle is clicked', async () => {
+    renderPanel()
+    fireEvent.click(screen.getByText('Bug'))
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': [] })
+      )
+    })
   })
 })
