@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 
+const mockPush = vi.fn()
 vi.mock('next/navigation', () => ({
   useParams: vi.fn(() => ({ workspaceId: 'ws1' })),
-  useRouter: vi.fn(() => ({ push: vi.fn() })),
+  usePathname: vi.fn(() => '/workspace/ws1'),
+  useRouter: vi.fn(() => ({ push: mockPush })),
 }))
 
 vi.mock('@/lib/actions/query', () => ({
@@ -14,10 +16,6 @@ vi.mock('@/components/query/SearchResults', () => ({
   SearchResults: () => <div data-testid="search-results" />,
 }))
 
-vi.mock('@/components/query/AskPanel', () => ({
-  AskPanel: () => <div data-testid="ask-panel" />,
-}))
-
 import { CmdKModal } from '@/components/query/CmdKModal'
 import type { Database, Page } from '@/lib/types/database'
 
@@ -25,7 +23,9 @@ const fakeDatabases: Database[] = [{ id: 'db1', page_id: 'p1', schema: [], creat
 const fakePages: Page[] = [{ id: 'p1', workspace_id: 'ws1', parent_id: null, title: 'Projects', created_by: 'u1', created_at: '', updated_at: '' }]
 
 describe('CmdKModal', () => {
-  beforeEach(() => vi.clearAllMocks())
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
 
   it('is not visible on initial render', () => {
     render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
@@ -57,5 +57,38 @@ describe('CmdKModal', () => {
     fireEvent.keyDown(window, { key: 'k', metaKey: true })
     fireEvent.click(screen.getByTestId('modal-overlay'))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('shows a generic "Ask AI" prompt when the query is empty', () => {
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    expect(screen.getByText('Ask AI')).toBeInTheDocument()
+  })
+
+  it('shows the typed query in the Ask AI prompt', () => {
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    fireEvent.change(screen.getByPlaceholderText('Search pages and databases…'), { target: { value: 'onboarding flow' } })
+    expect(screen.getByText('Ask AI about "onboarding flow"')).toBeInTheDocument()
+  })
+
+  it('navigates to the dedicated Ask page with the query and closes the modal', () => {
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+    fireEvent.change(screen.getByPlaceholderText('Search pages and databases…'), { target: { value: 'onboarding flow' } })
+
+    fireEvent.click(screen.getByText('Ask AI about "onboarding flow"'))
+
+    expect(mockPush).toHaveBeenCalledWith('/workspace/ws1/ask?q=onboarding%20flow')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+  })
+
+  it('navigates to the Ask page with no query param when the search box is empty', () => {
+    render(<CmdKModal databases={fakeDatabases} pages={fakePages} />)
+    fireEvent.keyDown(window, { key: 'k', metaKey: true })
+
+    fireEvent.click(screen.getByText('Ask AI'))
+
+    expect(mockPush).toHaveBeenCalledWith('/workspace/ws1/ask')
   })
 })
