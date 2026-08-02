@@ -3,6 +3,7 @@
 import 'react-big-calendar/lib/css/react-big-calendar.css'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Calendar, dateFnsLocalizer, SlotInfo } from 'react-big-calendar'
 import { format, parse, startOfWeek, getDay } from 'date-fns'
 import { enUS } from 'date-fns/locale'
@@ -34,6 +35,7 @@ interface CalendarViewProps {
 }
 
 export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreated }: CalendarViewProps) {
+  const router = useRouter()
   const [, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const dateField = schema.find(f => f.type === 'date')
@@ -61,6 +63,12 @@ export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreat
       }
     })
 
+  function handleSelectEvent(event: CalendarEvent) {
+    if (event.resource.page_id) {
+      router.push(`/workspace/${workspaceId}/page/${event.resource.page_id}`)
+    }
+  }
+
   function handleSelectSlot(slot: SlotInfo) {
     const dateStr = format(slot.start, 'yyyy-MM-dd')
     startTransition(async () => {
@@ -84,6 +92,7 @@ export function CalendarView({ databaseId, workspaceId, schema, rows, onRowCreat
         endAccessor="end"
         selectable
         onSelectSlot={handleSelectSlot}
+        onSelectEvent={handleSelectEvent}
         style={{ height: '100%' }}
         views={['month']}
         defaultView="month"

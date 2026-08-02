@@ -13,6 +13,8 @@ const schema: DatabaseField[] = [
   { id: 'f-number', name: 'Score', type: 'number' },
   { id: 'f-date', name: 'Due', type: 'date' },
   { id: 'f-checkbox', name: 'Done', type: 'checkbox' },
+  { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+  { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent', 'Bug'] },
 ]
 
 const initialFields = {
@@ -20,6 +22,8 @@ const initialFields = {
   'f-number': 5,
   'f-date': '2026-01-01',
   'f-checkbox': true,
+  'f-select': 'To Do',
+  'f-multi': ['Bug'],
 }
 
 function renderPanel(overrides: Partial<React.ComponentProps<typeof PropertiesPanel>> = {}) {
@@ -178,5 +182,129 @@ describe('PropertiesPanel', () => {
 
     expect(screen.getByLabelText('Priority')).toHaveValue('')
     expect(screen.getByLabelText('Notes')).toHaveValue('hello')
+  })
+
+  it('pre-fills a select field and offers every option', () => {
+    renderPanel()
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('To Do')
+    expect(Array.from(select.options).map(o => o.value)).toEqual(['', 'To Do', 'Complete'])
+  })
+
+  it('saves a select field immediately on change, without needing blur', async () => {
+    renderPanel()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'Complete' } })
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-select': 'Complete' })
+      )
+    })
+  })
+
+  it('sets a select field to null when cleared back to the blank option', async () => {
+    renderPanel()
+    fireEvent.change(screen.getByLabelText('Status'), { target: { value: '' } })
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-select': null })
+      )
+    })
+  })
+
+  it('renders multi_select options as toggles reflecting the current selection', () => {
+    renderPanel()
+    expect(screen.getByText('Bug')).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText('Urgent')).toHaveAttribute('aria-pressed', 'false')
+  })
+
+  it('adds an option to a multi_select field when an unselected toggle is clicked', async () => {
+    renderPanel()
+    fireEvent.click(screen.getByText('Urgent'))
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': ['Bug', 'Urgent'] })
+      )
+    })
+  })
+
+  it('removes an option from a multi_select field when a selected toggle is clicked', async () => {
+    renderPanel()
+    fireEvent.click(screen.getByText('Bug'))
+
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': [] })
+      )
+    })
+  })
+
+  it('groups multi_select toggles under an accessible group labeled with the field name', () => {
+    renderPanel()
+    expect(screen.getByRole('group', { name: 'Tags' })).toBeInTheDocument()
+  })
+
+  it('shows a select value whose option was removed from the field as a distinct, visible entry', () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-select', name: 'Status', type: 'select', options: ['To Do', 'Complete'] },
+    ]
+    renderPanel({ schema: orphanedSchema, initialFields: { 'f-select': 'Archived' } })
+
+    const select = screen.getByLabelText('Status') as HTMLSelectElement
+    expect(select).toHaveValue('Archived')
+    expect(screen.getByText('Archived (removed)')).toBeInTheDocument()
+  })
+
+  it('shows a multi_select value whose option was removed from the field as a distinct, still-toggleable chip', async () => {
+    const orphanedSchema: DatabaseField[] = [
+      { id: 'f-multi', name: 'Tags', type: 'multi_select', options: ['Urgent'] },
+    ]
+    renderPanel({ schema: orphanedSchema, initialFields: { 'f-multi': ['Legacy'] } })
+
+    const chip = screen.getByText('Legacy')
+    expect(chip).toHaveAttribute('aria-pressed', 'true')
+
+    fireEvent.click(chip)
+    await waitFor(() => {
+      expect(updateRowFields).toHaveBeenCalledWith(
+        'row-1', 'db-1', 'ws-1',
+        expect.objectContaining({ 'f-multi': [] })
+      )
+    })
+  })
+
+  it('disables only the field being written while its write is pending, re-enabling once it settles', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderPanel()
+    const select = screen.getByLabelText('Status')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+
+    resolveUpdate!()
+    await waitFor(() => expect(select).not.toBeDisabled())
+  })
+
+  it('does not disable an unrelated field while another field\'s write is pending', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderPanel()
+    const select = screen.getByLabelText('Status')
+    const tagToggle = screen.getByText('Urgent')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+    expect(tagToggle).not.toBeDisabled()
+
+    resolveUpdate!()
   })
 })

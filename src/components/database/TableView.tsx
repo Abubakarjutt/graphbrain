@@ -33,15 +33,22 @@ const FIELD_TYPE_ICONS: Record<string, React.ReactNode> = {
       <circle cx="5.5" cy="5.5" r="2" stroke="currentColor" strokeWidth="1.1" />
     </svg>
   ),
+  multi_select: (
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+      <circle cx="3.5" cy="5.5" r="1.6" stroke="currentColor" strokeWidth="1.1" />
+      <circle cx="7.5" cy="5.5" r="1.6" stroke="currentColor" strokeWidth="1.1" />
+    </svg>
+  ),
 }
 
 interface CellProps {
   field: DatabaseField
   value: unknown
   onChange: (value: unknown) => void
+  disabled: boolean
 }
 
-function Cell({ field, value, onChange }: CellProps) {
+function Cell({ field, value, onChange, disabled }: CellProps) {
   const [localValue, setLocalValue] = useState(String(value ?? ''))
 
   useEffect(() => {
@@ -57,6 +64,61 @@ function Cell({ field, value, onChange }: CellProps) {
         className="h-3.5 w-3.5 rounded-[3px] border-border/70 accent-foreground cursor-pointer"
         aria-label={field.name}
       />
+    )
+  }
+  if (field.type === 'select') {
+    const knownOptions = field.options ?? []
+    // A row can hold a value whose option was since removed from the field.
+    // Surface it as a distinct, visible entry rather than rendering a select
+    // with a value that matches no <option> — which browsers show as blank,
+    // silently hiding that the row still has (unsaved-looking) data.
+    const isOrphaned = typeof value === 'string' && value !== '' && !knownOptions.includes(value)
+    return (
+      <select
+        value={typeof value === 'string' ? value : ''}
+        onChange={e => onChange(e.target.value || null)}
+        disabled={disabled}
+        className="w-full bg-transparent text-sm outline-none text-foreground disabled:opacity-50"
+        aria-label={field.name}
+      >
+        <option value="">—</option>
+        {isOrphaned && <option value={value as string}>{value as string} (removed)</option>}
+        {knownOptions.map(opt => (
+          <option key={opt} value={opt}>{opt}</option>
+        ))}
+      </select>
+    )
+  }
+  if (field.type === 'multi_select') {
+    const selected = Array.isArray(value) ? value as string[] : []
+    const knownOptions = field.options ?? []
+    const orphanedSelected = selected.filter(opt => !knownOptions.includes(opt))
+    function toggle(opt: string) {
+      onChange(selected.includes(opt) ? selected.filter(o => o !== opt) : [...selected, opt])
+    }
+    return (
+      <div role="group" aria-label={field.name} className="flex flex-wrap gap-1">
+        {[...knownOptions, ...orphanedSelected].map(opt => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => toggle(opt)}
+            aria-pressed={selected.includes(opt)}
+            disabled={disabled}
+            title={orphanedSelected.includes(opt) ? 'This option was removed from the field' : undefined}
+            className={`text-xs rounded px-1.5 py-0.5 transition-colors disabled:opacity-50 ${
+              selected.includes(opt)
+                ? 'bg-accent text-accent-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            } ${orphanedSelected.includes(opt) ? 'italic' : ''}`}
+          >
+            {opt}
+          </button>
+        ))}
+        {knownOptions.length === 0 && orphanedSelected.length === 0 && (
+          <span className="text-xs text-muted-foreground/50">No options yet</span>
+        )}
+      </div>
     )
   }
   if (field.type === 'date') {
@@ -115,15 +177,29 @@ export function TableView({
   onDeleteRow,
 }: TableViewProps) {
   const [, startTransition] = useTransition()
+  // Keyed by `${rowId}:${fieldId}` so a write to one cell only disables that
+  // cell — a single shared isPending flag disabled every select/multi_select
+  // in the whole table for the duration of any one write, and since blur
+  // fires before the disabled state commits, it silently swallowed the next
+  // click on an unrelated cell instead of just being overly cautious.
+  const [pendingCells, setPendingCells] = useState<Set<string>>(new Set())
 
   function handleCellChange(row: DatabaseRowWithTitle, field: DatabaseField, value: unknown) {
     const newFields = { ...row.fields, [field.id]: value }
     onRowUpdate(row.id, newFields)
+    const cellKey = `${row.id}:${field.id}`
+    setPendingCells(prev => new Set(prev).add(cellKey))
     startTransition(async () => {
       try {
         await updateRowFields(row.id, databaseId, workspaceId, newFields)
       } catch {
         onRowUpdate(row.id, row.fields)
+      } finally {
+        setPendingCells(prev => {
+          const next = new Set(prev)
+          next.delete(cellKey)
+          return next
+        })
       }
     })
   }
@@ -182,6 +258,7 @@ export function TableView({
                     field={field}
                     value={row.fields[field.id]}
                     onChange={value => handleCellChange(row, field, value)}
+                    disabled={pendingCells.has(`${row.id}:${field.id}`)}
                   />
                 </td>
               ))}
