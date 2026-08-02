@@ -2,8 +2,30 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { retrieveNodes } from '@/lib/graph/query'
-import type { SearchResult, EntityType } from '@/lib/types/database'
+import type { SearchResult, EntityType, QueryLog } from '@/lib/types/database'
 import type { QueryScope } from '@/lib/graph/query'
+
+export async function getRecentQueries(workspaceId: string, limit = 8): Promise<QueryLog[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data, error } = await supabase
+    .from('query_logs')
+    .select('id, workspace_id, user_id, query, response, sources, created_at')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .not('response', 'is', null)
+    .neq('response', '')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) {
+    console.error('[getRecentQueries] failed to load history:', workspaceId, error)
+    return []
+  }
+  return (data ?? []) as QueryLog[]
+}
 
 export async function searchQuery(
   workspaceId: string,

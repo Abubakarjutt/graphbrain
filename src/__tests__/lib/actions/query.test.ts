@@ -53,3 +53,72 @@ describe('searchQuery', () => {
     expect(result).toEqual({ error: 'Unauthenticated' })
   })
 })
+
+describe('getRecentQueries', () => {
+  function recentLogsChain(data: unknown, error: unknown = null) {
+    return {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      not: vi.fn().mockReturnThis(),
+      neq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data, error }),
+    }
+  }
+
+  it('returns recent logs for the current user', async () => {
+    const logs = [{ id: 'q1', workspace_id: 'ws1', user_id: 'u1', query: 'What is X?', response: 'X is...', sources: [], created_at: '' }]
+    ;(createClient as Mock).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+      from: vi.fn().mockReturnValue(recentLogsChain(logs)),
+    })
+    const { getRecentQueries } = await import('@/lib/actions/query')
+    expect(await getRecentQueries('ws1')).toEqual(logs)
+  })
+
+  it('filters strictly by workspace and the current user — never another user\'s or workspace\'s history', async () => {
+    const chain = recentLogsChain([])
+    ;(createClient as Mock).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+      from: vi.fn().mockReturnValue(chain),
+    })
+    const { getRecentQueries } = await import('@/lib/actions/query')
+    await getRecentQueries('ws1')
+
+    expect(chain.eq).toHaveBeenCalledWith('workspace_id', 'ws1')
+    expect(chain.eq).toHaveBeenCalledWith('user_id', 'u1')
+    expect(chain.not).toHaveBeenCalledWith('response', 'is', null)
+    expect(chain.neq).toHaveBeenCalledWith('response', '')
+  })
+
+  it('returns an empty array when there is no authenticated user', async () => {
+    const from = vi.fn()
+    ;(createClient as Mock).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null } }) },
+      from,
+    })
+    const { getRecentQueries } = await import('@/lib/actions/query')
+    expect(await getRecentQueries('ws1')).toEqual([])
+    expect(from).not.toHaveBeenCalled()
+  })
+
+  it('returns an empty array when the query fails', async () => {
+    ;(createClient as Mock).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+      from: vi.fn().mockReturnValue(recentLogsChain(null, { message: 'boom' })),
+    })
+    const { getRecentQueries } = await import('@/lib/actions/query')
+    expect(await getRecentQueries('ws1')).toEqual([])
+  })
+
+  it('passes a custom limit through to the query', async () => {
+    const chain = recentLogsChain([])
+    ;(createClient as Mock).mockResolvedValue({
+      auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'u1' } } }) },
+      from: vi.fn().mockReturnValue(chain),
+    })
+    const { getRecentQueries } = await import('@/lib/actions/query')
+    await getRecentQueries('ws1', 3)
+    expect(chain.limit).toHaveBeenCalledWith(3)
+  })
+})
