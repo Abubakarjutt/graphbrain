@@ -27,9 +27,24 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
   const [newOptions, setNewOptions] = useState<string[]>([])
   const [newOptionDraft, setNewOptionDraft] = useState('')
   const [optionDrafts, setOptionDrafts] = useState<Record<string, string>>({})
+  // Every onChange call below goes through here so a second Enter/click
+  // during an in-flight persist can't fire a duplicate or overlapping write —
+  // onChange itself only clears newName/etc. after resolving, so without this
+  // guard the input would still be submittable mid-request.
+  const [submitting, setSubmitting] = useState(false)
+
+  async function commit(nextSchema: DatabaseField[]): Promise<boolean> {
+    setSubmitting(true)
+    try {
+      const result = await onChange(nextSchema)
+      return result !== false
+    } finally {
+      setSubmitting(false)
+    }
+  }
 
   async function addField() {
-    if (!newName.trim()) return
+    if (submitting || !newName.trim()) return
     // Flush whatever's still sitting in the option box, uncommitted — a user
     // who types an option and then hits Enter in the name field (or clicks
     // Add) without first pressing Enter there shouldn't lose it.
@@ -44,8 +59,8 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
       type: newType,
       options: OPTION_TYPES.includes(newType) ? finalOptions : undefined,
     }
-    const result = await onChange([...schema, field])
-    if (result === false) return
+    const succeeded = await commit([...schema, field])
+    if (!succeeded) return
     setNewName('')
     setNewType('text')
     setNewOptions([])
@@ -53,7 +68,8 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
   }
 
   function removeField(id: string) {
-    onChange(schema.filter(f => f.id !== id))
+    if (submitting) return
+    commit(schema.filter(f => f.id !== id))
   }
 
   function addNewFieldOption() {
@@ -68,17 +84,19 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
   }
 
   async function addExistingOption(fieldId: string) {
+    if (submitting) return
     const draft = (optionDrafts[fieldId] ?? '').trim()
     if (!draft) return
     const field = schema.find(f => f.id === fieldId)
     if (!field || isDuplicateOption(field.options ?? [], draft)) return
-    const result = await onChange(schema.map(f => f.id === fieldId ? { ...f, options: [...(f.options ?? []), draft] } : f))
-    if (result === false) return
+    const succeeded = await commit(schema.map(f => f.id === fieldId ? { ...f, options: [...(f.options ?? []), draft] } : f))
+    if (!succeeded) return
     setOptionDrafts(prev => ({ ...prev, [fieldId]: '' }))
   }
 
   function removeExistingOption(fieldId: string, opt: string) {
-    onChange(schema.map(f => f.id === fieldId ? { ...f, options: (f.options ?? []).filter(o => o !== opt) } : f))
+    if (submitting) return
+    commit(schema.map(f => f.id === fieldId ? { ...f, options: (f.options ?? []).filter(o => o !== opt) } : f))
   }
 
   return (
@@ -97,7 +115,8 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
               <span className="text-xs text-muted-foreground">{field.type}</span>
               <button
                 onClick={() => removeField(field.id)}
-                className="text-xs text-destructive hover:text-destructive/80"
+                disabled={submitting}
+                className="text-xs text-destructive hover:text-destructive/80 disabled:opacity-50"
                 aria-label={`Remove ${field.name}`}
               >
                 ×
@@ -110,8 +129,9 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
                     {opt}
                     <button
                       onClick={() => removeExistingOption(field.id, opt)}
+                      disabled={submitting}
                       aria-label={`Remove option ${opt} from ${field.name}`}
-                      className="text-accent-foreground/60 hover:text-accent-foreground"
+                      className="text-accent-foreground/60 hover:text-accent-foreground disabled:opacity-50"
                     >
                       ×
                     </button>
@@ -121,9 +141,10 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
                   value={optionDrafts[field.id] ?? ''}
                   onChange={e => setOptionDrafts(prev => ({ ...prev, [field.id]: e.target.value }))}
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addExistingOption(field.id) } }}
+                  disabled={submitting}
                   placeholder="Add option"
                   aria-label={`New option for ${field.name}`}
-                  className="text-xs border rounded px-1.5 py-0.5 w-24 bg-background"
+                  className="text-xs border rounded px-1.5 py-0.5 w-24 bg-background disabled:opacity-50"
                 />
               </div>
             )}
@@ -138,14 +159,16 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
           value={newName}
           onChange={e => setNewName(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addField()}
+          disabled={submitting}
           placeholder="Field name"
-          className="text-sm border rounded-md px-2 py-1 flex-1 bg-background"
+          className="text-sm border rounded-md px-2 py-1 flex-1 bg-background disabled:opacity-50"
           aria-label="New field name"
         />
         <select
           value={newType}
           onChange={e => setNewType(e.target.value as DatabaseField['type'])}
-          className="text-sm border rounded-md px-2 py-1 bg-background"
+          disabled={submitting}
+          className="text-sm border rounded-md px-2 py-1 bg-background disabled:opacity-50"
           aria-label="Field type"
         >
           {FIELD_TYPES.map(t => (
@@ -154,7 +177,8 @@ export function SchemaEditor({ schema, onChange, onClose }: SchemaEditorProps) {
         </select>
         <button
           onClick={addField}
-          className="text-sm border rounded-md px-3 py-1 hover:bg-accent"
+          disabled={submitting}
+          className="text-sm border rounded-md px-3 py-1 hover:bg-accent disabled:opacity-50"
         >
           Add
         </button>

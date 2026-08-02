@@ -176,16 +176,30 @@ export function TableView({
   onRowUpdate,
   onDeleteRow,
 }: TableViewProps) {
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  // Keyed by `${rowId}:${fieldId}` so a write to one cell only disables that
+  // cell — a single shared isPending flag disabled every select/multi_select
+  // in the whole table for the duration of any one write, and since blur
+  // fires before the disabled state commits, it silently swallowed the next
+  // click on an unrelated cell instead of just being overly cautious.
+  const [pendingCells, setPendingCells] = useState<Set<string>>(new Set())
 
   function handleCellChange(row: DatabaseRowWithTitle, field: DatabaseField, value: unknown) {
     const newFields = { ...row.fields, [field.id]: value }
     onRowUpdate(row.id, newFields)
+    const cellKey = `${row.id}:${field.id}`
+    setPendingCells(prev => new Set(prev).add(cellKey))
     startTransition(async () => {
       try {
         await updateRowFields(row.id, databaseId, workspaceId, newFields)
       } catch {
         onRowUpdate(row.id, row.fields)
+      } finally {
+        setPendingCells(prev => {
+          const next = new Set(prev)
+          next.delete(cellKey)
+          return next
+        })
       }
     })
   }
@@ -244,7 +258,7 @@ export function TableView({
                     field={field}
                     value={row.fields[field.id]}
                     onChange={value => handleCellChange(row, field, value)}
-                    disabled={isPending}
+                    disabled={pendingCells.has(`${row.id}:${field.id}`)}
                   />
                 </td>
               ))}

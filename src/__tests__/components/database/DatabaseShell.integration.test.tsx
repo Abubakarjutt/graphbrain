@@ -108,4 +108,34 @@ describe('DatabaseShell + SchemaEditor + KanbanView integration', () => {
     expect(screen.getByText('Task One')).toBeInTheDocument()
     expect(screen.queryByText('Done')).not.toBeInTheDocument()
   })
+
+  it('keeps the new field name filled in the real SchemaEditor when the real persist path fails, and does not add the field to the rendered schema', async () => {
+    vi.mocked(updateDatabaseSchema).mockRejectedValueOnce(new Error('boom'))
+    render(
+      <DatabaseShell
+        databaseId="db-1"
+        workspaceId="ws-1"
+        title="My Database"
+        schema={[]}
+        rows={rows}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /Kanban/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Properties/ }))
+    fireEvent.change(screen.getByLabelText('New field name'), { target: { value: 'Status' } })
+    fireEvent.change(screen.getByLabelText('Field type'), { target: { value: 'select' } })
+    fireEvent.click(screen.getByText('Add'))
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to update schema')).toBeInTheDocument()
+    })
+
+    // This is the exact seam a prior review round's bug lived in: DatabaseShell
+    // must resolve the promise it hands to the real SchemaEditor to `false` on
+    // a rejected persist, and SchemaEditor must react by keeping the draft —
+    // neither side's unit tests alone can catch a break in that contract.
+    expect(screen.getByLabelText('New field name')).toHaveValue('Status')
+    expect(screen.getByText('Add a Select field to use Kanban view.')).toBeInTheDocument()
+  })
 })

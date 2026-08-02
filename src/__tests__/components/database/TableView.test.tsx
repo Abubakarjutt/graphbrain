@@ -303,21 +303,37 @@ describe('TableView', () => {
     expect(onRowUpdate).toHaveBeenCalledWith('row-1', expect.objectContaining({ 'f-multi': [] }))
   })
 
-  it('disables select and multi_select cells while a write is pending, re-enabling once it settles', async () => {
+  it('disables only the cell being written while its write is pending, re-enabling once it settles', async () => {
     let resolveUpdate: () => void
     vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
     renderTable()
     const tr = rowFor('Row One')
     const select = within(tr).getByLabelText('Status')
-    const tagToggle = within(tr).getByText('Urgent')
 
     fireEvent.change(select, { target: { value: 'Complete' } })
 
     await waitFor(() => expect(select).toBeDisabled())
-    expect(tagToggle).toBeDisabled()
 
     resolveUpdate!()
     await waitFor(() => expect(select).not.toBeDisabled())
+  })
+
+  it('does not disable an unrelated cell in the same row, or any cell in another row, while a write is pending', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderTable()
+    const rowOne = rowFor('Row One')
+    const select = within(rowOne).getByLabelText('Status')
+    const tagToggleSameRow = within(rowOne).getByText('Urgent')
+    const noteInOtherRow = within(rowFor('Row Two')).getByLabelText('Notes')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+    expect(tagToggleSameRow).not.toBeDisabled()
+    expect(noteInOtherRow).not.toBeDisabled()
+
+    resolveUpdate!()
   })
 
   it('treats a non-array multi_select value defensively, rendering as if nothing were selected', () => {

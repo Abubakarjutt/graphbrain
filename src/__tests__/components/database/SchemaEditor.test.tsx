@@ -296,6 +296,37 @@ describe('SchemaEditor', () => {
     expect(screen.getByLabelText('New field name')).toHaveValue('Priority')
   })
 
+  it('ignores a second submit fired while the first is still in flight, so it does not create a duplicate field', async () => {
+    let resolveOnChange: (value: boolean) => void
+    const onChange = vi.fn().mockReturnValueOnce(new Promise<boolean>(resolve => { resolveOnChange = resolve }))
+    render(<SchemaEditor schema={schema} onChange={onChange} onClose={vi.fn()} />)
+
+    const input = screen.getByLabelText('New field name')
+    fireEvent.change(input, { target: { value: 'Priority' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.click(screen.getByText('Add'))
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+
+    resolveOnChange!(true)
+    await waitFor(() => expect(screen.getByLabelText('New field name')).toHaveValue(''))
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+
+  it('disables the Add button and name input while a submit is in flight', async () => {
+    let resolveOnChange: (value: boolean) => void
+    const onChange = vi.fn().mockReturnValueOnce(new Promise<boolean>(resolve => { resolveOnChange = resolve }))
+    render(<SchemaEditor schema={schema} onChange={onChange} onClose={vi.fn()} />)
+    addField('Priority')
+
+    await waitFor(() => expect(screen.getByText('Add')).toBeDisabled())
+    expect(screen.getByLabelText('New field name')).toBeDisabled()
+
+    resolveOnChange!(true)
+    await waitFor(() => expect(screen.getByText('Add')).not.toBeDisabled())
+  })
+
   it('keeps the option draft filled when adding an option to an existing field fails', async () => {
     const onChange = vi.fn().mockResolvedValue(false)
     render(<SchemaEditor schema={schema} onChange={onChange} onClose={vi.fn()} />)

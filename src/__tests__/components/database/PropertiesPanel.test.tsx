@@ -279,7 +279,21 @@ describe('PropertiesPanel', () => {
     })
   })
 
-  it('disables select and multi_select controls while a write is pending, re-enabling once it settles', async () => {
+  it('disables only the field being written while its write is pending, re-enabling once it settles', async () => {
+    let resolveUpdate: () => void
+    vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
+    renderPanel()
+    const select = screen.getByLabelText('Status')
+
+    fireEvent.change(select, { target: { value: 'Complete' } })
+
+    await waitFor(() => expect(select).toBeDisabled())
+
+    resolveUpdate!()
+    await waitFor(() => expect(select).not.toBeDisabled())
+  })
+
+  it('does not disable an unrelated field while another field\'s write is pending', async () => {
     let resolveUpdate: () => void
     vi.mocked(updateRowFields).mockReturnValueOnce(new Promise(resolve => { resolveUpdate = () => resolve(undefined) }))
     renderPanel()
@@ -289,9 +303,8 @@ describe('PropertiesPanel', () => {
     fireEvent.change(select, { target: { value: 'Complete' } })
 
     await waitFor(() => expect(select).toBeDisabled())
-    expect(tagToggle).toBeDisabled()
+    expect(tagToggle).not.toBeDisabled()
 
     resolveUpdate!()
-    await waitFor(() => expect(select).not.toBeDisabled())
   })
 })

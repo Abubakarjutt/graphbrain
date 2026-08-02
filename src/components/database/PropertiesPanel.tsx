@@ -21,7 +21,13 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
     return init
   })
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [, startTransition] = useTransition()
+  // Keyed by fieldId so a write to one field only disables that field's own
+  // control — a single shared isPending disabled every select/multi_select in
+  // the panel for the duration of any one write (even an unrelated text
+  // field's), and since blur fires before the disabled state commits, it
+  // silently swallowed the next click rather than just being overly cautious.
+  const [pendingFields, setPendingFields] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     setLocalValues(prev => {
@@ -38,6 +44,7 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
     const newFields = { ...fields, [fieldId]: value }
     setFields(newFields)
     if (displayValue !== undefined) setLocalValues(prev => ({ ...prev, [fieldId]: displayValue }))
+    setPendingFields(prev => new Set(prev).add(fieldId))
     startTransition(async () => {
       try {
         await updateRowFields(rowId, databaseId, workspaceId, newFields)
@@ -50,6 +57,12 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
         setFields(previous)
         setLocalValues(prev => ({ ...prev, [fieldId]: String(previous[fieldId] ?? '') }))
         setError('Failed to save')
+      } finally {
+        setPendingFields(prev => {
+          const next = new Set(prev)
+          next.delete(fieldId)
+          return next
+        })
       }
     })
   }
@@ -77,7 +90,7 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
                 <select
                   value={typeof value === 'string' ? value : ''}
                   onChange={e => handleChange(field.id, e.target.value || null)}
-                  disabled={isPending}
+                  disabled={pendingFields.has(field.id)}
                   className="w-full text-sm border rounded-md px-2 py-1 bg-background disabled:opacity-50"
                   aria-label={field.name}
                 >
@@ -103,7 +116,7 @@ export function PropertiesPanel({ rowId, databaseId, workspaceId, schema, initia
                         type="button"
                         onClick={() => handleChange(field.id, isSelected ? selected.filter(o => o !== opt) : [...selected, opt])}
                         aria-pressed={isSelected}
-                        disabled={isPending}
+                        disabled={pendingFields.has(field.id)}
                         title={isOrphan ? 'This option was removed from the field' : undefined}
                         className={`text-xs rounded px-1.5 py-0.5 transition-colors disabled:opacity-50 ${
                           isSelected ? 'bg-accent text-accent-foreground' : 'bg-muted text-muted-foreground hover:text-foreground'
