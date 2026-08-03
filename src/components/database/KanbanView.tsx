@@ -27,19 +27,24 @@ interface TodoCardProps {
   item: TodoItemWithPage
   workspaceId: string
   pages: Page[]
+  lists: TodoList[]
+  assignees: { id: string; email: string }[]
   onRename: (itemId: string, title: string) => void
   onSetDueDate: (itemId: string, dueDate: string | null) => void
+  onAssign: (itemId: string, assigneeId: string | null) => void
   onDelete: (itemId: string) => void
   onAttach: (itemId: string, page: Page) => void
   onDetach: (itemId: string) => void
 }
 
-function TodoCard({ item, workspaceId, pages, onRename, onSetDueDate, onDelete, onAttach, onDetach }: TodoCardProps) {
+function TodoCard({ item, workspaceId, pages, assignees, lists, onRename, onSetDueDate, onAssign, onDelete, onAttach, onDetach }: TodoCardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: item.id })
   const style = { transform: CSS.Transform.toString(transform), opacity: isDragging ? 0.4 : 1 }
   const [editingTitle, setEditingTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(item.title)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [assignmentOpen, setAssignmentOpen] = useState(false)
+  const [movementOpen, setMovementOpen] = useState(false)
 
   function commitTitle() {
     const trimmed = titleDraft.trim()
@@ -47,6 +52,19 @@ function TodoCard({ item, workspaceId, pages, onRename, onSetDueDate, onDelete, 
     if (trimmed && trimmed !== item.title) onRename(item.id, trimmed)
     else setTitleDraft(item.title)
   }
+
+  function handleMoveTask(newListId: string) {
+    onAssign(item.id, newListId)
+    setMovementOpen(false)
+  }
+
+  function handleUnassignTask() {
+    onAssign(item.id, null)
+    setMovementOpen(false)
+  }
+
+  const currentList = lists.find(l => l.id === item.list_id)
+  const otherLists = lists.filter(l => l.id !== item.list_id)
 
   return (
     <div ref={setNodeRef} style={style} className="bg-background border rounded-md p-3 shadow-sm space-y-2 select-none">
@@ -87,6 +105,61 @@ function TodoCard({ item, workspaceId, pages, onRename, onSetDueDate, onDelete, 
           aria-label={`Due date for ${item.title}`}
           className="bg-transparent text-xs text-muted-foreground outline-none"
         />
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => setMovementOpen(true)}
+            aria-label={`Move ${item.title}`}
+            className="text-muted-foreground/50 hover:text-foreground text-xs flex items-center gap-1"
+          >
+            <span>Move</span>
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4M7 4L3 8M7 4L11 8M17 16v-4m0 0l-4 4m4-4l-4-4" />
+            </svg>
+          </button>
+          <div className="w-px h-4 bg-muted-foreground/20" />
+          <button
+            type="button"
+            onClick={() => setAssignmentOpen(!assignmentOpen)}
+            aria-label={`Assign ${item.title}`}
+            className="text-muted-foreground/50 hover:text-foreground text-xs flex items-center gap-1"
+          >
+            {item.assignee?.email ? (
+              <>
+                <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px]">
+                  {item.assignee.email[0].toUpperCase()}
+                </span>
+                <span className="truncate max-w-[50px]">{item.assignee.email.split('@')[0]}</span>
+              </>
+            ) : (
+              <span className="text-xs">Assign</span>
+            )}
+          </button>
+          {assignmentOpen && (
+            <div className="absolute bottom-full left-0 mb-1 bg-background border rounded-md shadow-lg z-50 min-w-[150px]">
+              <button
+                type="button"
+                onClick={() => { onAssign(item.id, null); setAssignmentOpen(false) }}
+                className={`w-full text-left px-3 py-2 text-xs hover:bg-muted ${!item.assignee ? 'bg-muted' : ''}`}
+              >
+                <span className="text-muted-foreground">Unassign</span>
+              </button>
+              {assignees.map(assignee => (
+                <button
+                  key={assignee.id}
+                  type="button"
+                  onClick={() => { onAssign(item.id, assignee.id); setAssignmentOpen(false) }}
+                  className={`w-full text-left px-3 py-2 text-xs hover:bg-muted flex items-center gap-2 ${item.assignee?.id === assignee.id ? 'bg-muted' : ''}`}
+                >
+                  <span className="w-4 h-4 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] flex-shrink-0">
+                    {assignee.email[0].toUpperCase()}
+                  </span>
+                  <span className="truncate">{assignee.email}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={() => onDelete(item.id)}
@@ -129,8 +202,59 @@ function TodoCard({ item, workspaceId, pages, onRename, onSetDueDate, onDelete, 
           <TodoAttachDocumentPicker
             pages={pages}
             onSelect={page => { onAttach(item.id, page); setPickerOpen(false) }}
-            onClose={() => setPickerOpen(false)}
+            onClose={() => setPickerOpen(false) }
           />
+        )}
+        {/* Task Movement Modal */}
+        {movementOpen && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setMovementOpen(false)}>
+            <div className="bg-background rounded-lg p-4 w-80 shadow-xl" onClick={e => e.stopPropagation()}>
+              <h3 className="text-lg font-semibold mb-4">Move "{item.title}"</h3>
+              <div className="space-y-2 mb-4">
+                <p className="text-sm text-muted-foreground">Select a list to move this task to:</p>
+                {otherLists.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">No other lists available</p>
+                ) : (
+                  <div className="space-y-1">
+                    {otherLists.map(list => (
+                      <button
+                        key={list.id}
+                        type="button"
+                        onClick={() => handleMoveTask(list.id)}
+                        className="w-full text-left px-3 py-2 rounded-md hover:bg-muted flex items-center justify-between"
+                      >
+                        <span>{list.name}</span>
+                        <span className="text-xs text-muted-foreground">{list.position + 1}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={handleUnassignTask}
+                  className="px-4 py-2 text-sm bg-muted hover:bg-muted/80 rounded-md"
+                >
+                  Unassign
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMovementOpen(false)}
+                  className="px-4 py-2 text-sm bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
+                >
+                  Cancel
+                </button>
+              </div>
+              {currentList && (
+                <div className="mt-4 pt-4 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Currently in: <span className="font-medium">{currentList.name}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -144,21 +268,23 @@ interface TodoListColumnProps {
   isLast: boolean
   workspaceId: string
   pages: Page[]
+  assignees: { id: string; email: string }[]
   onRenameList: (listId: string, name: string) => void
   onMoveList: (listId: string, direction: 'left' | 'right') => void
   onDeleteList: (listId: string) => void
   onAddItem: (listId: string, title: string) => void
   onRenameItem: (itemId: string, title: string) => void
   onSetDueDate: (itemId: string, dueDate: string | null) => void
+  onAssignItem: (itemId: string, assigneeId: string | null) => void
   onDeleteItem: (itemId: string) => void
   onAttach: (itemId: string, page: Page) => void
   onDetach: (itemId: string) => void
 }
 
 function TodoListColumn({
-  list, items, isFirst, isLast, workspaceId, pages,
+  list, items, isFirst, isLast, workspaceId, pages, assignees,
   onRenameList, onMoveList, onDeleteList, onAddItem,
-  onRenameItem, onSetDueDate, onDeleteItem, onAttach, onDetach,
+  onRenameItem, onSetDueDate, onAssignItem, onDeleteItem, onAttach, onDetach,
 }: TodoListColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: list.id })
   const [renaming, setRenaming] = useState(false)
@@ -238,8 +364,11 @@ function TodoListColumn({
             item={item}
             workspaceId={workspaceId}
             pages={pages}
+            lists={[list]}
+              assignees={assignees}
             onRename={onRenameItem}
             onSetDueDate={onSetDueDate}
+            onAssign={onAssignItem}
             onDelete={onDeleteItem}
             onAttach={onAttach}
             onDetach={onDetach}
@@ -270,19 +399,13 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
   const [, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const [newListName, setNewListName] = useState('')
+  const assignees = board.assignees ?? []
 
   const sortedLists = [...board.lists].sort((a, b) => a.position - b.position)
 
   function itemsForList(listId: string) {
     return board.items.filter(i => i.list_id === listId)
   }
-
-  // Every mutation below applies via the functional onBoardChange form and
-  // reverts (on failure) by restoring only the specific field(s) it touched,
-  // rather than the whole `board` captured at render time. Two concurrent
-  // edits finishing out of order — e.g. adding list B while adding list A is
-  // still in flight — would otherwise have B's completion overwrite the
-  // board with a stale snapshot that doesn't include A, silently dropping it.
 
   function handleAddList() {
     const name = newListName.trim()
@@ -352,24 +475,26 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
     const deletedList = board.lists.find(l => l.id === listId)
     const deletedItems = board.items.filter(i => i.list_id === listId)
     onBoardChange(prev => ({
+      ...prev,
       lists: prev.lists.filter(l => l.id !== listId),
       items: prev.items.filter(i => i.list_id !== listId),
-    }))
+     }))
     startTransition(async () => {
       try {
         await deleteTodoList(listId, databaseId, workspaceId)
         setError(null)
-      } catch {
+       } catch {
         if (deletedList) {
           onBoardChange(prev => ({
+            ...prev,
             lists: [...prev.lists, deletedList],
             items: [...prev.items, ...deletedItems],
-          }))
-        }
+           }))
+         }
         setError('Failed to delete list')
-      }
-    })
-  }
+       }
+     })
+   }
 
   function handleAddItem(listId: string, title: string) {
     startTransition(async () => {
@@ -413,6 +538,23 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
           items: prev.items.map(i => i.id === itemId ? { ...i, due_date: originalDueDate } : i),
         }))
         setError('Failed to update due date')
+      }
+    })
+  }
+
+  function handleAssignItem(itemId: string, assigneeId: string | null) {
+    const originalAssigneeId = board.items.find(i => i.id === itemId)?.assignee_id ?? null
+    onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id: assigneeId } : i) }))
+    startTransition(async () => {
+      try {
+        await updateTodoItem(itemId, databaseId, workspaceId, { assignee_id: assigneeId })
+        setError(null)
+      } catch {
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id: originalAssigneeId } : i),
+        }))
+        setError('Failed to assign task')
       }
     })
   }
@@ -532,12 +674,14 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
               isLast={idx === sortedLists.length - 1}
               workspaceId={workspaceId}
               pages={pages}
+              assignees={assignees}
               onRenameList={handleRenameList}
               onMoveList={handleMoveList}
               onDeleteList={handleDeleteList}
               onAddItem={handleAddItem}
               onRenameItem={handleRenameItem}
               onSetDueDate={handleSetDueDate}
+              onAssignItem={handleAssignItem}
               onDeleteItem={handleDeleteItem}
               onAttach={handleAttach}
               onDetach={handleDetach}

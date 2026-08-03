@@ -122,17 +122,20 @@ export interface TodoItem {
   list_id: string
   title: string
   due_date: string | null
+  assignee_id: string | null
   attached_page_id: string | null
   created_at: string
 }
 
 export interface TodoItemWithPage extends TodoItem {
   attached_page_title: string | null
+  assignee?: { id: string; email: string } | null
 }
 
 export interface TodoBoard {
   lists: TodoList[]
   items: TodoItemWithPage[]
+  assignees: { id: string; email: string }[]
 }
 
 export interface Node {

@@ -12,18 +12,18 @@ async function assertDatabaseAccess(
   workspaceId: string
 ): Promise<void> {
   const { data: db } = await supabase
-    .from('databases')
-    .select('id, page_id')
-    .eq('id', databaseId)
-    .single()
+     .from('databases')
+     .select('id, page_id')
+     .eq('id', databaseId)
+     .single()
   if (!db) throw new Error('Database not found or access denied')
 
   const { data: containerPage } = await supabase
-    .from('pages')
-    .select('id')
-    .eq('id', db.page_id)
-    .eq('workspace_id', workspaceId)
-    .single()
+     .from('pages')
+     .select('id')
+     .eq('id', db.page_id)
+     .eq('workspace_id', workspaceId)
+     .single()
   if (!containerPage) throw new Error('Database not found or access denied')
 }
 
@@ -37,11 +37,11 @@ async function assertListBelongsToDatabase(
   databaseId: string
 ): Promise<void> {
   const { data: list } = await supabase
-    .from('todo_lists')
-    .select('id')
-    .eq('id', listId)
-    .eq('database_id', databaseId)
-    .single()
+     .from('todo_lists')
+     .select('id')
+     .eq('id', listId)
+     .eq('database_id', databaseId)
+     .single()
   if (!list) throw new Error('List not found')
 }
 
@@ -52,18 +52,18 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { data: lists, error: listsError } = await supabase
-    .from('todo_lists')
-    .select('id, database_id, name, position, created_at')
-    .eq('database_id', databaseId)
-    .order('position', { ascending: true })
-    .order('created_at', { ascending: true })
+     .from('todo_lists')
+     .select('id, database_id, name, position, created_at')
+     .eq('database_id', databaseId)
+     .order('position', { ascending: true })
+     .order('created_at', { ascending: true })
   if (listsError) throw new Error(listsError.message)
 
   const { data: items, error: itemsError } = await supabase
-    .from('todo_items')
-    .select('id, database_id, list_id, title, due_date, attached_page_id, created_at')
-    .eq('database_id', databaseId)
-    .order('created_at', { ascending: true })
+     .from('todo_items')
+     .select('id, database_id, list_id, title, due_date, assignee_id, attached_page_id, created_at')
+     .eq('database_id', databaseId)
+     .order('created_at', { ascending: true })
   if (itemsError) throw new Error(itemsError.message)
 
   const pageIds = (items ?? []).map(i => i.attached_page_id).filter(Boolean) as string[]
@@ -73,12 +73,42 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
     for (const p of attachedPages ?? []) pageTitles[p.id] = p.title
   }
 
+  // Fetch assignees for all items
+  const assigneeIds = [...new Set((items ?? []).map(i => i.assignee_id).filter(Boolean) as string[])]
+  const assignees: Record<string, { id: string; email: string }> = {}
+  if (assigneeIds.length > 0) {
+    const { data: users } = await supabase
+         .from('users')
+         .select('id, email')
+         .in('id', assigneeIds)
+    if (users) {
+      for (const u of users) assignees[u.id] = { id: u.id, email: u.email }
+    }
+  }
+
+  // Fetch workspace members for assignment dropdown
+  const { data: members } = await supabase
+      .from('workspace_members')
+       .select('user_id, users(email)')
+       .eq('workspace_id', workspaceId)
+  const assigneeList: { id: string; email: string }[] = []
+  if (members) {
+    for (const m of members) {
+      const users = m.users
+      if (users && Array.isArray(users) && users.length > 0 && users[0].email) {
+        assigneeList.push({ id: m.user_id, email: users[0].email })
+      }
+    }
+  }
+
   return {
     lists: (lists ?? []) as TodoList[],
     items: (items ?? []).map(i => ({
       ...i,
       attached_page_title: i.attached_page_id ? (pageTitles[i.attached_page_id] ?? 'Untitled') : null,
+      assignee: i.assignee_id ? assignees[i.assignee_id] ?? null : null,
     })) as TodoItemWithPage[],
+    assignees: assigneeList,
   }
 }
 
@@ -89,18 +119,18 @@ export async function createTodoList(databaseId: string, workspaceId: string, na
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { data: last } = await supabase
-    .from('todo_lists')
-    .select('position')
-    .eq('database_id', databaseId)
-    .order('position', { ascending: false })
-    .limit(1)
+     .from('todo_lists')
+     .select('position')
+     .eq('database_id', databaseId)
+     .order('position', { ascending: false })
+     .limit(1)
   const nextPosition = last && last.length > 0 ? last[0].position + 1 : 0
 
   const { data, error } = await supabase
-    .from('todo_lists')
-    .insert({ database_id: databaseId, name, position: nextPosition })
-    .select()
-    .single()
+     .from('todo_lists')
+     .insert({ database_id: databaseId, name, position: nextPosition })
+     .select()
+     .single()
   if (error || !data) throw new Error(error?.message ?? 'Failed to create list')
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
@@ -119,10 +149,10 @@ export async function renameTodoList(
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { error } = await supabase
-    .from('todo_lists')
-    .update({ name })
-    .eq('id', listId)
-    .eq('database_id', databaseId)
+     .from('todo_lists')
+     .update({ name })
+     .eq('id', listId)
+     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
@@ -140,10 +170,10 @@ export async function reorderTodoList(
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { data: lists, error: listsError } = await supabase
-    .from('todo_lists')
-    .select('id, position')
-    .eq('database_id', databaseId)
-    .order('position', { ascending: true })
+     .from('todo_lists')
+     .select('id, position')
+     .eq('database_id', databaseId)
+     .order('position', { ascending: true })
   if (listsError) throw new Error(listsError.message)
 
   const ordered = lists ?? []
@@ -174,10 +204,10 @@ export async function deleteTodoList(listId: string, databaseId: string, workspa
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { error } = await supabase
-    .from('todo_lists')
-    .delete()
-    .eq('id', listId)
-    .eq('database_id', databaseId)
+     .from('todo_lists')
+     .delete()
+     .eq('id', listId)
+     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
@@ -197,21 +227,21 @@ export async function createTodoItem(
   await assertListBelongsToDatabase(supabase, listId, databaseId)
 
   const { data, error } = await supabase
-    .from('todo_items')
-    .insert({ database_id: databaseId, list_id: listId, title, due_date: dueDate, attached_page_id: null })
-    .select()
-    .single()
+     .from('todo_items')
+     .insert({ database_id: databaseId, list_id: listId, title, due_date: dueDate, assignee_id: null, attached_page_id: null })
+     .select()
+     .single()
   if (error || !data) throw new Error(error?.message ?? 'Failed to create item')
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
-  return { ...data, attached_page_title: null } as TodoItemWithPage
+  return { ...data, attached_page_title: null, assignee: null } as TodoItemWithPage
 }
 
 export async function updateTodoItem(
   itemId: string,
   databaseId: string,
   workspaceId: string,
-  patch: { title?: string; due_date?: string | null; list_id?: string }
+  patch: { title?: string; due_date?: string | null; list_id?: string; assignee_id?: string | null }
 ): Promise<void> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -220,10 +250,10 @@ export async function updateTodoItem(
   if (patch.list_id) await assertListBelongsToDatabase(supabase, patch.list_id, databaseId)
 
   const { error } = await supabase
-    .from('todo_items')
-    .update(patch)
-    .eq('id', itemId)
-    .eq('database_id', databaseId)
+     .from('todo_items')
+     .update(patch)
+     .eq('id', itemId)
+     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
@@ -243,20 +273,20 @@ export async function attachPageToTodoItem(
   let title: string | null = null
   if (pageId) {
     const { data: page } = await supabase
-      .from('pages')
-      .select('id, title')
-      .eq('id', pageId)
-      .eq('workspace_id', workspaceId)
-      .single()
+         .from('pages')
+         .select('id, title')
+         .eq('id', pageId)
+         .eq('workspace_id', workspaceId)
+         .single()
     if (!page) throw new Error('Page not found or access denied')
     title = page.title
   }
 
   const { error } = await supabase
-    .from('todo_items')
-    .update({ attached_page_id: pageId })
-    .eq('id', itemId)
-    .eq('database_id', databaseId)
+     .from('todo_items')
+     .update({ attached_page_id: pageId })
+     .eq('id', itemId)
+     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
@@ -270,10 +300,10 @@ export async function deleteTodoItem(itemId: string, databaseId: string, workspa
   await assertDatabaseAccess(supabase, databaseId, workspaceId)
 
   const { error } = await supabase
-    .from('todo_items')
-    .delete()
-    .eq('id', itemId)
-    .eq('database_id', databaseId)
+     .from('todo_items')
+     .delete()
+     .eq('id', itemId)
+     .eq('database_id', databaseId)
   if (error) throw new Error(error.message)
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
