@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { TodoBoard, TodoItemWithPage, TodoList } from '@/lib/types/database'
 
@@ -73,33 +74,31 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
     for (const p of attachedPages ?? []) pageTitles[p.id] = p.title
   }
 
-  // Fetch assignees for all items
-  const assigneeIds = [...new Set((items ?? []).map(i => i.assignee_id).filter(Boolean) as string[])]
-  const assignees: Record<string, { id: string; email: string }> = {}
-  if (assigneeIds.length > 0) {
-    const { data: users } = await supabase
-         .from('users')
-         .select('id, email')
-         .in('id', assigneeIds)
-    if (users) {
-      for (const u of users) assignees[u.id] = { id: u.id, email: u.email }
-    }
-  }
-
-  // Fetch workspace members for assignment dropdown
+  // Fetch workspace member IDs, then resolve emails via the admin client
+  // (workspace_members.user_id references auth.users, not a public table,
+  //  so the anon-key client cannot join it — we need the service role)
   const { data: members } = await supabase
-      .from('workspace_members')
-       .select('user_id, users(email)')
-       .eq('workspace_id', workspaceId)
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', workspaceId)
+
+  const memberIds = (members ?? []).map(m => m.user_id)
   const assigneeList: { id: string; email: string }[] = []
-  if (members) {
-    for (const m of members) {
-      const users = m.users
-      if (users && Array.isArray(users) && users.length > 0 && users[0].email) {
-        assigneeList.push({ id: m.user_id, email: users[0].email })
+
+  if (memberIds.length > 0) {
+    const admin = createAdminClient()
+    const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+    const memberSet = new Set(memberIds)
+    for (const u of authUsers) {
+      if (memberSet.has(u.id) && u.email) {
+        assigneeList.push({ id: u.id, email: u.email })
       }
     }
   }
+
+  // Build a lookup for items that already have an assignee_id stored
+  const assignees: Record<string, { id: string; email: string }> = {}
+  for (const a of assigneeList) assignees[a.id] = a
 
   return {
     lists: (lists ?? []) as TodoList[],
