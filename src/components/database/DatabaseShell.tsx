@@ -127,7 +127,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
               <path d="M3 8h16M8 8v11" stroke="currentColor" strokeWidth="1.4" />
             </svg>
           </span>
-          <h1 className="text-[2.5rem] font-bold leading-tight text-foreground">{title}</h1>
+          <h1 className="font-display text-[2.5rem] font-light tracking-[-0.01em] leading-tight text-foreground">{title}</h1>
         </div>
       </div>
 
@@ -139,10 +139,10 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
               key={v}
               onClick={() => setView(v)}
               aria-pressed={view === v}
-              className={`flex items-center gap-1.5 px-3 py-2 text-sm border-b-2 transition-colors ${
+              className={`flex items-center gap-1.5 px-3 py-2.5 text-[13px] border-b-[1.5px] transition-colors ${
                 view === v
-                  ? 'border-foreground text-foreground font-medium'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                  ? 'border-primary text-foreground font-medium'
+                  : 'border-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
               {VIEW_ICONS[v]}

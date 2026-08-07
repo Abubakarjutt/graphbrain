@@ -206,12 +206,20 @@ export function TableView({
 
   return (
     <div className="flex-1 overflow-auto">
-      <table className="w-full text-sm border-collapse min-w-max">
+      <table className="w-full text-sm min-w-max" style={{ borderCollapse: 'collapse' }}>
         <thead>
-          <tr className="border-b border-border/50">
-            <th scope="col" className="text-left px-4 py-2 font-medium text-muted-foreground/70 text-xs w-56 sticky left-0 bg-background">
-              <div className="flex items-center gap-1.5">
-                <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
+          <tr style={{ background: 'oklch(0 0 0 / 2.5%)', borderBottom: '1px solid var(--border)' }}>
+            <th
+              scope="col"
+              className="sticky left-0 text-left w-56"
+              style={{
+                padding: '7px 16px',
+                background: 'oklch(0 0 0 / 3%)',
+                borderRight: '1px solid var(--border)',
+              }}
+            >
+              <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>
+                <svg width="10" height="10" viewBox="0 0 11 11" fill="none" aria-hidden>
                   <path d="M3 2h3.5L9 4.5V9H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
                   <path d="M6.5 2v2.5H9" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
                 </svg>
@@ -219,41 +227,58 @@ export function TableView({
               </div>
             </th>
             {schema.map(field => (
-              <th key={field.id} scope="col" className="text-left px-4 py-2 font-medium text-muted-foreground/70 text-xs min-w-[140px]">
-                <div className="flex items-center gap-1.5">
-                  {FIELD_TYPE_ICONS[field.type] ?? FIELD_TYPE_ICONS.text}
+              <th
+                key={field.id}
+                scope="col"
+                className="text-left min-w-[160px]"
+                style={{
+                  padding: '7px 16px',
+                  borderRight: '1px solid var(--border)',
+                }}
+              >
+                <div className="flex items-center gap-1.5 text-[10px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>
+                  <span style={{ opacity: 0.7 }}>{FIELD_TYPE_ICONS[field.type] ?? FIELD_TYPE_ICONS.text}</span>
                   {field.name}
                 </div>
               </th>
             ))}
-            <th scope="col" className="w-8 px-2">
-              <button className="text-muted-foreground/40 hover:text-muted-foreground text-lg leading-none transition-colors" title="Add column">
-                +
-              </button>
-            </th>
+            <th scope="col" className="w-10 px-3" />
           </tr>
         </thead>
         <tbody>
-          {rows.map(row => (
-            <tr key={row.id} className="border-b border-border/30 hover:bg-accent/40 group transition-colors">
-              <td className="px-4 py-2 sticky left-0 bg-background group-hover:bg-accent/40">
+          {rows.map((row, i) => (
+            <tr
+              key={row.id}
+              className="group transition-colors"
+              style={{ borderBottom: '1px solid var(--border)', background: i % 2 === 1 ? 'oklch(0 0 0 / 1%)' : 'transparent' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = i % 2 === 1 ? 'oklch(0 0 0 / 1%)' : 'transparent' }}
+            >
+              <td
+                className="sticky left-0"
+                style={{
+                  padding: '8px 16px',
+                  borderRight: '1px solid var(--border)',
+                  background: 'inherit',
+                }}
+              >
                 {row.page_id ? (
                   <Link
                     href={`/workspace/${workspaceId}/page/${row.page_id}`}
-                    className="font-medium text-foreground hover:underline flex items-center gap-1.5"
+                    className="flex items-center gap-1.5 font-medium text-foreground hover:underline"
                   >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" className="opacity-40 shrink-0" aria-hidden>
+                    <svg width="11" height="11" viewBox="0 0 12 12" fill="none" style={{ opacity: 0.35, flexShrink: 0 }} aria-hidden>
                       <path d="M2.5 1.5h5l2 2v7h-7V1.5z" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
                       <path d="M7.5 1.5v2h2" stroke="currentColor" strokeWidth="1" strokeLinejoin="round" />
                     </svg>
                     {row.page_title || 'Untitled'}
                   </Link>
                 ) : (
-                  <span className="font-medium text-muted-foreground">{row.page_title || 'Untitled'}</span>
+                  <span className="font-medium" style={{ color: 'var(--muted-foreground)' }}>{row.page_title || 'Untitled'}</span>
                 )}
               </td>
               {schema.map(field => (
-                <td key={field.id} className="px-4 py-2">
+                <td key={field.id} style={{ padding: '8px 16px', borderRight: '1px solid var(--border)' }}>
                   <Cell
                     field={field}
                     value={row.fields[field.id]}
@@ -262,13 +287,16 @@ export function TableView({
                   />
                 </td>
               ))}
-              <td className="px-2">
+              <td style={{ padding: '8px 8px', width: '40px', textAlign: 'center' }}>
                 <button
                   onClick={() => onDeleteRow(row.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground/50 hover:text-destructive text-sm font-medium"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                  style={{ color: 'var(--muted-foreground)' }}
                   aria-label="Delete row"
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = 'var(--destructive)' }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = 'var(--muted-foreground)' }}
                 >
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+                  <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden>
                     <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
                   </svg>
                 </button>
@@ -279,12 +307,27 @@ export function TableView({
       </table>
       <button
         onClick={onAddRow}
-        className="flex items-center gap-2 px-4 py-2 text-sm text-muted-foreground/60 hover:text-foreground hover:bg-accent/40 w-full border-b border-border/30 transition-colors text-left"
+        className="flex items-center gap-2 w-full text-left transition-colors cursor-pointer"
+        style={{
+          padding: '8px 16px',
+          fontSize: '12px',
+          color: 'var(--muted-foreground)',
+          opacity: 0.5,
+          borderBottom: '1px solid var(--border)',
+        }}
+        onMouseEnter={e => {
+          (e.currentTarget as HTMLElement).style.opacity = '1'
+          ;(e.currentTarget as HTMLElement).style.background = 'var(--accent)'
+        }}
+        onMouseLeave={e => {
+          (e.currentTarget as HTMLElement).style.opacity = '0.5'
+          ;(e.currentTarget as HTMLElement).style.background = 'transparent'
+        }}
       >
         <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
           <path d="M5.5 1.5v8M1.5 5.5h8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
         </svg>
-        New
+        New row
       </button>
     </div>
   )

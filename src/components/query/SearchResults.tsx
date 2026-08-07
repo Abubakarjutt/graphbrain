@@ -23,11 +23,14 @@ export function SearchResults({ results, workspaceId, onNavigate }: SearchResult
   }, {})
 
   return (
-    <div className="divide-y divide-border">
+    <div>
       {Object.entries(byProject).map(([projectKey, items]) => (
-        <div key={projectKey} className="py-2">
+        <div key={projectKey}>
           {projectKey !== '__standalone__' && (
-            <p className="px-4 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <p
+              className="px-4 pt-3 pb-1.5 text-[10px] font-bold tracking-[0.10em] uppercase"
+              style={{ color: 'var(--muted-foreground)', opacity: 0.55 }}
+            >
               {projectKey}
             </p>
           )}
@@ -36,16 +39,23 @@ export function SearchResults({ results, workspaceId, onNavigate }: SearchResult
               key={result.nodeId || result.entityId}
               href={entityHref(workspaceId, result)}
               onClick={onNavigate}
-              className="flex flex-col px-4 py-2 hover:bg-accent rounded-md group"
+              className="flex items-start gap-3 px-4 py-2.5 transition-colors group"
+              style={{ color: 'var(--foreground)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'var(--accent)' }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
             >
-              <span className="text-sm font-medium group-hover:text-accent-foreground">
-                {result.title}
-              </span>
-              {result.excerpt && (
-                <span className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                  {result.excerpt}
-                </span>
-              )}
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="mt-[1px] shrink-0" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} aria-hidden>
+                <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+                <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+              </svg>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13.5px] font-medium truncate">{result.title}</p>
+                {result.excerpt && (
+                  <p className="text-[12px] line-clamp-1 mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.65 }}>
+                    {result.excerpt}
+                  </p>
+                )}
+              </div>
             </Link>
           ))}
         </div>

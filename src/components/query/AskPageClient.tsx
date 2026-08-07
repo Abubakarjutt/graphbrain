@@ -65,23 +65,29 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
 
         <form
           onSubmit={e => { e.preventDefault(); ask() }}
-          className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3 shadow-sm focus-within:border-ring transition-colors"
+          className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_oklch(0.52_0.22_240/8%)]"
+          style={{ borderColor: 'var(--border)', boxShadow: '0 1px 4px oklch(0 0 0 / 5%)' }}
         >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} aria-hidden>
+            <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M11 11l3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          </svg>
           <input
             ref={inputRef}
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Ask anything about your knowledge graph…"
-            className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground/40"
             aria-label="Ask a question"
           />
           <select
             value={scope.databaseId ?? ''}
             onChange={e => setScope(e.target.value ? { databaseId: e.target.value } : {})}
-            className="text-xs bg-transparent border border-border rounded px-2 py-1 text-muted-foreground shrink-0"
+            className="text-[11px] bg-transparent rounded px-2 py-1 text-muted-foreground shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            style={{ border: '1px solid var(--border)' }}
             aria-label="Scope"
           >
-            <option value="">Entire workspace</option>
+            <option value="">All</option>
             {scopeOptions.map(opt => (
               <option key={opt.id} value={opt.id}>{opt.title}</option>
             ))}
@@ -89,7 +95,8 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="shrink-0 h-8 px-3 rounded-lg bg-primary text-primary-foreground text-sm font-medium disabled:opacity-40 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="shrink-0 h-8 px-4 rounded-md text-[13px] font-semibold transition-all disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.98]"
+            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', boxShadow: '0 2px 8px oklch(0.52 0.22 240 / 25%)' }}
           >
             Ask
           </button>
@@ -132,7 +139,7 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
 
         {!error && hasAsked && askedQuery && (
           <div className="mt-10">
-            <h2 className="text-lg font-semibold text-foreground mb-5">{askedQuery}</h2>
+            <h2 className="font-display text-[1.5rem] font-light tracking-tight text-foreground mb-5">{askedQuery}</h2>
 
             {loading && sources.length === 0 && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
@@ -147,12 +154,15 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
                   <Link
                     key={s.nodeId || s.entityId}
                     href={`/workspace/${workspaceId}/page/${s.entityId}`}
-                    className="shrink-0 w-56 rounded-lg border border-border bg-card px-3 py-2.5 hover:border-primary/40 hover:bg-accent/40 transition-colors"
+                    className="shrink-0 w-52 rounded-lg px-3 py-2.5 transition-colors group"
+                    style={{ border: '1px solid var(--border)', background: 'var(--card)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'oklch(0.52 0.22 240 / 40%)' }}
+                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
                   >
-                    <span className="text-[11px] font-mono text-spark">{i + 1}</span>
-                    <p className="text-[13px] font-medium text-foreground truncate mt-0.5">{s.title}</p>
+                    <span className="font-mono text-[10px] font-medium" style={{ color: 'var(--primary)', opacity: 0.7 }}>{i + 1}</span>
+                    <p className="text-[12.5px] font-medium text-foreground truncate mt-0.5 leading-snug">{s.title}</p>
                     {s.projectName && (
-                      <p className="text-[11px] text-muted-foreground truncate">{s.projectName}</p>
+                      <p className="text-[11px] truncate mt-0.5" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>{s.projectName}</p>
                     )}
                   </Link>
                 ))}
