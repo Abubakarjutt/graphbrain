@@ -641,65 +641,107 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
             {item.title}
           </button>
 
-          {/* Bottom meta row */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0 flex-wrap">
-              {/* Assignee avatar */}
-              {item.assignee && (
-                <span className="w-5 h-5 rounded-full grid place-items-center text-[9px] font-bold shrink-0"
-                  style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}
-                  title={item.assignee.email}>
-                  {item.assignee.email[0].toUpperCase()}
-                </span>
+          {/* Properties table */}
+          <div className="mt-2.5 pt-2.5 space-y-1.5"
+            style={{ borderTop: '1px solid var(--border)' }}>
+
+            {/* Assignee */}
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Assignee</span>
+              {item.assignee ? (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <span className="w-4 h-4 rounded-full grid place-items-center text-[8px] font-bold shrink-0"
+                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                    {item.assignee.email[0].toUpperCase()}
+                  </span>
+                  <span className="text-[11px] truncate" style={{ color: 'var(--foreground)' }}>
+                    {item.assignee.email.split('@')[0]}
+                  </span>
+                </div>
+              ) : (
+                <span className="text-[11px] italic" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }}>Unassigned</span>
               )}
-              {/* Due date */}
-              {item.due_date && (
-                <span className="flex items-center gap-1 text-[10px] font-mono"
-                  style={{ color: isOverdue ? 'oklch(0.57 0.24 27)' : 'var(--muted-foreground)', opacity: isOverdue ? 1 : 0.65 }}>
+            </div>
+
+            {/* Due date */}
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Due</span>
+              {item.due_date ? (
+                <span className="flex items-center gap-1 text-[11px] font-medium"
+                  style={{ color: isOverdue ? 'oklch(0.57 0.24 27)' : 'var(--foreground)' }}>
                   {isOverdue && (
                     <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden>
                       <circle cx="4.5" cy="4.5" r="4" stroke="currentColor" strokeWidth="1"/>
                       <path d="M4.5 2.5v2.2M4.5 6.5v.3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
                     </svg>
                   )}
-                  {new Date(item.due_date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                  {new Date(item.due_date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {isOverdue && <span className="text-[9px] font-semibold ml-1 px-1 py-px rounded"
+                    style={{ background: 'oklch(0.57 0.24 27 / 12%)' }}>overdue</span>}
                 </span>
-              )}
-              {/* Attached doc */}
-              {item.attached_page_id && (
-                <svg width="10" height="10" viewBox="0 0 13 13" fill="none" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} aria-hidden>
-                  <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
-                  <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
-                </svg>
-              )}
-              {/* Total time */}
-              {totalMs > 0 && !isRunning && (
-                <span className="text-[10px] font-mono" style={{ color: 'var(--muted-foreground)', opacity: 0.55 }}>
-                  ⏱ {msToDisplay(totalMs)}
-                </span>
-              )}
-              {/* Live timer */}
-              {isRunning && (
-                <span className="text-[10px] font-mono animate-pulse" style={{ color: 'var(--spark)' }}>
-                  ▶ {timerDisplay(elapsedMs)}
-                </span>
+              ) : (
+                <span className="text-[11px] italic" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }}>None</span>
               )}
             </div>
 
-            {/* Timer quick-action */}
+            {/* Created */}
+            <div className="flex items-center gap-2">
+              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Created</span>
+              <span className="text-[11px]" style={{ color: 'var(--muted-foreground)', opacity: 0.65 }}>
+                {new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+
+            {/* Time logged — only when there's something to show */}
+            {(totalMs > 0 || isRunning) && (
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+                  style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Time</span>
+                {isRunning ? (
+                  <span className="text-[11px] font-mono font-semibold tabular-nums animate-pulse"
+                    style={{ color: 'var(--spark)' }}>▶ {timerDisplay(elapsedMs)}</span>
+                ) : (
+                  <span className="text-[11px] font-mono" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>
+                    {msToDisplay(totalMs)}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Linked doc — only when attached */}
+            {item.attached_page_id && (
+              <div className="flex items-center gap-2">
+                <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+                  style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Doc</span>
+                <span className="flex items-center gap-1 text-[11px] truncate" style={{ color: 'var(--primary)' }}>
+                  <svg width="9" height="9" viewBox="0 0 13 13" fill="none" aria-hidden>
+                    <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
+                    <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
+                  </svg>
+                  {item.attached_page_title || 'Linked'}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Timer quick-action — bottom right, hover only */}
+          <div className="flex justify-end mt-2">
             <button type="button"
               onClick={e => { e.stopPropagation(); isRunning ? stop() : start() }}
               title={isRunning ? 'Stop timer' : 'Start timer'}
               aria-label={isRunning ? 'Stop timer' : 'Start timer'}
-              className="h-6 w-6 grid place-items-center rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer shrink-0"
+              className="flex items-center gap-1.5 h-6 px-2 text-[10px] font-medium rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
               style={{
                 background: isRunning ? 'oklch(0.57 0.24 27 / 14%)' : 'var(--muted)',
                 color: isRunning ? 'oklch(0.57 0.24 27)' : 'var(--muted-foreground)',
               }}>
               {isRunning ? (
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden><rect x="1" y="1" width="6" height="6" rx="0.5"/></svg>
+                <><svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><rect x="1" y="1" width="6" height="6" rx="0.5"/></svg>Stop</>
               ) : (
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="currentColor" aria-hidden><path d="M1.5 1l6 3-6 3z"/></svg>
+                <><svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><path d="M1.5 1l6 3-6 3z"/></svg>Log time</>
               )}
             </button>
           </div>
