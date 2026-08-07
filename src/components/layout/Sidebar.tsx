@@ -236,6 +236,22 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
                   boxShadow: '0 8px 24px oklch(0 0 0 / 0.18), 0 2px 6px oklch(0 0 0 / 0.10)',
                 }}
               >
+                {currentWorkspaceId && (
+                  <Link
+                    href={`/workspace/${currentWorkspaceId}/settings`}
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-[13px] text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" aria-hidden>
+                      <circle cx="7" cy="7" r="2.2" />
+                      <path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13M2.93 2.93l1.06 1.06M10.01 10.01l1.06 1.06M2.93 11.07l1.06-1.06M10.01 3.99l1.06-1.06" strokeLinecap="round" />
+                    </svg>
+                    Settings &amp; members
+                  </Link>
+                )}
+                {currentWorkspaceId && (
+                  <div style={{ height: '1px', background: 'var(--border)', margin: '2px 8px' }} />
+                )}
                 <button
                   type="button"
                   onClick={async () => {
