@@ -28,10 +28,10 @@ function DatabaseNode({ db, title, rowPages, workspaceId, isActive }: DatabaseNo
   return (
     <div>
       <div
-        className={`relative flex items-center gap-1 rounded-md px-1.5 py-[5px] text-[13px] transition-colors ${
+        className={`relative flex items-center gap-1 rounded px-1.5 py-[4px] text-[12px] transition-colors ${
           isActive
             ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
-            : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+            : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         }`}
       >
         {isActive && (

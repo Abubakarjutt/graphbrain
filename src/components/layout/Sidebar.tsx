@@ -62,61 +62,61 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
 
   return (
     <aside
-      className={`bg-sidebar text-sidebar-foreground flex h-full w-64 flex-shrink-0 flex-col border-r border-sidebar-border select-none
+      className={`bg-sidebar text-sidebar-foreground flex h-full w-[232px] flex-shrink-0 flex-col border-r border-sidebar-border select-none
         fixed inset-y-0 left-0 z-30 transition-transform duration-200
         lg:relative lg:translate-x-0 lg:z-auto
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
     >
       {/* Brand header */}
-      <div className="flex items-center gap-2.5 px-3 h-14 border-b border-sidebar-border shrink-0">
+      <div className="flex items-center gap-2 px-3 h-12 border-b border-sidebar-border shrink-0">
         <button
           onClick={onMobileClose}
-          className="lg:hidden h-7 w-7 grid place-items-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="lg:hidden h-6 w-6 grid place-items-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="Close sidebar"
         >
-          <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
+          <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="grid h-7 w-7 place-items-center rounded-md bg-primary shrink-0">
-          <svg width="15" height="15" viewBox="0 0 18 18" fill="none" aria-hidden>
+        <span className="grid h-6 w-6 place-items-center rounded bg-primary shrink-0">
+          <svg width="13" height="13" viewBox="0 0 18 18" fill="none" aria-hidden>
             <circle cx="9" cy="4.5" r="2.1" fill="var(--primary-foreground)" />
             <circle cx="4" cy="13.5" r="1.7" fill="var(--primary-foreground)" opacity="0.75" />
             <circle cx="14" cy="13.5" r="1.7" fill="var(--primary-foreground)" opacity="0.75" />
             <path d="M9 6.6 4.8 11.9M9 6.6l4.2 5.3M4.8 13.5h8.4" stroke="var(--primary-foreground)" strokeWidth="1" opacity="0.5" />
           </svg>
         </span>
-        <span className="font-display text-[16px] font-medium tracking-tight text-sidebar-foreground">graphbrain</span>
+        <span className="font-display text-[15px] font-medium tracking-tight text-sidebar-foreground leading-none">graphbrain</span>
       </div>
 
       {/* Search */}
-      <div className="px-2.5 pt-3 pb-1">
+      <div className="px-2 pt-2.5 pb-1">
         <button
-          className="flex items-center gap-2 w-full px-2.5 py-2 text-sm text-muted-foreground bg-sidebar-accent/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded-md text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-muted-foreground bg-sidebar-accent/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="Search"
           onClick={onSearchOpen}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden>
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden>
             <circle cx="6" cy="6" r="4.2" stroke="currentColor" strokeWidth="1.3" />
             <path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           </svg>
           <span className="flex-1 text-left">Search</span>
-          <kbd className="text-[11px] text-muted-foreground font-mono">⌘K</kbd>
+          <kbd className="text-[10px] text-muted-foreground/70 font-mono tracking-tight">⌘K</kbd>
         </button>
       </div>
 
       {/* Ask */}
       {currentWorkspaceId && (
-        <div className="px-2.5 pb-2">
+        <div className="px-2 pb-1.5">
           <Link
             href={`/workspace/${currentWorkspaceId}/ask`}
-            className={`flex items-center gap-2 w-full px-2.5 py-2 text-sm rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+            className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
               pathname?.endsWith('/ask')
-                ? 'bg-spark/15 text-spark font-medium'
+                ? 'bg-spark/15 text-spark font-semibold'
                 : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
             }`}
           >
-            <svg width="14" height="14" viewBox="0 0 11 11" fill="none" className="shrink-0" aria-hidden>
+            <svg width="12" height="12" viewBox="0 0 11 11" fill="none" className="shrink-0" aria-hidden>
               <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" fill="currentColor" />
             </svg>
             <span className="flex-1 text-left">Ask</span>
@@ -133,17 +133,17 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
             <Link
               key={ws.id}
               href={`/workspace/${ws.id}`}
-              className={`relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
+              className={`relative flex items-center gap-2 rounded px-2 py-[5px] text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
                 currentWorkspaceId === ws.id
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
+                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
               }`}
             >
               {currentWorkspaceId === ws.id && (
-                <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
+                <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
               )}
               <span
-                className="grid h-5 w-5 shrink-0 place-items-center rounded text-[10px] font-semibold text-primary-foreground"
+                className="grid h-4 w-4 shrink-0 place-items-center rounded text-[9px] font-bold text-primary-foreground"
                 style={{ background: currentWorkspaceId === ws.id ? 'var(--primary)' : 'var(--muted-foreground)' }}
               >
                 {ws.name[0].toUpperCase()}
@@ -178,9 +178,9 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
         {currentWorkspaceId && (
           <button
             onClick={() => handleCreatePage(null)}
-            className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-[5px] text-[12px] text-muted-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+            <svg width="11" height="11" viewBox="0 0 13 13" fill="none" aria-hidden>
               <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
             </svg>
             New page
@@ -194,15 +194,15 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
           <button
             type="button"
             onClick={() => setUserMenuOpen(v => !v)}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-sidebar-accent/60 transition-colors w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-sidebar-accent/60 transition-colors w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
             aria-label="User menu"
             aria-expanded={userMenuOpen}
           >
-            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
               {userInitial}
             </span>
-            <p className="truncate text-[12.5px] text-sidebar-foreground/85 flex-1 text-left">{user.email}</p>
-            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="text-muted-foreground shrink-0" aria-hidden>
+            <p className="truncate text-[11px] font-mono text-muted-foreground flex-1 text-left tracking-tight">{user.email}</p>
+            <svg width="12" height="12" viewBox="0 0 13 13" fill="none" className="text-muted-foreground/50 shrink-0" aria-hidden>
               <circle cx="6.5" cy="6.5" r="1" fill="currentColor" />
               <circle cx="6.5" cy="2.5" r="1" fill="currentColor" />
               <circle cx="6.5" cy="10.5" r="1" fill="currentColor" />
@@ -211,7 +211,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
           {userMenuOpen && (
             <>
               <div className="fixed inset-0 z-[9]" aria-hidden onClick={() => setUserMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-lg z-10 py-1 animate-fade-in">
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded shadow-lg z-10 py-1 animate-fade-in">
                 <button
                   type="button"
                   onClick={async () => {
@@ -223,7 +223,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
                       setUserMenuOpen(false)
                     }
                   }}
-                  className="w-full cursor-pointer text-left px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className="w-full cursor-pointer text-left px-3 py-2 text-xs text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
                   Sign out
                 </button>

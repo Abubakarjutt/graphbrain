@@ -162,40 +162,38 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
   return (
     <div className="flex flex-col h-full">
       {/* Sticky top header — breadcrumb + actions */}
-      <div className="sticky top-0 z-10 h-11 flex items-center justify-between px-5 bg-background/95 backdrop-blur-sm border-b border-border/40 shrink-0">
-        <div className="flex items-center gap-1.5 min-w-0 text-sm">
+      <div className="sticky top-0 z-10 h-10 flex items-center justify-between px-4 bg-background/95 backdrop-blur-sm border-b border-border shrink-0">
+        <div className="flex items-center gap-1.5 min-w-0 font-mono text-xs">
           {workspaceName && (
             <>
-              <Link href={`/workspace/${workspaceId}`} className="text-muted-foreground/60 hover:text-muted-foreground truncate transition-colors">
+              <Link href={`/workspace/${workspaceId}`} className="text-muted-foreground/50 hover:text-muted-foreground truncate transition-colors">
                 {workspaceName}
               </Link>
-              <svg width="5" height="9" viewBox="0 0 5 9" fill="none" className="text-muted-foreground/30 shrink-0" aria-hidden>
-                <path d="M1 1l3 3.5L1 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+              <span className="text-muted-foreground/30 shrink-0 select-none">/</span>
             </>
           )}
-          <span className="text-muted-foreground/80 truncate font-medium">{title || 'Untitled'}</span>
+          <span className="text-muted-foreground/70 truncate">{title || 'Untitled'}</span>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {saveStatus === 'saving' && <span className="text-[11px] text-muted-foreground/60 mr-1">Saving…</span>}
-          {saveStatus === 'saved' && <span className="text-[11px] text-muted-foreground/60 mr-1">Saved</span>}
-          {saveStatus === 'error' && <span className="text-[11px] text-destructive mr-1">Failed — try again</span>}
+          {saveStatus === 'saving' && <span className="text-[10px] font-mono text-muted-foreground/50 mr-1 tracking-tight">saving…</span>}
+          {saveStatus === 'saved' && <span className="text-[10px] font-mono text-muted-foreground/50 mr-1 tracking-tight">saved</span>}
+          {saveStatus === 'error' && <span className="text-[10px] font-mono text-destructive mr-1 tracking-tight">save failed</span>}
           <button
-            className="flex items-center gap-1 text-xs text-muted-foreground border border-border/70 hover:bg-accent hover:text-foreground hover:border-border px-2.5 py-1 rounded transition-colors cursor-pointer"
+            className="flex items-center gap-1 text-[11px] font-mono text-muted-foreground/70 border border-border hover:bg-accent hover:text-foreground hover:border-border px-2 py-0.5 rounded transition-colors cursor-pointer tracking-tight"
             type="button"
             onClick={handleShare}
           >
-            {copySuccess ? 'Copied!' : 'Share'}
+            {copySuccess ? 'copied!' : 'share'}
           </button>
           <div className="relative">
             <button
-              className="h-7 w-7 grid place-items-center text-muted-foreground hover:bg-accent hover:text-foreground rounded transition-colors cursor-pointer"
+              className="h-6 w-6 grid place-items-center text-muted-foreground/60 hover:bg-accent hover:text-foreground rounded transition-colors cursor-pointer"
               type="button"
               aria-label="More options"
               aria-expanded={menuOpen}
               onClick={() => setMenuOpen(v => !v)}
             >
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" aria-hidden>
                 <circle cx="7" cy="3.5" r="1.1" fill="currentColor" />
                 <circle cx="7" cy="7" r="1.1" fill="currentColor" />
                 <circle cx="7" cy="10.5" r="1.1" fill="currentColor" />
@@ -204,11 +202,11 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-10" aria-hidden onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-full mt-1 w-40 bg-popover border border-border rounded-md shadow-lg z-20 py-1 animate-fade-in-down">
+                <div className="absolute right-0 top-full mt-1 w-40 bg-popover border border-border rounded shadow-lg z-20 py-1 animate-fade-in-down">
                   <button
                     type="button"
                     onClick={() => { setMenuOpen(false); handleDeletePage() }}
-                    className="w-full cursor-pointer text-left px-3 py-2 text-sm text-destructive hover:bg-accent transition-colors"
+                    className="w-full cursor-pointer text-left px-3 py-2 text-xs text-destructive hover:bg-accent transition-colors"
                   >
                     Delete page
                   </button>
@@ -220,22 +218,11 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
       </div>
 
       {/* Page content */}
-      <div className="flex-1 overflow-auto bg-muted/40">
-        <div className="max-w-[720px] mx-auto px-14 pt-14 pb-16 min-h-full bg-background shadow-sm">
-          {/* Page icon */}
-          <div className="mb-3 -ml-1">
-            <span className="inline-grid h-10 w-10 place-items-center rounded-lg bg-accent border border-border">
-              <svg width="22" height="22" viewBox="0 0 22 22" fill="none" className="text-accent-foreground">
-                <path d="M5 3h9.5L18 6.5V19H5V3z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-                <path d="M14.5 3v3.5H18" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" />
-                <path d="M8 10.5h6M8 13.5h6M8 16.5h4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
-              </svg>
-            </span>
-          </div>
-
+      <div className="flex-1 overflow-auto bg-muted/30">
+        <div className="max-w-[680px] mx-auto px-12 pt-12 pb-16 min-h-full bg-background shadow-sm">
           {/* Title */}
           <input
-            className="w-full text-[2.5rem] leading-[1.15] font-bold bg-transparent border-none outline-none mb-5 placeholder:text-muted-foreground/25 text-foreground"
+            className="w-full text-[2.25rem] leading-[1.2] font-bold tracking-tight bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground/20 text-foreground"
             value={title}
             onChange={e => setTitle(e.target.value)}
             onBlur={handleTitleBlur}

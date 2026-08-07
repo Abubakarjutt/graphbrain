@@ -26,17 +26,17 @@ export function AppShell({ workspaces, user, pages, databases, databaseRows, oll
       <OllamaStatusBanner ollamaAvailable={ollamaAvailable} />
 
       {/* Mobile top bar */}
-      <div className="flex items-center gap-3 px-4 h-12 shrink-0 border-b border-sidebar-border bg-sidebar lg:hidden">
+      <div className="flex items-center gap-2.5 px-3 h-11 shrink-0 border-b border-sidebar-border bg-sidebar lg:hidden">
         <button
           onClick={() => setSidebarOpen(true)}
-          className="h-8 w-8 grid place-items-center rounded-md text-sidebar-foreground hover:bg-sidebar-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+          className="h-7 w-7 grid place-items-center rounded text-sidebar-foreground/70 hover:bg-sidebar-accent transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sidebar-ring"
           aria-label="Open sidebar"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden>
             <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="font-display text-[15px] font-medium tracking-tight text-sidebar-foreground">
+        <span className="font-display text-[14px] font-medium tracking-tight text-sidebar-foreground">
           graphbrain
         </span>
       </div>

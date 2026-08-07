@@ -31,7 +31,7 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
   return (
     <div>
       <div
-        className={`relative flex items-center gap-1 group rounded-md px-1.5 py-[5px] text-[13px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/60 text-sidebar-foreground/85 hover:text-sidebar-foreground'}`}
+        className={`relative flex items-center gap-1 group rounded px-1.5 py-[4px] text-[12px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/60 text-sidebar-foreground/80 hover:text-sidebar-foreground'}`}
         style={{ paddingLeft: `${8 + depth * 12}px` }}
       >
         {isActive && (
@@ -105,7 +105,7 @@ export function SidebarPageTree({ pages, workspaceId, onCreatePage }: SidebarPag
       {roots.length === 0 ? (
         <button
           onClick={() => onCreatePage(null)}
-          className="mx-0.5 mt-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded-md border border-dashed border-sidebar-border px-2.5 py-2 text-sm text-muted-foreground cursor-pointer transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="mx-0.5 mt-1 flex w-[calc(100%-0.25rem)] items-center gap-2 rounded border border-dashed border-sidebar-border px-2 py-1.5 text-xs text-muted-foreground cursor-pointer transition-colors hover:border-primary/50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M6 1.5v9M1.5 6h9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
