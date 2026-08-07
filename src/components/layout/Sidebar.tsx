@@ -134,14 +134,15 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
             href={`/workspace/${currentWorkspaceId}/ask`}
             className="flex items-center gap-2 h-8 w-full px-2.5 text-[12px] rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)] hover:bg-sidebar-accent"
             style={{
-              color: pathname?.endsWith('/ask') ? 'var(--sidebar-primary)' : 'var(--sidebar-foreground)',
+              color: pathname?.endsWith('/ask') ? 'var(--spark)' : 'var(--sidebar-foreground)',
               fontWeight: pathname?.endsWith('/ask') ? 600 : 400,
-              opacity: pathname?.endsWith('/ask') ? 1 : 0.55,
-              background: pathname?.endsWith('/ask') ? 'var(--sidebar-accent)' : 'transparent',
+              opacity: pathname?.endsWith('/ask') ? 1 : 0.65,
+              background: pathname?.endsWith('/ask') ? 'oklch(0.46 0.10 152 / 10%)' : 'transparent',
             }}
           >
-            {/* Spark / AI icon */}
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" className="shrink-0" aria-hidden>
+            {/* Spark / AI icon — always sage-tinted */}
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" className="shrink-0" aria-hidden
+              style={{ color: 'var(--spark)', opacity: pathname?.endsWith('/ask') ? 1 : 0.7 }}>
               <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" />
             </svg>
             <span>Ask</span>

@@ -65,7 +65,7 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
 
         <form
           onSubmit={e => { e.preventDefault(); ask() }}
-          className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors focus-within:border-primary/50 focus-within:shadow-[0_0_0_3px_oklch(0.52_0.22_240/8%)]"
+          className="flex items-center gap-3 rounded-lg border bg-card px-4 py-3 transition-colors focus-within:border-spark/40 focus-within:shadow-[0_0_0_3px_oklch(0.46_0.10_152/10%)]"
           style={{ borderColor: 'var(--border)', boxShadow: '0 1px 4px oklch(0 0 0 / 5%)' }}
         >
           <svg width="14" height="14" viewBox="0 0 16 16" fill="none" className="shrink-0" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }} aria-hidden>
@@ -95,8 +95,8 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
           <button
             type="submit"
             disabled={loading || !query.trim()}
-            className="shrink-0 h-8 px-4 rounded-md text-[13px] font-semibold transition-all disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 active:scale-[0.98]"
-            style={{ background: 'var(--primary)', color: 'var(--primary-foreground)', boxShadow: '0 2px 8px oklch(0.52 0.22 240 / 25%)' }}
+            className="shrink-0 h-8 px-4 rounded-md text-[13px] font-semibold transition-all disabled:opacity-35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-spark/60 active:scale-[0.98]"
+            style={{ background: 'var(--spark)', color: 'var(--spark-foreground)', boxShadow: '0 2px 8px oklch(0.46 0.10 152 / 30%)' }}
           >
             Ask
           </button>
@@ -156,7 +156,7 @@ export function AskPageClient({ workspaceId, scopeOptions, recentQueries }: AskP
                     href={`/workspace/${workspaceId}/page/${s.entityId}`}
                     className="shrink-0 w-52 rounded-lg px-3 py-2.5 transition-colors group"
                     style={{ border: '1px solid var(--border)', background: 'var(--card)' }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'oklch(0.52 0.22 240 / 40%)' }}
+                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = 'oklch(0.46 0.10 152 / 45%)' }}
                     onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)' }}
                   >
                     <span className="font-mono text-[10px] font-medium" style={{ color: 'var(--primary)', opacity: 0.7 }}>{i + 1}</span>
