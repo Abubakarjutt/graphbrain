@@ -81,7 +81,7 @@ export function AcceptInviteClient({ token, invitedEmail, workspaceName, isLogge
           <button key={m} type="button" onClick={() => setMode(m)}
             className="flex-1 h-8 rounded-md text-[12px] font-medium cursor-pointer transition-colors capitalize"
             style={{
-              background: mode === m ? 'oklch(0.52 0.22 240)' : 'transparent',
+              background: mode === m ? 'oklch(0.50 0.13 58)' : 'transparent',
               color: mode === m ? 'white' : 'oklch(1 0 0 / 40%)',
             }}>
             {m === 'signup' ? 'Create account' : 'Sign in'}

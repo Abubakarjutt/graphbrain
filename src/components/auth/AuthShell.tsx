@@ -21,7 +21,7 @@ export function AuthShell({
   footer: ReactNode
 }) {
   return (
-    <div className="relative flex min-h-screen w-full overflow-hidden bg-[oklch(0.11_0.016_258)] text-white/90">
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-[oklch(0.10_0.018_68)] text-white/90">
       <ConstellationField />
 
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col lg:flex-row lg:items-stretch">
@@ -37,7 +37,7 @@ export function AuthShell({
               style={{ animationDelay: '160ms' }}
             >
               Think in{' '}
-              <em className="font-display text-[oklch(0.72_0.18_240)] italic not-italic" style={{ fontStyle: 'italic' }}>connections</em>,{' '}
+              <em className="font-display text-[oklch(0.75_0.14_65)] italic not-italic" style={{ fontStyle: 'italic' }}>connections</em>,{' '}
               not folders.
             </h2>
             <ul className="mt-10 space-y-4">
@@ -47,7 +47,7 @@ export function AuthShell({
                   className="animate-rise flex items-start gap-3 text-[13.5px] text-white/50 leading-relaxed"
                   style={{ animationDelay: `${280 + i * 80}ms` }}
                 >
-                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[oklch(0.62_0.22_240)] opacity-80" />
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[oklch(0.65_0.14_62)] opacity-80" />
                   {line}
                 </li>
               ))}
@@ -68,7 +68,7 @@ export function AuthShell({
             className="animate-rise w-full max-w-sm"
             style={{ animationDelay: '220ms' }}
           >
-            <div className="relative overflow-hidden rounded-xl border border-white/8 bg-[oklch(0.18_0.016_258)] p-8 shadow-[0_24px_64px_-16px_oklch(0_0_0/0.7),0_4px_16px_-4px_oklch(0_0_0/0.4)]">
+            <div className="relative overflow-hidden rounded-xl border border-white/8 bg-[oklch(0.15_0.018_68)] p-8 shadow-[0_24px_64px_-16px_oklch(0_0_0/0.7),0_4px_16px_-4px_oklch(0_0_0/0.4)]">
               <h1 className="font-display text-[2rem] leading-tight font-light text-white mb-1">
                 {title}
               </h1>
@@ -88,7 +88,7 @@ export function AuthShell({
 function BrandMark() {
   return (
     <Link href="/" className="inline-flex items-center gap-3 group">
-      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[oklch(0.62_0.22_240)] shadow-[0_2px_12px_oklch(0.62_0.22_240/0.35)]">
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[oklch(0.65_0.14_62)] shadow-[0_2px_12px_oklch(0.65_0.14_62/0.40)]">
         <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden>
           <circle cx="9" cy="4.5" r="2.1" fill="white" />
           <circle cx="4" cy="13.5" r="1.7" fill="white" opacity="0.75" />

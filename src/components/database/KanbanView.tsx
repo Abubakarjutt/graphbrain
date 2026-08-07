@@ -65,7 +65,7 @@ const LABEL_PALETTE = [
 function columnAccent(name: string) {
   const n = name.toLowerCase()
   if (/done|complet|finish|ship|clos/.test(n))   return { dot: 'oklch(0.60 0.18 150)', tint: 'oklch(0.60 0.18 150 / 7%)'  }
-  if (/progress|doing|active|work|dev/.test(n))  return { dot: 'oklch(0.52 0.22 240)', tint: 'oklch(0.52 0.22 240 / 7%)'  }
+  if (/progress|doing|active|work|dev/.test(n))  return { dot: 'oklch(0.50 0.13 58)', tint: 'oklch(0.52 0.22 240 / 7%)'  }
   if (/review|qa|test|check|verify/.test(n))     return { dot: 'oklch(0.52 0.18 285)', tint: 'oklch(0.52 0.18 285 / 7%)'  }
   if (/block|hold|stuck|wait|pause/.test(n))     return { dot: 'oklch(0.57 0.24 27)',  tint: 'oklch(0.57 0.24 27  / 7%)'  }
   return { dot: 'oklch(0.50 0.02 255)', tint: 'oklch(0 0 0 / 2.5%)' }

@@ -21,9 +21,9 @@ function Steps({ current }: { current: 1 | 2 | 3 }) {
               <span
                 className="w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-colors"
                 style={{
-                  background: done ? 'oklch(0.52 0.22 240)' : active ? 'oklch(0.52 0.22 240 / 20%)' : 'oklch(1 0 0 / 8%)',
+                  background: done ? 'oklch(0.50 0.13 58)' : active ? 'oklch(0.52 0.22 240 / 20%)' : 'oklch(1 0 0 / 8%)',
                   color: done || active ? 'oklch(0.99 0 0)' : 'oklch(1 0 0 / 30%)',
-                  border: active ? '1.5px solid oklch(0.52 0.22 240)' : 'none',
+                  border: active ? '1.5px solid oklch(0.50 0.13 58)' : 'none',
                 }}
               >
                 {done ? (
@@ -225,7 +225,7 @@ export function SignupForm() {
                       <button type="button"
                         onClick={() => navigator.clipboard.writeText(url)}
                         className="shrink-0 text-[10px] font-semibold px-2 py-1 rounded cursor-pointer transition-colors"
-                        style={{ background: 'oklch(0.52 0.22 240 / 25%)', color: 'oklch(0.75 0.14 240)' }}>
+                        style={{ background: 'oklch(0.52 0.22 240 / 25%)', color: 'oklch(0.75 0.14 62)' }}>
                         Copy
                       </button>
                     </div>
@@ -283,7 +283,7 @@ export function SignupForm() {
                       className="flex-1 h-9 rounded-lg text-[12px] font-medium cursor-pointer transition-colors capitalize"
                       style={{
                         background: inviteRole === r ? 'oklch(0.52 0.22 240 / 25%)' : 'oklch(1 0 0 / 6%)',
-                        color: inviteRole === r ? 'oklch(0.75 0.14 240)' : 'oklch(1 0 0 / 45%)',
+                        color: inviteRole === r ? 'oklch(0.75 0.14 62)' : 'oklch(1 0 0 / 45%)',
                         border: inviteRole === r ? '1.5px solid oklch(0.52 0.22 240 / 40%)' : '1.5px solid transparent',
                       }}>
                       {r}

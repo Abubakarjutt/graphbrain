@@ -15,7 +15,7 @@ interface Props {
 }
 
 const ROLE_COLORS: Record<string, { color: string; bg: string }> = {
-  owner:  { color: 'oklch(0.52 0.22 240)', bg: 'oklch(0.52 0.22 240 / 12%)' },
+  owner:  { color: 'oklch(0.50 0.13 58)', bg: 'oklch(0.52 0.22 240 / 12%)' },
   editor: { color: 'oklch(0.60 0.18 150)', bg: 'oklch(0.60 0.18 150 / 12%)' },
   viewer: { color: 'oklch(0.55 0.02 255)', bg: 'oklch(0.55 0.02 255 / 12%)' },
 }

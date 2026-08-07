@@ -56,7 +56,7 @@ export default async function InvitePage({ params }: Props) {
       ) : (
         <Link href="/"
           className="flex items-center justify-center h-11 w-full rounded-lg text-[0.875rem] font-semibold text-white transition-all"
-          style={{ background: 'oklch(0.52 0.22 240)', boxShadow: '0 4px 16px -4px oklch(0.52 0.22 240 / 0.45)' }}>
+          style={{ background: 'oklch(0.50 0.13 58)', boxShadow: '0 4px 16px -4px oklch(0.52 0.22 240 / 0.45)' }}>
           Go to app
         </Link>
       )}
