@@ -582,8 +582,12 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [meta, setMeta] = useState<TaskMeta>(() => readMeta(item.id))
   const { isRunning, elapsedMs, totalMs, start, stop } = useTimeLogger(item.id)
+  // which inline field is open: 'assignee' | 'due' | 'doc' | null
+  const [activeField, setActiveField] = useState<'assignee' | 'due' | 'doc' | null>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const dateRef = useRef<HTMLInputElement>(null)
 
-  const style = { transform: CSS.Transform.toString(transform), opacity: isDragging ? 0.35 : 1, zIndex: isDragging ? 50 : undefined }
+  const dndStyle = { transform: CSS.Transform.toString(transform), opacity: isDragging ? 0.35 : 1, zIndex: isDragging ? 50 : undefined }
 
   function handleMetaChange(patch: Partial<TaskMeta>) {
     const next = { ...meta, ...patch }
@@ -591,13 +595,25 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
     writeMeta(item.id, next)
   }
 
+  useEffect(() => {
+    if (activeField === 'due') dateRef.current?.focus()
+  }, [activeField])
+
   const isOverdue = item.due_date && new Date(item.due_date) < new Date()
-  const hasMeta = meta.priority || meta.labels.length > 0
+
+  // Shared label style
+  const labelCls = "w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
+  const labelStyle = { color: 'var(--muted-foreground)', opacity: 0.5 } as React.CSSProperties
+
+  // Shared value-button style — shows hover affordance
+  function valueBtnCls(active?: boolean) {
+    return `flex-1 min-w-0 text-left text-[11px] px-1.5 py-0.5 -mx-1.5 rounded transition-colors cursor-pointer ${active ? 'ring-1 ring-[var(--primary)]' : 'hover:bg-[var(--accent)]'}`
+  }
 
   return (
     <>
       <div ref={setNodeRef}
-        style={{ ...style, background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 1px 3px oklch(0 0 0 / 0.05)' }}
+        style={{ ...dndStyle, background: 'var(--card)', border: '1px solid var(--border)', boxShadow: '0 1px 3px oklch(0 0 0 / 0.05)' }}
         className="group relative rounded-lg select-none transition-shadow hover:shadow-[0_3px_10px_oklch(0_0_0/0.10)]">
 
         {/* Drag handle */}
@@ -615,16 +631,9 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
         </div>
 
         <div className="p-3">
-          {/* Priority + labels */}
-          {hasMeta && (
+          {/* Labels row (top, if any) */}
+          {meta.labels.length > 0 && (
             <div className="flex flex-wrap items-center gap-1.5 mb-2">
-              {meta.priority && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded"
-                  style={{ color: PRIORITY[meta.priority].color, background: PRIORITY[meta.priority].bg }}>
-                  <PriorityIcon priority={meta.priority} size={9} />
-                  {PRIORITY[meta.priority].label}
-                </span>
-              )}
               {meta.labels.map((label, i) => (
                 <span key={label} className="text-[10px] font-medium px-1.5 py-0.5 rounded-full"
                   style={{ color: LABEL_PALETTE[i % LABEL_PALETTE.length], background: `${LABEL_PALETTE[i % LABEL_PALETTE.length]}16` }}>
@@ -634,116 +643,202 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
             </div>
           )}
 
-          {/* Title */}
+          {/* Title — click to open drawer */}
           <button type="button" onClick={() => setDrawerOpen(true)}
             className="text-[13px] font-medium text-left w-full leading-snug mb-3 pr-5 cursor-pointer transition-colors hover:text-[var(--primary)]"
             style={{ color: 'var(--foreground)' }}>
             {item.title}
           </button>
 
-          {/* Properties table */}
-          <div className="mt-2.5 pt-2.5 space-y-1.5"
-            style={{ borderTop: '1px solid var(--border)' }}>
+          {/* ── Inline-editable properties ───────────────────────────────── */}
+          <div className="pt-2.5 space-y-1" style={{ borderTop: '1px solid var(--border)' }}>
+
+            {/* Priority */}
+            <div className="flex items-center gap-2">
+              <span className={labelCls} style={labelStyle}>Priority</span>
+              <div className="flex-1 -mx-1.5">
+                <PriorityMenu priority={meta.priority} onChange={p => handleMetaChange({ priority: p })} />
+              </div>
+            </div>
 
             {/* Assignee */}
-            <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
-                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Assignee</span>
-              {item.assignee ? (
-                <div className="flex items-center gap-1.5 min-w-0">
-                  <span className="w-4 h-4 rounded-full grid place-items-center text-[8px] font-bold shrink-0"
-                    style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
-                    {item.assignee.email[0].toUpperCase()}
+            <div className="flex items-center gap-2 relative">
+              <span className={labelCls} style={labelStyle}>Assignee</span>
+              <button type="button"
+                onClick={e => { e.stopPropagation(); setActiveField(f => f === 'assignee' ? null : 'assignee') }}
+                className={valueBtnCls(activeField === 'assignee')}
+                style={{ color: item.assignee ? 'var(--foreground)' : 'var(--muted-foreground)' }}>
+                {item.assignee ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-4 h-4 rounded-full grid place-items-center text-[8px] font-bold shrink-0"
+                      style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                      {item.assignee.email[0].toUpperCase()}
+                    </span>
+                    <span className="truncate">{item.assignee.email.split('@')[0]}</span>
                   </span>
-                  <span className="text-[11px] truncate" style={{ color: 'var(--foreground)' }}>
-                    {item.assignee.email.split('@')[0]}
-                  </span>
-                </div>
-              ) : (
-                <span className="text-[11px] italic" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }}>Unassigned</span>
+                ) : (
+                  <span className="italic opacity-50">Unassigned</span>
+                )}
+              </button>
+              {activeField === 'assignee' && (
+                <>
+                  <div className="fixed inset-0 z-[40]" onClick={() => setActiveField(null)} aria-hidden />
+                  <div className="absolute left-16 top-full mt-1 z-[41] rounded-lg py-1 min-w-[170px] shadow-lg overflow-hidden"
+                    style={{ background: 'var(--popover)', border: '1px solid var(--border)' }}>
+                    <button type="button"
+                      onClick={() => { onAssign(item.id, null); setActiveField(null) }}
+                      className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--accent)] transition-colors flex items-center gap-2 cursor-pointer italic"
+                      style={{ color: 'var(--muted-foreground)' }}>
+                      Unassigned
+                    </button>
+                    {assignees.map(a => (
+                      <button key={a.id} type="button"
+                        onClick={() => { onAssign(item.id, a.id); setActiveField(null) }}
+                        className="w-full text-left px-3 py-1.5 text-[12px] hover:bg-[var(--accent)] transition-colors flex items-center gap-2 cursor-pointer"
+                        style={{ color: 'var(--foreground)', background: item.assignee?.id === a.id ? 'var(--accent)' : undefined }}>
+                        <span className="w-5 h-5 rounded-full grid place-items-center text-[9px] font-bold shrink-0"
+                          style={{ background: 'var(--primary)', color: 'var(--primary-foreground)' }}>
+                          {a.email[0].toUpperCase()}
+                        </span>
+                        <span className="truncate">{a.email.split('@')[0]}</span>
+                        {item.assignee?.id === a.id && (
+                          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" className="ml-auto shrink-0" style={{ color: 'var(--primary)' }} aria-hidden>
+                            <path d="M1.5 5l2.5 2.5 5-5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round"/>
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
 
             {/* Due date */}
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
-                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Due</span>
-              {item.due_date ? (
-                <span className="flex items-center gap-1 text-[11px] font-medium"
-                  style={{ color: isOverdue ? 'oklch(0.57 0.24 27)' : 'var(--foreground)' }}>
-                  {isOverdue && (
-                    <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden>
-                      <circle cx="4.5" cy="4.5" r="4" stroke="currentColor" strokeWidth="1"/>
-                      <path d="M4.5 2.5v2.2M4.5 6.5v.3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
-                    </svg>
+              <span className={labelCls} style={labelStyle}>Due</span>
+              {activeField === 'due' ? (
+                <div className="flex items-center gap-1.5 flex-1">
+                  <input
+                    ref={dateRef}
+                    type="date"
+                    defaultValue={item.due_date ?? ''}
+                    onChange={e => onSetDueDate(item.id, e.target.value || null)}
+                    onBlur={() => setActiveField(null)}
+                    className="flex-1 text-[11px] rounded-md px-1.5 py-0.5 outline-none bg-transparent cursor-pointer"
+                    style={{ border: '1px solid var(--primary)', color: 'var(--foreground)' }}
+                    aria-label="Due date"
+                  />
+                  {item.due_date && (
+                    <button type="button"
+                      onClick={() => { onSetDueDate(item.id, null); setActiveField(null) }}
+                      className="text-[10px] cursor-pointer shrink-0 transition-opacity hover:opacity-100 opacity-50"
+                      style={{ color: 'var(--muted-foreground)' }} aria-label="Clear due date">
+                      Clear
+                    </button>
                   )}
-                  {new Date(item.due_date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
-                  {isOverdue && <span className="text-[9px] font-semibold ml-1 px-1 py-px rounded"
-                    style={{ background: 'oklch(0.57 0.24 27 / 12%)' }}>overdue</span>}
-                </span>
+                </div>
               ) : (
-                <span className="text-[11px] italic" style={{ color: 'var(--muted-foreground)', opacity: 0.4 }}>None</span>
+                <button type="button"
+                  onClick={e => { e.stopPropagation(); setActiveField('due') }}
+                  className={valueBtnCls(false)}
+                  style={{ color: item.due_date ? (isOverdue ? 'oklch(0.57 0.24 27)' : 'var(--foreground)') : 'var(--muted-foreground)' }}>
+                  {item.due_date ? (
+                    <span className="flex items-center gap-1">
+                      {isOverdue && (
+                        <svg width="9" height="9" viewBox="0 0 9 9" fill="none" aria-hidden>
+                          <circle cx="4.5" cy="4.5" r="4" stroke="currentColor" strokeWidth="1"/>
+                          <path d="M4.5 2.5v2.2M4.5 6.5v.3" stroke="currentColor" strokeWidth="1" strokeLinecap="round"/>
+                        </svg>
+                      )}
+                      {new Date(item.due_date + 'T00:00:00').toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
+                      {isOverdue && <span className="text-[9px] font-semibold px-1 py-px rounded ml-1"
+                        style={{ background: 'oklch(0.57 0.24 27 / 12%)' }}>overdue</span>}
+                    </span>
+                  ) : (
+                    <span className="italic opacity-40">Set due date…</span>
+                  )}
+                </button>
               )}
             </div>
 
-            {/* Created */}
+            {/* Created — read-only */}
             <div className="flex items-center gap-2">
-              <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
-                style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Created</span>
-              <span className="text-[11px]" style={{ color: 'var(--muted-foreground)', opacity: 0.65 }}>
+              <span className={labelCls} style={labelStyle}>Created</span>
+              <span className="text-[11px] px-1.5" style={{ color: 'var(--muted-foreground)', opacity: 0.6 }}>
                 {new Date(item.created_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
 
-            {/* Time logged — only when there's something to show */}
-            {(totalMs > 0 || isRunning) && (
-              <div className="flex items-center gap-2">
-                <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
-                  style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Time</span>
+            {/* Time */}
+            <div className="flex items-center gap-2">
+              <span className={labelCls} style={labelStyle}>Time</span>
+              <button type="button"
+                onClick={e => { e.stopPropagation(); isRunning ? stop() : start() }}
+                className="flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 -mx-1.5 rounded transition-colors cursor-pointer hover:bg-[var(--accent)]"
+                style={{ color: isRunning ? 'var(--spark)' : totalMs > 0 ? 'var(--foreground)' : 'var(--muted-foreground)' }}
+                title={isRunning ? 'Stop timer' : 'Start timer'}
+                aria-label={isRunning ? 'Stop timer' : 'Start timer'}>
                 {isRunning ? (
-                  <span className="text-[11px] font-mono font-semibold tabular-nums animate-pulse"
-                    style={{ color: 'var(--spark)' }}>▶ {timerDisplay(elapsedMs)}</span>
+                  <>
+                    <svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><rect x="1" y="1" width="6" height="6" rx="0.5"/></svg>
+                    <span className="font-mono font-semibold tabular-nums animate-pulse">{timerDisplay(elapsedMs)}</span>
+                    <span className="opacity-50">stop</span>
+                  </>
+                ) : totalMs > 0 ? (
+                  <>
+                    <svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><path d="M1.5 1l6 3-6 3z"/></svg>
+                    <span className="font-mono">{msToDisplay(totalMs)}</span>
+                    <span className="opacity-40 text-[10px]">+ log</span>
+                  </>
                 ) : (
-                  <span className="text-[11px] font-mono" style={{ color: 'var(--muted-foreground)', opacity: 0.7 }}>
-                    {msToDisplay(totalMs)}
-                  </span>
+                  <>
+                    <svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><path d="M1.5 1l6 3-6 3z"/></svg>
+                    <span className="italic opacity-40">Log time…</span>
+                  </>
                 )}
-              </div>
-            )}
+              </button>
+            </div>
 
-            {/* Linked doc — only when attached */}
-            {item.attached_page_id && (
-              <div className="flex items-center gap-2">
-                <span className="w-16 shrink-0 text-[10px] font-semibold tracking-wide uppercase"
-                  style={{ color: 'var(--muted-foreground)', opacity: 0.5 }}>Doc</span>
-                <span className="flex items-center gap-1 text-[11px] truncate" style={{ color: 'var(--primary)' }}>
-                  <svg width="9" height="9" viewBox="0 0 13 13" fill="none" aria-hidden>
-                    <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
-                    <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
-                  </svg>
-                  {item.attached_page_title || 'Linked'}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Timer quick-action — bottom right, hover only */}
-          <div className="flex justify-end mt-2">
-            <button type="button"
-              onClick={e => { e.stopPropagation(); isRunning ? stop() : start() }}
-              title={isRunning ? 'Stop timer' : 'Start timer'}
-              aria-label={isRunning ? 'Stop timer' : 'Start timer'}
-              className="flex items-center gap-1.5 h-6 px-2 text-[10px] font-medium rounded-md opacity-0 group-hover:opacity-100 transition-all cursor-pointer"
-              style={{
-                background: isRunning ? 'oklch(0.57 0.24 27 / 14%)' : 'var(--muted)',
-                color: isRunning ? 'oklch(0.57 0.24 27)' : 'var(--muted-foreground)',
-              }}>
-              {isRunning ? (
-                <><svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><rect x="1" y="1" width="6" height="6" rx="0.5"/></svg>Stop</>
+            {/* Doc */}
+            <div className="flex items-center gap-2 relative">
+              <span className={labelCls} style={labelStyle}>Doc</span>
+              {item.attached_page_id ? (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <a href={`/workspace/${workspaceId}/page/${item.attached_page_id}`}
+                    onClick={e => e.stopPropagation()}
+                    className="flex items-center gap-1 text-[11px] flex-1 min-w-0 px-1.5 py-0.5 -mx-1.5 rounded hover:underline"
+                    style={{ color: 'var(--primary)' }}>
+                    <svg width="9" height="9" viewBox="0 0 13 13" fill="none" aria-hidden>
+                      <path d="M3 2h5.5L10 3.5V11H3V2z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
+                      <path d="M8.5 2v1.5H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round"/>
+                    </svg>
+                    <span className="truncate">{item.attached_page_title || 'Linked'}</span>
+                  </a>
+                  <button type="button" onClick={e => { e.stopPropagation(); onDetach(item.id) }}
+                    className="shrink-0 text-[10px] opacity-40 hover:opacity-100 cursor-pointer transition-opacity"
+                    style={{ color: 'var(--muted-foreground)' }} aria-label="Remove link">
+                    <svg width="9" height="9" viewBox="0 0 10 10" fill="none" aria-hidden>
+                      <path d="M1.5 1.5l7 7M8.5 1.5l-7 7" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
               ) : (
-                <><svg width="7" height="7" viewBox="0 0 8 8" fill="currentColor" aria-hidden><path d="M1.5 1l6 3-6 3z"/></svg>Log time</>
+                <>
+                  <button type="button"
+                    onClick={e => { e.stopPropagation(); setPickerOpen(true) }}
+                    className={`${valueBtnCls(pickerOpen)} italic opacity-40`}
+                    style={{ color: 'var(--muted-foreground)' }}>
+                    Attach document…
+                  </button>
+                  {pickerOpen && (
+                    <TodoAttachDocumentPicker pages={pages}
+                      onSelect={p => { onAttach(item.id, p); setPickerOpen(false) }}
+                      onClose={() => setPickerOpen(false)} />
+                  )}
+                </>
               )}
-            </button>
+            </div>
+
           </div>
         </div>
       </div>
