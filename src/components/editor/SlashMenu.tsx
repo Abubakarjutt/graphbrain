@@ -73,7 +73,7 @@ export const SlashMenu = forwardRef<SlashMenuHandle, SlashMenuProps>(
           background: 'var(--background)',
           border: '1px solid color-mix(in oklch, var(--border) 80%, transparent)',
           borderRadius: 6,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)',
+          boxShadow: '0 4px 20px oklch(0 0 0 / 0.10), 0 1px 4px oklch(0 0 0 / 0.06)',
           minWidth: 240,
           maxHeight: 340,
           overflowY: 'auto',

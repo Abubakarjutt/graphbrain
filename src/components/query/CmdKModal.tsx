@@ -10,9 +10,11 @@ import type { QueryScope } from '@/lib/graph/query'
 interface CmdKModalProps {
   databases: Database[]
   pages: Page[]
+  open?: boolean
+  onClose?: () => void
 }
 
-export function CmdKModal({ databases, pages }: CmdKModalProps) {
+export function CmdKModal({ databases, pages, open: controlledOpen, onClose }: CmdKModalProps) {
   const params = useParams()
   const router = useRouter()
   const workspaceId = params?.workspaceId as string | undefined
@@ -26,12 +28,15 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
   const [error, setError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
+  const isOpen = controlledOpen ?? open
+
   const close = useCallback(() => {
     setOpen(false)
+    onClose?.()
     setQuery('')
     setResults([])
     setError(null)
-  }, [])
+  }, [onClose])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -46,11 +51,11 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
   }, [close])
 
   useEffect(() => {
-    if (open) {
+    if (isOpen) {
       inputRef.current?.focus()
       if (currentDatabaseId) setScope({ databaseId: currentDatabaseId })
     }
-  }, [open, currentDatabaseId])
+  }, [isOpen, currentDatabaseId])
 
   useEffect(() => {
     if (!query.trim() || !workspaceId) {
@@ -79,7 +84,7 @@ export function CmdKModal({ databases, pages }: CmdKModalProps) {
     close()
   }
 
-  if (!workspaceId || !open) return null
+  if (!workspaceId || !isOpen) return null
 
   return (
     <div

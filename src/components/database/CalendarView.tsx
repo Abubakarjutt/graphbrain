@@ -101,7 +101,13 @@ export function CalendarView({ databaseId, workspaceId, board, onBoardChange }: 
         onSelectEvent={handleSelectEvent}
         eventPropGetter={event => ({
           style: {
-            backgroundColor: (event as TodoCalendarEvent).kind === 'due' ? '#d97706' : '#6b7280',
+            backgroundColor: (event as TodoCalendarEvent).kind === 'due'
+              ? 'var(--spark)'
+              : 'var(--muted-foreground)',
+            color: (event as TodoCalendarEvent).kind === 'due'
+              ? 'var(--spark-foreground)'
+              : 'var(--primary-foreground)',
+            border: 'none',
           },
         })}
         style={{ height: '100%' }}

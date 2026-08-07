@@ -28,24 +28,31 @@ function DatabaseNode({ db, title, rowPages, workspaceId, isActive }: DatabaseNo
   return (
     <div>
       <div
-        className={`flex items-center gap-1 rounded-md px-1.5 py-[5px] text-[13px] transition-colors ${
+        className={`relative flex items-center gap-1 rounded-md px-1.5 py-[5px] text-[13px] transition-colors ${
           isActive
             ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
             : 'text-sidebar-foreground/85 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         }`}
       >
-        <button
-          onClick={() => setExpanded(v => !v)}
-          className="w-4 h-4 flex items-center justify-center shrink-0 rounded-sm text-muted-foreground transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-          aria-label={expanded ? 'Collapse' : 'Expand'}
-          style={{ transform: hasRows && expanded ? 'rotate(90deg)' : undefined }}
-        >
-          {hasRows ? (
+        {isActive && (
+          <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden />
+        )}
+        {hasRows ? (
+          <button
+            onClick={() => setExpanded(v => !v)}
+            className="w-4 h-4 flex items-center justify-center shrink-0 rounded-sm text-muted-foreground cursor-pointer transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            aria-label={expanded ? 'Collapse' : 'Expand'}
+            style={{ transform: expanded ? 'rotate(90deg)' : undefined }}
+          >
             <svg width="8" height="10" viewBox="0 0 8 10" fill="currentColor" aria-hidden>
               <path d="M1.5 1.5 6.5 5 1.5 8.5z" />
             </svg>
-          ) : null}
-        </button>
+          </button>
+        ) : (
+          <span className="w-4 h-4 shrink-0 flex items-center justify-center">
+            <span className="w-1 h-1 rounded-full bg-current opacity-20" aria-hidden />
+          </span>
+        )}
         <Link
           href={`/workspace/${workspaceId}/database/${db.id}`}
           className="flex items-center gap-1.5 flex-1 truncate min-w-0 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
@@ -71,7 +78,7 @@ function DatabaseNode({ db, title, rowPages, workspaceId, isActive }: DatabaseNo
 }
 
 export function SidebarDatabaseTree({ databases, pages, databaseRows, workspaceId, onCreateDatabase }: SidebarDatabaseTreeProps) {
-  // databaseId param is only populated on the /database/[databaseId] route (Task 8)
+  // databaseId param is only populated on the /database/[databaseId] route
   const params = useParams()
   const currentDatabaseId = params?.databaseId as string | undefined
 
@@ -86,7 +93,7 @@ export function SidebarDatabaseTree({ databases, pages, databaseRows, workspaceI
         <span className="nav-label">Databases</span>
         <button
           onClick={onCreateDatabase}
-          className="grid h-5 w-5 place-items-center rounded text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="grid h-5 w-5 place-items-center rounded text-muted-foreground cursor-pointer transition-colors hover:bg-sidebar-accent hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="New database"
           title="New database"
         >
