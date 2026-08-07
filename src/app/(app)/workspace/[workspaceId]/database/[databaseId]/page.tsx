@@ -26,10 +26,12 @@ export default async function DatabasePage({
     .eq('id', db.page_id)
     .single()
 
-  const [todoBoard, pages] = await Promise.all([
+  const [todoBoard, allPages] = await Promise.all([
     getTodoBoard(databaseId, workspaceId),
     getPages(workspaceId),
   ])
+  // Only show pages that live inside this database's container page
+  const pages = allPages.filter(p => p.parent_id === db.page_id)
 
   return (
     <DatabaseShell
