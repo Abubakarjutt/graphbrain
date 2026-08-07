@@ -38,7 +38,7 @@ export default async function WorkspacePage({
         </span>
 
         {/* Title */}
-        <h1 className="text-[2rem] font-bold tracking-tight text-foreground mb-2 text-center">
+        <h1 className="font-display text-[2.5rem] font-light tracking-[-0.01em] text-foreground mb-2 text-center">
           {workspace.name}
         </h1>
 

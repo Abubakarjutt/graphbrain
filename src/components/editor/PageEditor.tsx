@@ -222,7 +222,7 @@ export function PageEditor({ pageId, workspaceId, initialTitle, initialDoc, file
         <div className="max-w-[680px] mx-auto px-12 pt-12 pb-16 min-h-full bg-background shadow-sm">
           {/* Title */}
           <input
-            className="w-full text-[2.25rem] leading-[1.2] font-bold tracking-tight bg-transparent border-none outline-none mb-6 placeholder:text-muted-foreground/20 text-foreground"
+            className="font-display w-full text-[2.5rem] leading-[1.12] font-light tracking-[-0.01em] bg-transparent border-none outline-none mb-7 placeholder:text-muted-foreground/20 text-foreground"
             value={title}
             onChange={e => setTitle(e.target.value)}
             onBlur={handleTitleBlur}

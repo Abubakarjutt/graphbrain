@@ -31,11 +31,11 @@ function PageNode({ page, pages, workspaceId, depth, onCreatePage }: PageNodePro
   return (
     <div>
       <div
-        className={`relative flex items-center gap-1 group rounded px-1.5 py-[4px] text-[12px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/60 text-sidebar-foreground/80 hover:text-sidebar-foreground'}`}
-        style={{ paddingLeft: `${8 + depth * 12}px` }}
+        className={`relative flex items-center gap-1 group rounded h-8 text-[12px] transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'hover:bg-sidebar-accent/60 text-sidebar-foreground/80 hover:text-sidebar-foreground'}`}
+        style={{ paddingLeft: `${8 + depth * 12}px`, paddingRight: '6px' }}
       >
         {isActive && (
-          <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-sidebar-primary" style={{ width: '1px', height: '14px' }} aria-hidden />
         )}
         {children.length > 0 ? (
           <button

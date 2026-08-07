@@ -9,63 +9,45 @@ const PRINCIPLES = [
 ]
 
 export function AuthShell({
-  eyebrow,
   title,
   subtitle,
   children,
   footer,
 }: {
-  eyebrow: string
+  eyebrow?: string
   title: string
   subtitle: string
   children: ReactNode
   footer: ReactNode
 }) {
   return (
-    <div className="grain relative flex min-h-screen w-full overflow-hidden bg-[#0b0c10] text-white/90">
-      {/* Atmosphere: layered radial washes + the drifting knowledge graph. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(60rem 60rem at 18% 12%, rgba(79,70,229,0.22), transparent 60%),' +
-            'radial-gradient(50rem 50rem at 90% 90%, rgba(49,46,129,0.35), transparent 55%),' +
-            'radial-gradient(30rem 30rem at 75% 20%, rgba(99,102,241,0.14), transparent 60%)',
-        }}
-      />
+    <div className="relative flex min-h-screen w-full overflow-hidden bg-[oklch(0.11_0.016_258)] text-white/90">
       <ConstellationField />
 
       <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col lg:flex-row lg:items-stretch">
         {/* Brand / hero */}
-        <section className="flex flex-1 flex-col justify-between px-8 pt-12 pb-6 lg:px-14 lg:py-16">
+        <section className="flex flex-1 flex-col justify-between px-8 pt-12 pb-6 lg:px-16 lg:py-20">
           <header className="animate-rise" style={{ animationDelay: '40ms' }}>
             <BrandMark />
           </header>
 
           <div className="hidden max-w-md lg:block">
-            <p
-              className="animate-rise text-xs font-medium tracking-[0.32em] text-indigo-300 uppercase"
-              style={{ animationDelay: '120ms' }}
-            >
-              A second brain
-            </p>
             <h2
-              className="animate-rise font-display mt-5 text-[2.9rem] leading-[1.05] font-light text-white"
-              style={{ animationDelay: '200ms' }}
+              className="animate-rise font-display mt-5 text-[3.2rem] leading-[1.05] font-light text-white"
+              style={{ animationDelay: '160ms' }}
             >
               Think in{' '}
-              <em className="font-display text-indigo-300 italic">connections</em>,
+              <em className="font-display text-[oklch(0.72_0.18_240)] italic not-italic" style={{ fontStyle: 'italic' }}>connections</em>,{' '}
               not folders.
             </h2>
-            <ul className="mt-9 space-y-3.5">
+            <ul className="mt-10 space-y-4">
               {PRINCIPLES.map((line, i) => (
                 <li
                   key={line}
-                  className="animate-rise flex items-start gap-3 text-sm text-white/55"
-                  style={{ animationDelay: `${320 + i * 90}ms` }}
+                  className="animate-rise flex items-start gap-3 text-[13.5px] text-white/50 leading-relaxed"
+                  style={{ animationDelay: `${280 + i * 80}ms` }}
                 >
-                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-indigo-400 shadow-[0_0_10px_2px_rgba(129,140,248,0.6)]" />
+                  <span className="mt-[7px] h-1 w-1 shrink-0 rounded-full bg-[oklch(0.62_0.22_240)] opacity-80" />
                   {line}
                 </li>
               ))}
@@ -73,37 +55,29 @@ export function AuthShell({
           </div>
 
           <p
-            className="animate-rise mt-10 hidden text-xs text-white/30 lg:block"
-            style={{ animationDelay: '640ms' }}
+            className="animate-rise mt-10 hidden text-xs text-white/20 lg:block font-mono tracking-tight"
+            style={{ animationDelay: '560ms' }}
           >
-            © {new Date().getFullYear()} graphbrain — knowledge, connected.
+            © {new Date().getFullYear()} graphbrain
           </p>
         </section>
 
         {/* Auth card */}
-        <section className="flex flex-1 items-center justify-center px-6 pb-14 lg:px-14 lg:py-16">
+        <section className="flex flex-1 items-center justify-center px-6 pb-14 lg:px-14 lg:py-20">
           <div
             className="animate-rise w-full max-w-sm"
-            style={{ animationDelay: '260ms' }}
+            style={{ animationDelay: '220ms' }}
           >
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.035] p-8 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.8)] backdrop-blur-xl">
-              {/* top inner-highlight hairline */}
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent" />
-
-              <p className="text-[0.7rem] font-medium tracking-[0.28em] text-indigo-300 uppercase">
-                {eyebrow}
-              </p>
-              <h1 className="font-display mt-2 text-[1.9rem] leading-tight font-normal text-white">
+            <div className="relative overflow-hidden rounded-xl border border-white/8 bg-[oklch(0.18_0.016_258)] p-8 shadow-[0_24px_64px_-16px_oklch(0_0_0/0.7),0_4px_16px_-4px_oklch(0_0_0/0.4)]">
+              <h1 className="font-display text-[2rem] leading-tight font-light text-white mb-1">
                 {title}
               </h1>
-              <p className="mt-1.5 text-sm text-white/45">{subtitle}</p>
-
-              <div className="indigo-rule my-6" />
+              <p className="text-sm text-white/40 mb-7">{subtitle}</p>
 
               {children}
             </div>
 
-            <p className="mt-6 text-center text-sm text-white/45">{footer}</p>
+            <p className="mt-5 text-center text-[13px] text-white/35">{footer}</p>
           </div>
         </section>
       </div>
@@ -113,17 +87,16 @@ export function AuthShell({
 
 function BrandMark() {
   return (
-    <Link href="/" className="inline-flex items-center gap-3">
-      {/* Monogram: a tiny three-node graph. */}
-      <span className="relative grid h-9 w-9 place-items-center rounded-xl border border-indigo-400/40 bg-indigo-400/10">
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-          <path d="M4 13.5 9 4l5 9.5" stroke="rgba(165,180,252,0.5)" strokeWidth="1" />
-          <circle cx="9" cy="4" r="2.1" fill="#a5b4fc" />
-          <circle cx="4" cy="13.5" r="1.7" fill="#a5b4fc" />
-          <circle cx="14" cy="13.5" r="1.7" fill="#a5b4fc" />
+    <Link href="/" className="inline-flex items-center gap-3 group">
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-[oklch(0.62_0.22_240)] shadow-[0_2px_12px_oklch(0.62_0.22_240/0.35)]">
+        <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden>
+          <circle cx="9" cy="4.5" r="2.1" fill="white" />
+          <circle cx="4" cy="13.5" r="1.7" fill="white" opacity="0.75" />
+          <circle cx="14" cy="13.5" r="1.7" fill="white" opacity="0.75" />
+          <path d="M9 6.6 4.8 11.9M9 6.6l4.2 5.3M4.8 13.5h8.4" stroke="white" strokeWidth="1" opacity="0.5" />
         </svg>
       </span>
-      <span className="font-display text-xl tracking-tight text-white">graphbrain</span>
+      <span className="font-display text-[18px] tracking-tight text-white/90 group-hover:text-white transition-colors">graphbrain</span>
     </Link>
   )
 }

@@ -1,14 +1,13 @@
 // Shared field/button styling for the dark auth scene.
-// Utility-only so tailwind-merge cleanly overrides the base primitives.
 
 export const FIELD_LABEL =
-  'text-[0.7rem] font-medium tracking-[0.14em] text-white/50 uppercase'
+  'text-[11px] font-medium tracking-[0.08em] text-white/50 uppercase'
 
 export const FIELD_INPUT =
-  'h-11 rounded-xl border-white/10 bg-white/[0.04] px-4 text-[0.95rem] text-white placeholder:text-white/25 transition-colors focus-visible:border-indigo-400/50 focus-visible:ring-2 focus-visible:ring-indigo-400/20'
+  'h-11 rounded-lg border-white/10 bg-white/[0.05] px-3.5 text-[0.9rem] text-white placeholder:text-white/20 transition-colors focus-visible:border-[oklch(0.62_0.22_240/60%)] focus-visible:ring-1 focus-visible:ring-[oklch(0.62_0.22_240/25%)]'
 
 export const PRIMARY_BTN =
-  'h-11 w-full rounded-xl border-0 bg-[linear-gradient(180deg,#6366f1,#4338ca)] text-[0.95rem] font-semibold text-white shadow-[0_12px_30px_-12px_rgba(79,70,229,0.7)] transition-all hover:brightness-[1.08]'
+  'h-11 w-full rounded-lg border-0 bg-[oklch(0.52_0.22_240)] text-[0.875rem] font-semibold text-white shadow-[0_4px_16px_-4px_oklch(0.52_0.22_240/0.45)] transition-all hover:bg-[oklch(0.56_0.22_240)] active:scale-[0.99]'
 
 export const GHOST_BTN =
-  'h-11 w-full rounded-xl text-[0.9rem] text-white/60 transition-colors hover:bg-white/[0.06] hover:text-white'
+  'h-10 w-full rounded-lg text-[0.875rem] text-white/40 transition-colors hover:bg-white/[0.05] hover:text-white/70'

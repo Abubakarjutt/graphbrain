@@ -31,7 +31,6 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const currentWorkspaceId = params?.workspaceId as string | undefined
 
-  // Exclude database container pages and their direct children (row pages) from the Pages section
   const databasePageIds = new Set(databases.map(d => d.page_id))
   const regularPages = pages.filter(
     p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
@@ -62,98 +61,106 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
 
   return (
     <aside
-      className={`bg-sidebar text-sidebar-foreground flex h-full w-[232px] flex-shrink-0 flex-col border-r border-sidebar-border select-none
+      className={`flex h-full w-[220px] flex-shrink-0 flex-col select-none
         fixed inset-y-0 left-0 z-30 transition-transform duration-200
         lg:relative lg:translate-x-0 lg:z-auto
         ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      style={{ background: 'var(--sidebar)', borderRight: '1px solid var(--sidebar-border)' }}
     >
-      {/* Brand header */}
-      <div className="flex items-center gap-2 px-3 h-12 border-b border-sidebar-border shrink-0">
+      {/* Brand */}
+      <div className="flex items-center gap-2.5 px-4 h-12 shrink-0" style={{ borderBottom: '1px solid var(--sidebar-border)' }}>
         <button
           onClick={onMobileClose}
-          className="lg:hidden h-6 w-6 grid place-items-center rounded text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="lg:hidden h-6 w-6 grid place-items-center rounded text-white/40 hover:text-white/70 hover:bg-white/8 transition-colors shrink-0 cursor-pointer"
           aria-label="Close sidebar"
         >
           <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden>
             <path d="M1.5 1.5l9 9M10.5 1.5l-9 9" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="grid h-6 w-6 place-items-center rounded bg-primary shrink-0">
+        <span className="grid h-6 w-6 place-items-center rounded shrink-0" style={{ background: 'var(--sidebar-primary)' }}>
           <svg width="13" height="13" viewBox="0 0 18 18" fill="none" aria-hidden>
-            <circle cx="9" cy="4.5" r="2.1" fill="var(--primary-foreground)" />
-            <circle cx="4" cy="13.5" r="1.7" fill="var(--primary-foreground)" opacity="0.75" />
-            <circle cx="14" cy="13.5" r="1.7" fill="var(--primary-foreground)" opacity="0.75" />
-            <path d="M9 6.6 4.8 11.9M9 6.6l4.2 5.3M4.8 13.5h8.4" stroke="var(--primary-foreground)" strokeWidth="1" opacity="0.5" />
+            <circle cx="9" cy="4.5" r="2.1" fill="var(--sidebar-primary-foreground)" />
+            <circle cx="4" cy="13.5" r="1.7" fill="var(--sidebar-primary-foreground)" opacity="0.75" />
+            <circle cx="14" cy="13.5" r="1.7" fill="var(--sidebar-primary-foreground)" opacity="0.75" />
+            <path d="M9 6.6 4.8 11.9M9 6.6l4.2 5.3M4.8 13.5h8.4" stroke="var(--sidebar-primary-foreground)" strokeWidth="1" opacity="0.5" />
           </svg>
         </span>
-        <span className="font-display text-[15px] font-medium tracking-tight text-sidebar-foreground leading-none">graphbrain</span>
+        <span className="font-display text-[15px] font-medium leading-none" style={{ color: 'var(--sidebar-foreground)' }}>
+          graphbrain
+        </span>
       </div>
 
       {/* Search */}
-      <div className="px-2 pt-2.5 pb-1">
+      <div className="px-3 pt-3 pb-1">
         <button
-          className="flex items-center gap-2 w-full px-2 py-1.5 text-xs text-muted-foreground bg-sidebar-accent/50 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="flex items-center gap-2 w-full h-8 px-2.5 text-[12px] rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)]"
+          style={{
+            color: 'var(--sidebar-foreground)',
+            opacity: 0.45,
+            background: 'oklch(1 0 0 / 5%)',
+            border: '1px solid oklch(1 0 0 / 8%)',
+          }}
           aria-label="Search"
           onClick={onSearchOpen}
+          onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.75' }}
+          onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.45' }}
         >
-          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden>
-            <circle cx="6" cy="6" r="4.2" stroke="currentColor" strokeWidth="1.3" />
-            <path d="M9.5 9.5l2.5 2.5" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+          <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" className="shrink-0" aria-hidden>
+            <circle cx="6" cy="6" r="4.2" /><path d="M9.5 9.5l2.5 2.5" strokeLinecap="round" />
           </svg>
           <span className="flex-1 text-left">Search</span>
-          <kbd className="text-[10px] text-muted-foreground/70 font-mono tracking-tight">⌘K</kbd>
+          <kbd className="text-[10px] font-mono opacity-60">⌘K</kbd>
         </button>
       </div>
 
       {/* Ask */}
       {currentWorkspaceId && (
-        <div className="px-2 pb-1.5">
+        <div className="px-3 pb-2">
           <Link
             href={`/workspace/${currentWorkspaceId}/ask`}
-            className={`flex items-center gap-2 w-full px-2 py-1.5 text-xs rounded transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
-              pathname?.endsWith('/ask')
-                ? 'bg-spark/15 text-spark font-semibold'
-                : 'text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground'
+            className={`flex items-center gap-2 h-8 w-full px-2.5 text-[12px] rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)] ${
+              pathname?.endsWith('/ask') ? 'font-semibold' : ''
             }`}
+            style={{
+              color: pathname?.endsWith('/ask') ? 'var(--spark)' : 'var(--sidebar-foreground)',
+              opacity: pathname?.endsWith('/ask') ? 1 : 0.5,
+              background: pathname?.endsWith('/ask') ? 'oklch(1 0 0 / 6%)' : 'transparent',
+            }}
           >
-            <svg width="12" height="12" viewBox="0 0 11 11" fill="none" className="shrink-0" aria-hidden>
-              <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" fill="currentColor" />
+            <svg width="11" height="11" viewBox="0 0 11 11" fill="currentColor" className="shrink-0" aria-hidden>
+              <path d="M5.5 1 6.7 4.3 10 5.5 6.7 6.7 5.5 10 4.3 6.7 1 5.5 4.3 4.3z" />
             </svg>
-            <span className="flex-1 text-left">Ask</span>
+            <span>Ask</span>
           </Link>
         </div>
       )}
 
-      {/* Scrollable nav */}
-      <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5" aria-label="Main navigation">
-        {/* Workspace list */}
-        <p className="nav-label px-2 pt-3 pb-1">Workspace</p>
+      {/* Nav */}
+      <nav className="flex-1 overflow-y-auto px-3 pb-3 sidebar-scroll" aria-label="Main navigation">
+        <p className="nav-label px-2 pt-3 pb-1.5">Workspace</p>
         {workspaces.map(({ workspaces: ws }) =>
           ws ? (
-            <Link
+            <SidebarNavItem
               key={ws.id}
               href={`/workspace/${ws.id}`}
-              className={`relative flex items-center gap-2 rounded px-2 py-[5px] text-[12px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 ${
-                currentWorkspaceId === ws.id
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
-              }`}
-            >
-              {currentWorkspaceId === ws.id && (
-                <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" />
-              )}
-              <span
-                className="grid h-4 w-4 shrink-0 place-items-center rounded text-[9px] font-bold text-primary-foreground"
-                style={{ background: currentWorkspaceId === ws.id ? 'var(--primary)' : 'var(--muted-foreground)' }}
-              >
-                {ws.name[0].toUpperCase()}
-              </span>
-              <span className="truncate">{ws.name}</span>
-            </Link>
+              active={currentWorkspaceId === ws.id}
+              icon={
+                <span
+                  className="grid h-4 w-4 shrink-0 place-items-center rounded text-[9px] font-bold"
+                  style={{
+                    background: currentWorkspaceId === ws.id ? 'var(--sidebar-primary)' : 'oklch(1 0 0 / 20%)',
+                    color: 'var(--sidebar-primary-foreground)',
+                  }}
+                >
+                  {ws.name[0].toUpperCase()}
+                </span>
+              }
+              label={ws.name}
+            />
           ) : null
         )}
 
-        {/* Pages + databases for active workspace */}
         {currentWorkspaceId && (
           <>
             <SidebarPageTree
@@ -174,14 +181,16 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
           </>
         )}
 
-        {/* New page */}
         {currentWorkspaceId && (
           <button
             onClick={() => handleCreatePage(null)}
-            className="mt-0.5 flex w-full items-center gap-2 rounded px-2 py-[5px] text-[12px] text-muted-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="mt-1 flex w-full items-center gap-2 h-8 rounded-md px-2.5 text-[12px] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)]"
+            style={{ color: 'var(--sidebar-foreground)', opacity: 0.35 }}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.opacity = '0.65' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.opacity = '0.35' }}
           >
-            <svg width="11" height="11" viewBox="0 0 13 13" fill="none" aria-hidden>
-              <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+            <svg width="11" height="11" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden>
+              <path d="M6.5 1.5v10M1.5 6.5h10" />
             </svg>
             New page
           </button>
@@ -189,29 +198,44 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-sidebar-border px-2 py-2">
+      <div className="px-3 py-2.5 shrink-0" style={{ borderTop: '1px solid var(--sidebar-border)' }}>
         <div className="relative">
           <button
             type="button"
             onClick={() => setUserMenuOpen(v => !v)}
-            className="flex items-center gap-2 rounded px-2 py-1.5 hover:bg-sidebar-accent/60 transition-colors w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="flex items-center gap-2.5 w-full h-9 px-2.5 rounded-md transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)]"
+            style={{ background: 'transparent' }}
             aria-label="User menu"
             aria-expanded={userMenuOpen}
+            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'oklch(1 0 0 / 6%)' }}
+            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent' }}
           >
-            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+            <span
+              className="grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+              style={{ background: 'var(--sidebar-primary)', color: 'var(--sidebar-primary-foreground)' }}
+            >
               {userInitial}
             </span>
-            <p className="truncate text-[11px] font-mono text-muted-foreground flex-1 text-left tracking-tight">{user.email}</p>
-            <svg width="12" height="12" viewBox="0 0 13 13" fill="none" className="text-muted-foreground/50 shrink-0" aria-hidden>
+            <p className="truncate text-[11px] font-mono flex-1 text-left tracking-tight" style={{ color: 'var(--sidebar-foreground)', opacity: 0.45 }}>
+              {user.email}
+            </p>
+            <svg width="12" height="12" viewBox="0 0 13 13" fill="none" style={{ color: 'var(--sidebar-foreground)', opacity: 0.25, flexShrink: 0 }} aria-hidden>
+              <circle cx="6.5" cy="3" r="1" fill="currentColor" />
               <circle cx="6.5" cy="6.5" r="1" fill="currentColor" />
-              <circle cx="6.5" cy="2.5" r="1" fill="currentColor" />
-              <circle cx="6.5" cy="10.5" r="1" fill="currentColor" />
+              <circle cx="6.5" cy="10" r="1" fill="currentColor" />
             </svg>
           </button>
           {userMenuOpen && (
             <>
               <div className="fixed inset-0 z-[9]" aria-hidden onClick={() => setUserMenuOpen(false)} />
-              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded shadow-lg z-10 py-1 animate-fade-in">
+              <div
+                className="absolute bottom-full left-0 right-0 mb-1 rounded-lg z-10 py-1 overflow-hidden animate-fade-in"
+                style={{
+                  background: 'var(--popover)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 8px 24px oklch(0 0 0 / 0.18), 0 2px 6px oklch(0 0 0 / 0.10)',
+                }}
+              >
                 <button
                   type="button"
                   onClick={async () => {
@@ -223,7 +247,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
                       setUserMenuOpen(false)
                     }
                   }}
-                  className="w-full cursor-pointer text-left px-3 py-2 text-xs text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  className="w-full cursor-pointer text-left px-3 py-2 text-[13px] text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                 >
                   Sign out
                 </button>
@@ -233,5 +257,39 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
         </div>
       </div>
     </aside>
+  )
+}
+
+function SidebarNavItem({
+  href,
+  active,
+  icon,
+  label,
+}: {
+  href: string
+  active: boolean
+  icon: React.ReactNode
+  label: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="relative flex items-center gap-2 h-8 rounded-md px-2.5 text-[12.5px] transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)] font-medium"
+      style={{
+        color: 'var(--sidebar-foreground)',
+        opacity: active ? 1 : 0.55,
+        background: active ? 'oklch(1 0 0 / 8%)' : 'transparent',
+      }}
+    >
+      {active && (
+        <span
+          className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
+          style={{ width: '1px', height: '16px', background: 'var(--sidebar-primary)' }}
+          aria-hidden
+        />
+      )}
+      {icon}
+      <span className="truncate">{label}</span>
+    </Link>
   )
 }

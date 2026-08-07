@@ -28,14 +28,15 @@ function DatabaseNode({ db, title, rowPages, workspaceId, isActive }: DatabaseNo
   return (
     <div>
       <div
-        className={`relative flex items-center gap-1 rounded px-1.5 py-[4px] text-[12px] transition-colors ${
+        className={`relative flex items-center gap-1 rounded h-8 text-[12px] transition-colors ${
           isActive
             ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
             : 'text-sidebar-foreground/80 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground'
         }`}
+        style={{ paddingLeft: '6px', paddingRight: '6px' }}
       >
         {isActive && (
-          <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r-full bg-primary" aria-hidden />
+          <span className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-sidebar-primary" style={{ width: '1px', height: '14px' }} aria-hidden />
         )}
         {hasRows ? (
           <button
