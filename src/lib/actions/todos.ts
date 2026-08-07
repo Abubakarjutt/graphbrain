@@ -307,3 +307,80 @@ export async function deleteTodoItem(itemId: string, databaseId: string, workspa
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
 }
+
+// ─── Time tracking ────────────────────────────────────────────────────────────
+
+export async function saveTimeEntry(
+  itemId: string,
+  itemTitle: string,
+  databaseId: string,
+  workspaceId: string,
+  startedAt: number,
+  stoppedAt: number,
+): Promise<void> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+  await supabase.from('time_entries').insert({
+    item_id: itemId,
+    item_title: itemTitle,
+    database_id: databaseId,
+    workspace_id: workspaceId,
+    user_id: user.id,
+    started_at: new Date(startedAt).toISOString(),
+    stopped_at: new Date(stoppedAt).toISOString(),
+    duration_ms: stoppedAt - startedAt,
+  })
+}
+
+export interface UserTimeReport {
+  userId: string
+  email: string
+  totalMs: number
+  tasks: { itemId: string; itemTitle: string; totalMs: number }[]
+}
+
+export async function getTimeReport(
+  databaseId: string,
+  workspaceId: string,
+  date: string,
+): Promise<UserTimeReport[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return []
+
+  const { data: entries } = await supabase
+    .from('time_entries')
+    .select('user_id, item_id, item_title, duration_ms')
+    .eq('database_id', databaseId)
+    .gte('started_at', `${date}T00:00:00.000Z`)
+    .lt('started_at', `${date}T24:00:00.000Z`)
+
+  if (!entries || entries.length === 0) return []
+
+  const admin = createAdminClient()
+  const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+  const emailById = new Map(authUsers.map(u => [u.id, u.email ?? u.id]))
+
+  const byUser = new Map<string, { email: string; totalMs: number; tasks: Map<string, { title: string; totalMs: number }> }>()
+  for (const e of entries) {
+    if (!byUser.has(e.user_id)) {
+      byUser.set(e.user_id, { email: emailById.get(e.user_id) ?? e.user_id, totalMs: 0, tasks: new Map() })
+    }
+    const u = byUser.get(e.user_id)!
+    u.totalMs += e.duration_ms
+    if (!u.tasks.has(e.item_id)) u.tasks.set(e.item_id, { title: e.item_title, totalMs: 0 })
+    u.tasks.get(e.item_id)!.totalMs += e.duration_ms
+  }
+
+  return [...byUser.entries()]
+    .map(([userId, u]) => ({
+      userId,
+      email: u.email,
+      totalMs: u.totalMs,
+      tasks: [...u.tasks.entries()]
+        .map(([itemId, t]) => ({ itemId, itemTitle: t.title, totalMs: t.totalMs }))
+        .sort((a, b) => b.totalMs - a.totalMs),
+    }))
+    .sort((a, b) => b.totalMs - a.totalMs)
+}

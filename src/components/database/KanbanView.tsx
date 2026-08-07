@@ -20,6 +20,7 @@ import {
   updateTodoItem,
   deleteTodoItem,
   attachPageToTodoItem,
+  saveTimeEntry,
 } from '@/lib/actions/todos'
 import { TodoAttachDocumentPicker } from './TodoAttachDocumentPicker'
 
@@ -137,7 +138,9 @@ function subscribe(id: string, fn: (l: TimeLog) => void) {
 
 // ─── useTimeLogger hook ───────────────────────────────────────────────────────
 
-function useTimeLogger(itemId: string) {
+interface TimeCtx { databaseId: string; workspaceId: string; itemTitle: string }
+
+function useTimeLogger(itemId: string, ctx?: TimeCtx) {
   const [log, setLog] = useState<TimeLog>(() => getCached(itemId))
   const [, tick] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -170,8 +173,13 @@ function useTimeLogger(itemId: string) {
     setCached(itemId, { entries: [...log.entries, entry] })
   }
   function stop() {
-    if (!isRunning) return
-    setCached(itemId, { entries: log.entries.map(e => e.stoppedAt === null ? { ...e, stoppedAt: Date.now() } : e) })
+    if (!isRunning || !activeEntry) return
+    const stoppedAt = Date.now()
+    setCached(itemId, { entries: log.entries.map(e => e.stoppedAt === null ? { ...e, stoppedAt } : e) })
+    if (ctx) {
+      saveTimeEntry(itemId, ctx.itemTitle, ctx.databaseId, ctx.workspaceId, activeEntry.startedAt, stoppedAt)
+        .catch(() => {})
+    }
   }
   function deleteEntry(eid: string) {
     setCached(itemId, { entries: log.entries.filter(e => e.id !== eid) })
@@ -259,6 +267,7 @@ interface DrawerProps {
   assignees: { id: string; email: string }[]
   pages: Page[]
   workspaceId: string
+  databaseId: string
   meta: TaskMeta
   onMetaChange: (patch: Partial<TaskMeta>) => void
   onRename: (title: string) => void
@@ -272,10 +281,10 @@ interface DrawerProps {
 }
 
 function TaskDetailDrawer({
-  item, lists, assignees, pages, workspaceId, meta,
+  item, lists, assignees, pages, workspaceId, databaseId, meta,
   onMetaChange, onRename, onSetDueDate, onAssign, onMoveToList, onDelete, onAttach, onDetach, onClose
 }: DrawerProps) {
-  const { log, isRunning, elapsedMs, totalMs, start, stop, deleteEntry } = useTimeLogger(item.id)
+  const { log, isRunning, elapsedMs, totalMs, start, stop, deleteEntry } = useTimeLogger(item.id, { databaseId, workspaceId, itemTitle: item.title })
   const [titleDraft, setTitleDraft] = useState(item.title)
   const [descDraft, setDescDraft]   = useState(meta.description)
   const [newLabel, setNewLabel]     = useState('')
@@ -565,6 +574,7 @@ function TaskDetailDrawer({
 interface CardProps {
   item: TodoItemWithPage
   workspaceId: string
+  databaseId: string
   pages: Page[]
   allLists: TodoList[]
   assignees: { id: string; email: string }[]
@@ -577,11 +587,11 @@ interface CardProps {
   onDetach: (itemId: string) => void
 }
 
-function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, onSetDueDate, onAssign, onMoveToList, onDelete, onAttach, onDetach }: CardProps) {
+function KanbanCard({ item, workspaceId, databaseId, pages, allLists, assignees, onRename, onSetDueDate, onAssign, onMoveToList, onDelete, onAttach, onDetach }: CardProps) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: item.id })
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [meta, setMeta] = useState<TaskMeta>(() => readMeta(item.id))
-  const { isRunning, elapsedMs, totalMs, start, stop } = useTimeLogger(item.id)
+  const { isRunning, elapsedMs, totalMs, start, stop } = useTimeLogger(item.id, { databaseId, workspaceId, itemTitle: item.title })
   // which inline field is open: 'assignee' | 'due' | 'doc' | null
   const [activeField, setActiveField] = useState<'assignee' | 'due' | 'doc' | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -850,6 +860,7 @@ function KanbanCard({ item, workspaceId, pages, allLists, assignees, onRename, o
           assignees={assignees}
           pages={pages}
           workspaceId={workspaceId}
+          databaseId={databaseId}
           meta={meta}
           onMetaChange={handleMetaChange}
           onRename={t => onRename(item.id, t)}
@@ -874,6 +885,7 @@ interface ColumnProps {
   isFirst: boolean
   isLast: boolean
   workspaceId: string
+  databaseId: string
   pages: Page[]
   assignees: { id: string; email: string }[]
   allLists: TodoList[]
@@ -891,7 +903,7 @@ interface ColumnProps {
 }
 
 function KanbanColumn({
-  list, items, isFirst, isLast, workspaceId, pages, assignees, allLists,
+  list, items, isFirst, isLast, workspaceId, databaseId, pages, assignees, allLists,
   onRenameList, onMoveList, onDeleteList, onAddItem,
   onRenameItem, onSetDueDate, onAssignItem, onMoveItemToList, onDeleteItem, onAttach, onDetach,
 }: ColumnProps) {
@@ -996,7 +1008,7 @@ function KanbanColumn({
           outlineOffset: '-2px',
         }}>
         {items.map(item => (
-          <KanbanCard key={item.id} item={item} workspaceId={workspaceId}
+          <KanbanCard key={item.id} item={item} workspaceId={workspaceId} databaseId={databaseId}
             pages={pages} allLists={allLists} assignees={assignees}
             onRename={onRenameItem} onSetDueDate={onSetDueDate} onAssign={onAssignItem}
             onMoveToList={onMoveItemToList} onDelete={onDeleteItem}
@@ -1271,6 +1283,7 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
               isFirst={idx === 0}
               isLast={idx === sortedLists.length - 1}
               workspaceId={workspaceId}
+              databaseId={databaseId}
               pages={pages}
               assignees={assignees}
               allLists={sortedLists}

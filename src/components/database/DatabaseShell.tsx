@@ -7,8 +7,9 @@ import { SchemaEditor } from './SchemaEditor'
 import { TableView } from './TableView'
 import { KanbanView } from './KanbanView'
 import { CalendarView } from './CalendarView'
+import { TimeReportView } from './TimeReportView'
 
-type View = 'table' | 'kanban' | 'calendar'
+type View = 'table' | 'kanban' | 'calendar' | 'time'
 
 const VIEW_ICONS: Record<View, React.ReactNode> = {
   table: (
@@ -28,6 +29,12 @@ const VIEW_ICONS: Record<View, React.ReactNode> = {
     <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
       <rect x="1" y="2.5" width="11" height="9.5" rx="1" stroke="currentColor" strokeWidth="1.1" />
       <path d="M1 6h11M4 1v3M9 1v3" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" />
+    </svg>
+  ),
+  time: (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.1" />
+      <path d="M6.5 3.5v3l2.5 1.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 }
@@ -134,7 +141,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
       {/* View tabs + actions */}
       <div className="border-b border-border/60 px-14 flex items-center justify-between">
         <div className="flex items-center -mb-px">
-          {(['table', 'kanban', 'calendar'] as View[]).map(v => (
+          {(['table', 'kanban', 'calendar', 'time'] as View[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -202,6 +209,12 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
           workspaceId={workspaceId}
           board={currentTodoBoard}
           onBoardChange={setCurrentTodoBoard}
+        />
+      )}
+      {view === 'time' && (
+        <TimeReportView
+          databaseId={databaseId}
+          workspaceId={workspaceId}
         />
       )}
     </div>
