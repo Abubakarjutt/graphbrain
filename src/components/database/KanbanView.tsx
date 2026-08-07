@@ -1149,11 +1149,23 @@ export function KanbanView({ databaseId, workspaceId, board, pages, onBoardChang
   }
 
   function handleAssignItem(itemId: string, assignee_id: string | null) {
-    const orig = board.items.find(i => i.id === itemId)?.assignee_id ?? null
-    onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id } : i) }))
+    const origItem = board.items.find(i => i.id === itemId)
+    const origAssigneeId = origItem?.assignee_id ?? null
+    const origAssignee = origItem?.assignee ?? null
+    const newAssignee = assignee_id ? (board.assignees.find(a => a.id === assignee_id) ?? null) : null
+    onBoardChange(prev => ({
+      ...prev,
+      items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id, assignee: newAssignee } : i),
+    }))
     startTransition(async () => {
       try { await updateTodoItem(itemId, databaseId, workspaceId, { assignee_id }); setError(null) }
-      catch { onBoardChange(prev => ({ ...prev, items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id: orig } : i) })); setError('Failed to assign task') }
+      catch {
+        onBoardChange(prev => ({
+          ...prev,
+          items: prev.items.map(i => i.id === itemId ? { ...i, assignee_id: origAssigneeId, assignee: origAssignee } : i),
+        }))
+        setError('Failed to assign task')
+      }
     })
   }
 
