@@ -7,6 +7,7 @@ import type { User } from '@supabase/supabase-js'
 import type { WorkspaceEntry, Page, Database, DatabaseRowLink } from '@/lib/types/database'
 import { createPage } from '@/lib/actions/pages'
 import { createDatabase } from '@/lib/actions/databases'
+import { createClient } from '@/lib/supabase/client'
 import { SidebarPageTree } from './SidebarPageTree'
 import { SidebarDatabaseTree } from './SidebarDatabaseTree'
 
@@ -18,16 +19,19 @@ interface SidebarProps {
   databaseRows?: DatabaseRowLink[]
   mobileOpen?: boolean
   onMobileClose?: () => void
+  onSearchOpen?: () => void
 }
 
-export function Sidebar({ workspaces, user, pages, databases, databaseRows = [], mobileOpen = false, onMobileClose }: SidebarProps) {
+export function Sidebar({ workspaces, user, pages, databases, databaseRows = [], mobileOpen = false, onMobileClose, onSearchOpen }: SidebarProps) {
   const params = useParams()
   const pathname = usePathname()
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [createDbError, setCreateDbError] = useState<string | null>(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
   const currentWorkspaceId = params?.workspaceId as string | undefined
 
+  // Exclude database container pages and their direct children (row pages) from the Pages section
   const databasePageIds = new Set(databases.map(d => d.page_id))
   const regularPages = pages.filter(
     p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
@@ -67,7 +71,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
       <div className="flex items-center gap-2.5 px-3 h-14 border-b border-sidebar-border shrink-0">
         <button
           onClick={onMobileClose}
-          className="lg:hidden h-7 w-7 grid place-items-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="lg:hidden h-7 w-7 grid place-items-center rounded-md text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors shrink-0 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="Close sidebar"
         >
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden>
@@ -88,8 +92,9 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
       {/* Search */}
       <div className="px-2.5 pt-3 pb-1">
         <button
-          className="flex items-center gap-2 w-full px-2.5 py-2 text-sm text-muted-foreground bg-sidebar-accent/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+          className="flex items-center gap-2 w-full px-2.5 py-2 text-sm text-muted-foreground bg-sidebar-accent/60 hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors rounded-md text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           aria-label="Search"
+          onClick={onSearchOpen}
         >
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" className="shrink-0" aria-hidden>
             <circle cx="6" cy="6" r="4.2" stroke="currentColor" strokeWidth="1.3" />
@@ -120,7 +125,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
       )}
 
       {/* Scrollable nav */}
-      <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto px-2 pb-2 space-y-0.5" aria-label="Main navigation">
         {/* Workspace list */}
         <p className="nav-label px-2 pt-3 pb-1">Workspace</p>
         {workspaces.map(({ workspaces: ws }) =>
@@ -173,7 +178,7 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
         {currentWorkspaceId && (
           <button
             onClick={() => handleCreatePage(null)}
-            className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
           >
             <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
               <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
@@ -185,16 +190,46 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
 
       {/* User footer */}
       <div className="border-t border-sidebar-border px-2 py-2">
-        <div className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-sidebar-accent/60 cursor-pointer transition-colors">
-          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
-            {userInitial}
-          </span>
-          <p className="truncate text-[12.5px] text-sidebar-foreground/85 flex-1">{user.email}</p>
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="text-muted-foreground shrink-0" aria-hidden>
-            <circle cx="6.5" cy="6.5" r="1" fill="currentColor" />
-            <circle cx="6.5" cy="2.5" r="1" fill="currentColor" />
-            <circle cx="6.5" cy="10.5" r="1" fill="currentColor" />
-          </svg>
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setUserMenuOpen(v => !v)}
+            className="flex items-center gap-2 rounded-md px-2 py-1.5 hover:bg-sidebar-accent/60 transition-colors w-full cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+            aria-label="User menu"
+            aria-expanded={userMenuOpen}
+          >
+            <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
+              {userInitial}
+            </span>
+            <p className="truncate text-[12.5px] text-sidebar-foreground/85 flex-1 text-left">{user.email}</p>
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" className="text-muted-foreground shrink-0" aria-hidden>
+              <circle cx="6.5" cy="6.5" r="1" fill="currentColor" />
+              <circle cx="6.5" cy="2.5" r="1" fill="currentColor" />
+              <circle cx="6.5" cy="10.5" r="1" fill="currentColor" />
+            </svg>
+          </button>
+          {userMenuOpen && (
+            <>
+              <div className="fixed inset-0 z-[9]" aria-hidden onClick={() => setUserMenuOpen(false)} />
+              <div className="absolute bottom-full left-0 right-0 mb-1 bg-popover border border-border rounded-md shadow-lg z-10 py-1 animate-fade-in">
+                <button
+                  type="button"
+                  onClick={async () => {
+                    try {
+                      const supabase = createClient()
+                      await supabase.auth.signOut()
+                      window.location.href = '/login'
+                    } catch {
+                      setUserMenuOpen(false)
+                    }
+                  }}
+                  className="w-full cursor-pointer text-left px-3 py-2 text-sm text-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                >
+                  Sign out
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </aside>
