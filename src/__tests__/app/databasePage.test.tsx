@@ -76,7 +76,7 @@ describe('DatabasePage', () => {
       items: [],
     })
     vi.mocked(getPages).mockResolvedValue([
-      { id: 'page-2', workspace_id: 'ws-1', parent_id: null, title: 'Other Page', created_by: 'u1', created_at: '', updated_at: '' },
+      { id: 'page-2', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Other Page', created_by: 'u1', created_at: '', updated_at: '' },
     ])
 
     await renderPage()

@@ -45,7 +45,7 @@ const mockWorkspaces: WorkspaceEntry[] = [
 ]
 
 const mockPages: Page[] = [
-  { id: 'p1', workspace_id: 'ws-1', parent_id: null, title: 'Page One', created_by: 'user-1', created_at: '', updated_at: '' },
+  { id: 'p1', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Page One', created_by: 'user-1', created_at: '', updated_at: '' },
 ]
 
 const mockDatabases: Database[] = [

@@ -11,8 +11,8 @@ vi.mock('next/navigation', () => ({
 }))
 
 const mockPages: Page[] = [
-  { id: 'p1', workspace_id: 'ws1', parent_id: null, title: 'Root Page', created_by: 'u1', created_at: '', updated_at: '' },
-  { id: 'p2', workspace_id: 'ws1', parent_id: 'p1', title: 'Child Page', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'p1', workspace_id: 'ws1', parent_id: null, database_id: null, title: 'Root Page', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'p2', workspace_id: 'ws1', parent_id: 'p1', database_id: null, title: 'Child Page', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 describe('SidebarPageTree', () => {

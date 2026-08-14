@@ -60,7 +60,7 @@ const board: TodoBoard = {
 }
 
 const pages: Page[] = [
-  { id: 'page-2', workspace_id: 'ws-1', parent_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'page-2', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 function renderBoard(overrides: Partial<React.ComponentProps<typeof KanbanView>> = {}) {

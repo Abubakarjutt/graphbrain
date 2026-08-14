@@ -68,7 +68,7 @@ const rows: DatabaseRowWithTitle[] = [
 const emptyBoard: TodoBoard = { lists: [], items: [] }
 
 const pages: Page[] = [
-  { id: 'page-1', workspace_id: 'ws-1', parent_id: null, title: 'Launch Notes', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'page-1', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Launch Notes', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 const SHIP_FEATURE_CREATED_AT = '2026-03-01T00:00:00Z'

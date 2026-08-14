@@ -18,6 +18,7 @@ function fakePage(overrides: Partial<Page> = {}): Page {
     id: 'page-1',
     workspace_id: 'ws-1',
     parent_id: null,
+    database_id: null,
     title: 'Untitled',
     created_by: 'u1',
     created_at: '',

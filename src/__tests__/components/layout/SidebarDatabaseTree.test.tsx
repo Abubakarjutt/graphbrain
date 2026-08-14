@@ -18,6 +18,7 @@ vi.mock('next/navigation', () => ({
 function page(overrides: Partial<Page> & Pick<Page, 'id' | 'workspace_id' | 'title'>): Page {
   return {
     parent_id: null,
+    database_id: null,
     created_by: 'u1',
     created_at: '',
     updated_at: '',

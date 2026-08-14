@@ -20,7 +20,7 @@ import { CmdKModal } from '@/components/query/CmdKModal'
 import type { Database, Page } from '@/lib/types/database'
 
 const fakeDatabases: Database[] = [{ id: 'db1', page_id: 'p1', schema: [], created_at: '' }]
-const fakePages: Page[] = [{ id: 'p1', workspace_id: 'ws1', parent_id: null, title: 'Projects', created_by: 'u1', created_at: '', updated_at: '' }]
+const fakePages: Page[] = [{ id: 'p1', workspace_id: 'ws1', parent_id: null, database_id: null, title: 'Projects', created_by: 'u1', created_at: '', updated_at: '' }]
 
 describe('CmdKModal', () => {
   beforeEach(() => {
