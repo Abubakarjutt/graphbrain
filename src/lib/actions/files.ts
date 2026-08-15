@@ -7,6 +7,14 @@ import { upsertNode, scheduleEmbed } from '@/lib/graph/graph'
 import { fileToText } from '@/lib/graph/content'
 import type { FileRecord } from '@/lib/types/database'
 
+const DOC_MIME_TYPES = new Set([
+  'application/pdf',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/msword',
+  'text/plain',
+  'text/markdown',
+])
+
 function extractionStatusForMimeType(mimeType: string): 'pending' | 'none' {
   const extractable = [
     'application/pdf',
@@ -231,4 +239,81 @@ export async function retryExtraction(fileId: string, workspaceId: string): Prom
   after(() => runExtraction(fileId, (file as FileRecord).storage_path, (file as FileRecord).mime_type, workspaceId))
 
   return file as FileRecord
+}
+
+export async function createDatabaseDocPage(
+  workspaceId: string,
+  databaseId: string,
+  filename: string,
+  storagePath: string,
+  mimeType: string,
+  reservedPageId: string
+): Promise<{ pageId: string }> {
+  if (!DOC_MIME_TYPES.has(mimeType)) throw new Error(`Unsupported file type: ${mimeType}`)
+
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
+
+  const { data: member } = await supabase
+    .from('workspace_members')
+    .select('user_id')
+    .eq('workspace_id', workspaceId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+  if (!member) throw new Error('Access denied')
+
+  const { data: db } = await supabase.from('databases').select('id, page_id').eq('id', databaseId).single()
+  if (!db) throw new Error('Database not found or access denied')
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const expectedPrefix = `${workspaceId}/${reservedPageId}/`
+  if (!storagePath.startsWith(expectedPrefix)) throw new Error('Invalid storage path')
+
+  const { error: pageError } = await supabase.from('pages').insert({
+    id: reservedPageId,
+    workspace_id: workspaceId,
+    database_id: databaseId,
+    parent_id: null,
+    title: filename,
+    created_by: user.id,
+  })
+  if (pageError) {
+    await supabase.storage.from('files').remove([storagePath])
+    throw new Error(pageError.message)
+  }
+
+  const { data: fileData, error: fileError } = await supabase
+    .from('files')
+    .insert({
+      workspace_id: workspaceId,
+      page_id: reservedPageId,
+      storage_path: storagePath,
+      mime_type: mimeType,
+      extraction_status: 'pending',
+    })
+    .select('id')
+    .single()
+
+  if (fileError || !fileData) {
+    await supabase.from('pages').delete().eq('id', reservedPageId)
+    await supabase.storage.from('files').remove([storagePath])
+    throw new Error(fileError?.message ?? 'Failed to create file record')
+  }
+
+  after(() => runDocParse(fileData.id, storagePath, mimeType, workspaceId, reservedPageId))
+
+  revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
+  return { pageId: reservedPageId }
+}
+
+// Stub — replaced with the real implementation in Task 9.
+async function runDocParse(_fileId: string, _storagePath: string, _mimeType: string, _workspaceId: string, _pageId: string): Promise<void> {
+  return
 }
