@@ -1,16 +1,23 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 const mockStreamChat = vi.fn()
+let mockPdfText = 'Paragraph one.\n\nParagraph two.'
+
 vi.mock('@/lib/graph/ollama', () => ({
   streamChat: (...args: unknown[]) => mockStreamChat(...args),
 }))
 vi.mock('pdf-parse', () => ({
   PDFParse: vi.fn().mockImplementation(function() {
     return {
-      getText: vi.fn().mockResolvedValue({ text: 'Paragraph one.\n\nParagraph two.' }),
+      getText: vi.fn(async () => ({ text: mockPdfText })),
     }
   }),
 }))
+
+beforeEach(() => {
+  mockStreamChat.mockClear()
+  mockPdfText = 'Paragraph one.\n\nParagraph two.'
+})
 
 async function* fakeStream(tokens: string[]) {
   for (const t of tokens) yield t
@@ -46,18 +53,28 @@ describe('splitIntoChunks', () => {
 
 describe('pdfToMarkdown', () => {
   it('reformats each chunk through streamChat and concatenates the result', async () => {
-    mockStreamChat.mockReturnValueOnce(fakeStream(['# Paragraph ', 'one.']))
-    mockStreamChat.mockReturnValueOnce(fakeStream(['# Paragraph ', 'two.']))
+    // Create two large paragraphs that will split into separate chunks at 7000/8000 limits
+    const para1 = 'A'.repeat(7500)
+    const para2 = 'B'.repeat(7500)
+    mockPdfText = `${para1}\n\n${para2}`
+
+    mockStreamChat.mockReturnValueOnce(fakeStream(['# Chunk A']))
+    mockStreamChat.mockReturnValueOnce(fakeStream(['# Chunk B']))
 
     const { pdfToMarkdown } = await import('@/lib/parsing/pdfToMarkdown')
     const markdown = await pdfToMarkdown(Buffer.from('fake-pdf-bytes'))
 
-    expect(markdown).toBe('# Paragraph one.\n\n# Paragraph two.')
+    expect(markdown).toBe('# Chunk A\n\n# Chunk B')
     expect(mockStreamChat).toHaveBeenCalledTimes(2)
-    expect(mockStreamChat).toHaveBeenNthCalledWith(1, expect.stringContaining('Paragraph one.'))
+    expect(mockStreamChat).toHaveBeenNthCalledWith(1, expect.stringContaining('A'.repeat(7500)))
   })
 
   it('aborts the whole parse if any chunk reformat fails', async () => {
+    // Create text that will be split into multiple chunks at real parameters (7000/8000)
+    const para1 = 'C'.repeat(7500)
+    const para2 = 'D'.repeat(7500)
+    mockPdfText = `${para1}\n\n${para2}`
+
     mockStreamChat.mockReturnValueOnce(fakeStream(['ok chunk one']))
     mockStreamChat.mockImplementationOnce(() => {
       throw new Error('ollama unreachable')

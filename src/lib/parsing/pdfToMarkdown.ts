@@ -64,7 +64,7 @@ export async function pdfToMarkdown(buffer: Buffer): Promise<string> {
   const parser = new PDFParse({ data: buffer })
   const { text } = await parser.getText()
 
-  const chunks = splitIntoChunks(text, { targetSize: 25, hardMax: 100 })
+  const chunks = splitIntoChunks(text, { targetSize: 7000, hardMax: 8000 })
   const reformatted: string[] = []
   for (const chunk of chunks) {
     reformatted.push(await reformatChunk(chunk))
