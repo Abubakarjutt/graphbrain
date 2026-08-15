@@ -70,6 +70,12 @@ vi.mock('@/components/database/CalendarView', () => ({
   ),
 }))
 
+vi.mock('@/components/database/DocsView', () => ({
+  DocsView: ({ docs }: { docs: Page[] }) => (
+    <div data-testid="docs-view-stub">docs-count:{docs.length}</div>
+  ),
+}))
+
 vi.mock('@/lib/actions/databases', () => ({
   updateDatabaseSchema: vi.fn().mockResolvedValue(undefined),
   createRow: vi.fn(),
@@ -87,6 +93,10 @@ const rows: DatabaseRowWithTitle[] = [
 const todoBoard: TodoBoard = { lists: [], items: [] }
 const pages: Page[] = []
 
+const docs: Page[] = [
+  { id: 'doc-1', workspace_id: 'ws-1', parent_id: null, database_id: 'db-1', title: 'Doc One', created_by: 'u1', created_at: '', updated_at: '' },
+]
+
 function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShell>> = {}) {
   return render(
     <DatabaseShell
@@ -97,6 +107,7 @@ function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShel
       rows={rows}
       todoBoard={todoBoard}
       pages={pages}
+      docs={docs}
       {...overrides}
     />
   )
@@ -136,6 +147,14 @@ describe('DatabaseShell', () => {
     renderShell()
     fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
     expect(screen.getByTestId('calendar-view-stub')).toBeInTheDocument()
+  })
+
+  it('switches to the Docs view when its tab is clicked', () => {
+    renderShell()
+    fireEvent.click(screen.getByRole('button', { name: /Docs/ }))
+    expect(screen.getByTestId('docs-view-stub')).toBeInTheDocument()
+    expect(screen.getByTestId('docs-view-stub')).toHaveTextContent('docs-count:1')
+    expect(screen.queryByTestId('table-view-stub')).not.toBeInTheDocument()
   })
 
   it('marks the active view tab with aria-pressed', () => {

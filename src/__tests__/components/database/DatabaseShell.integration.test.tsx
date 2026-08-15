@@ -102,6 +102,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={emptyBoard}
         pages={pages}
+        docs={[]}
       />
     )
 
@@ -147,6 +148,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={board}
         pages={pages}
+        docs={[]}
       />
     )
 
@@ -175,6 +177,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={emptyBoard}
         pages={pages}
+        docs={[]}
       />
     )
 

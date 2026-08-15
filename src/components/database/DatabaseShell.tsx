@@ -8,8 +8,9 @@ import { TableView } from './TableView'
 import { KanbanView } from './KanbanView'
 import { CalendarView } from './CalendarView'
 import { TimeReportView } from './TimeReportView'
+import { DocsView } from './DocsView'
 
-type View = 'table' | 'kanban' | 'calendar' | 'time'
+type View = 'table' | 'kanban' | 'calendar' | 'time' | 'docs'
 
 const VIEW_ICONS: Record<View, React.ReactNode> = {
   table: (
@@ -37,6 +38,12 @@ const VIEW_ICONS: Record<View, React.ReactNode> = {
       <path d="M6.5 3.5v3l2.5 1.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
+  docs: (
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
+      <path d="M3 1.5h4.5L10 4v7.5H3z" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+      <path d="M7.5 1.5V4H10" stroke="currentColor" strokeWidth="1.1" strokeLinejoin="round" />
+    </svg>
+  ),
 }
 
 interface DatabaseShellProps {
@@ -47,9 +54,10 @@ interface DatabaseShellProps {
   rows: DatabaseRowWithTitle[]
   todoBoard: TodoBoard
   pages: Page[]
+  docs: Page[]
 }
 
-export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, todoBoard, pages }: DatabaseShellProps) {
+export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, todoBoard, pages, docs }: DatabaseShellProps) {
   const [view, setView] = useState<View>('table')
   const [currentSchema, setCurrentSchema] = useState(schema)
   const [currentRows, setCurrentRows] = useState(rows)
@@ -141,7 +149,7 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
       {/* View tabs + actions */}
       <div className="border-b border-border/60 px-14 flex items-center justify-between">
         <div className="flex items-center -mb-px">
-          {(['table', 'kanban', 'calendar', 'time'] as View[]).map(v => (
+          {(['table', 'kanban', 'calendar', 'time', 'docs'] as View[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
@@ -216,6 +224,9 @@ export function DatabaseShell({ databaseId, workspaceId, title, schema, rows, to
           databaseId={databaseId}
           workspaceId={workspaceId}
         />
+      )}
+      {view === 'docs' && (
+        <DocsView databaseId={databaseId} workspaceId={workspaceId} docs={docs} />
       )}
     </div>
   )
