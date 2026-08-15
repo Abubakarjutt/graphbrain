@@ -4,8 +4,12 @@ import { after } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { upsertNode, scheduleEmbed } from '@/lib/graph/graph'
-import { fileToText } from '@/lib/graph/content'
-import type { FileRecord } from '@/lib/types/database'
+import { fileToText, pageToText } from '@/lib/graph/content'
+import { textToMarkdown } from '@/lib/parsing/textToMarkdown'
+import { docxToMarkdown } from '@/lib/parsing/docxToMarkdown'
+import { pdfToMarkdown } from '@/lib/parsing/pdfToMarkdown'
+import { markdownToBlocks } from '@/lib/parsing/markdownToBlocks'
+import type { FileRecord, Block, TiptapNode } from '@/lib/types/database'
 
 const DOC_MIME_TYPES = new Set([
   'application/pdf',
@@ -313,7 +317,78 @@ export async function createDatabaseDocPage(
   return { pageId: reservedPageId }
 }
 
-// Stub — replaced with the real implementation in Task 9.
-async function runDocParse(_fileId: string, _storagePath: string, _mimeType: string, _workspaceId: string, _pageId: string): Promise<void> {
-  return
+async function runDocParse(fileId: string, storagePath: string, mimeType: string, workspaceId: string, pageId: string): Promise<void> {
+  const supabase = await createClient()
+
+  try {
+    const { data: blob, error } = await supabase.storage.from('files').download(storagePath)
+    if (error || !blob) throw new Error(error?.message ?? 'Download failed')
+    const buffer = Buffer.from(await blob.arrayBuffer())
+
+    let markdown: string
+    if (mimeType === 'text/markdown') {
+      markdown = buffer.toString('utf-8')
+    } else if (mimeType === 'text/plain') {
+      markdown = textToMarkdown(buffer)
+    } else if (
+      mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+      mimeType === 'application/msword'
+    ) {
+      markdown = await docxToMarkdown(buffer)
+    } else if (mimeType === 'application/pdf') {
+      markdown = await pdfToMarkdown(buffer)
+    } else {
+      throw new Error(`Unsupported doc mime type: ${mimeType}`)
+    }
+
+    const doc = markdownToBlocks(markdown)
+    const blocks = (doc.content ?? []).map((node: TiptapNode, index: number) => ({
+      page_id: pageId,
+      type: node.type,
+      content: node,
+      position: index,
+    }))
+
+    const { error: deleteError } = await supabase.from('blocks').delete().eq('page_id', pageId)
+    if (deleteError) throw new Error(deleteError.message)
+
+    if (blocks.length > 0) {
+      const { error: insertError } = await supabase.from('blocks').insert(blocks)
+      if (insertError) throw new Error(insertError.message)
+    }
+
+    await supabase.from('files').update({ extraction_status: 'done' }).eq('id', fileId)
+
+    // Graph write is independent — parsing already succeeded, never touch extraction_status here
+    try {
+      const { data: pageRow } = await supabase.from('pages').select('title').eq('id', pageId).single()
+      const nodeId = await upsertNode(workspaceId, 'page', pageId)
+      await scheduleEmbed(nodeId, pageToText(pageRow?.title ?? 'Untitled', blocks as unknown as Block[]))
+    } catch (err) {
+      console.error(`runDocParse: graph write failed for page ${pageId}:`, err)
+    }
+  } catch {
+    await supabase.from('files').update({ extraction_status: 'error' }).eq('id', fileId)
+  }
+}
+
+export async function retryDocParse(fileId: string, workspaceId: string): Promise<FileRecord> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
+
+  const { data: file } = await supabase
+    .from('files')
+    .select('id, workspace_id, page_id, storage_path, mime_type, extracted_text, extraction_status, created_at')
+    .eq('id', fileId)
+    .eq('workspace_id', workspaceId)
+    .maybeSingle()
+  if (!file) throw new Error('File not found or access denied')
+
+  const record = file as FileRecord
+  if (!record.page_id) throw new Error('File has no associated page')
+
+  after(() => runDocParse(fileId, record.storage_path, record.mime_type, workspaceId, record.page_id as string))
+
+  return record
 }

@@ -14,9 +14,15 @@ const mockPagesDelete = vi.fn(() => ({ eq: mockPagesDeleteEq }))
 
 // ── pages table: container-page select, separate from insert/delete ──
 const mockPagesContainerSingle = vi.fn()
+const mockPagesTitleSingle = vi.fn()
 const mockPagesContainerEq2 = vi.fn(() => ({ single: mockPagesContainerSingle }))
-const mockPagesContainerEq1 = vi.fn(() => ({ eq: mockPagesContainerEq2 }))
+const mockPagesContainerEq1 = vi.fn(() => ({ eq: mockPagesContainerEq2, single: mockPagesTitleSingle }))
 const mockPagesContainerSelect = vi.fn(() => ({ eq: mockPagesContainerEq1 }))
+
+// ── blocks table ──────────────────────────────────────────────────
+const mockBlocksDeleteEq = vi.fn().mockResolvedValue({ error: null })
+const mockBlocksDelete = vi.fn(() => ({ eq: mockBlocksDeleteEq }))
+const mockBlocksInsert = vi.fn().mockResolvedValue({ error: null })
 
 // ── databases table (workspace-ownership check) ────────────────────
 const mockDatabasesSingle = vi.fn()
@@ -40,6 +46,7 @@ const mockFrom = vi.fn((table: string) => {
     case 'databases': return { select: mockDatabasesSelect }
     case 'pages': return { insert: mockPagesInsert, delete: mockPagesDelete, select: mockPagesContainerSelect }
     case 'files': return { insert: mockFilesInsert, update: mockFilesUpdate, select: mockFilesSelect }
+    case 'blocks': return { delete: mockBlocksDelete, insert: mockBlocksInsert }
     default: return {}
   }
 })
@@ -67,6 +74,15 @@ vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
 vi.mock('next/server', () => ({ after: vi.fn() }))
 vi.mock('pdf-parse', () => ({ PDFParse: vi.fn().mockImplementation(() => ({ getText: vi.fn().mockResolvedValue({ text: '' }) })) }))
 vi.mock('mammoth', () => ({ extractRawText: vi.fn() }))
+vi.mock('@/lib/parsing/textToMarkdown', () => ({ textToMarkdown: vi.fn() }))
+vi.mock('@/lib/parsing/docxToMarkdown', () => ({ docxToMarkdown: vi.fn() }))
+vi.mock('@/lib/parsing/pdfToMarkdown', () => ({ pdfToMarkdown: vi.fn() }))
+vi.mock('@/lib/parsing/markdownToBlocks', () => ({
+  markdownToBlocks: vi.fn().mockReturnValue({
+    type: 'doc',
+    content: [{ type: 'paragraph', content: [{ type: 'text', text: 'hello' }] }],
+  }),
+}))
 
 describe('file actions', () => {
   beforeEach(() => {
@@ -80,9 +96,13 @@ describe('file actions', () => {
     mockPagesDeleteEq.mockResolvedValue({ error: null })
     mockPagesDelete.mockImplementation(() => ({ eq: mockPagesDeleteEq }))
     mockPagesContainerSingle.mockResolvedValue({ data: { id: 'container1' }, error: null })
+    mockPagesTitleSingle.mockResolvedValue({ data: { title: 'Untitled' }, error: null })
     mockPagesContainerEq2.mockImplementation(() => ({ single: mockPagesContainerSingle }))
-    mockPagesContainerEq1.mockImplementation(() => ({ eq: mockPagesContainerEq2 }))
+    mockPagesContainerEq1.mockImplementation(() => ({ eq: mockPagesContainerEq2, single: mockPagesTitleSingle }))
     mockPagesContainerSelect.mockImplementation(() => ({ eq: mockPagesContainerEq1 }))
+    mockBlocksDeleteEq.mockResolvedValue({ error: null })
+    mockBlocksDelete.mockImplementation(() => ({ eq: mockBlocksDeleteEq }))
+    mockBlocksInsert.mockResolvedValue({ error: null })
     mockFilesInsertSingle.mockResolvedValue({ data: { id: 'f1' }, error: null })
     mockFilesInsertSelect.mockImplementation(() => ({ single: mockFilesInsertSingle }))
     mockFilesInsert.mockImplementation(() => ({ select: mockFilesInsertSelect }))
@@ -98,6 +118,7 @@ describe('file actions', () => {
         case 'databases': return { select: mockDatabasesSelect }
         case 'pages': return { insert: mockPagesInsert, delete: mockPagesDelete, select: mockPagesContainerSelect }
         case 'files': return { insert: mockFilesInsert, update: mockFilesUpdate, select: mockFilesSelect }
+        case 'blocks': return { delete: mockBlocksDelete, insert: mockBlocksInsert }
         default: return {}
       }
     })
@@ -247,5 +268,51 @@ describe('file actions', () => {
     ).rejects.toThrow('files insert failed')
     expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p1')
     expect(mockStorageRemove).toHaveBeenCalledWith(['ws1/p1/notes.pdf'])
+  })
+
+  it('runDocParse (via createDatabaseDocPage -> after()) parses txt, saves blocks, marks done', async () => {
+    const { after } = await import('next/server')
+    const { textToMarkdown } = await import('@/lib/parsing/textToMarkdown')
+    vi.mocked(textToMarkdown).mockReturnValue('# hello')
+    mockFilesInsertSingle.mockResolvedValue({ data: { id: 'f1' }, error: null })
+
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await createDatabaseDocPage('ws1', 'db1', 'notes.txt', 'ws1/p1/notes.txt', 'text/plain', 'p1')
+
+    // after() callbacks are captured but not auto-run by the mock; invoke them to simulate the background task
+    for (const call of vi.mocked(after).mock.calls) await (call[0] as () => Promise<void>)()
+
+    expect(mockBlocksDelete).toHaveBeenCalled()
+    expect(mockBlocksInsert).toHaveBeenCalledWith([
+      expect.objectContaining({ page_id: 'p1', type: 'paragraph', position: 0 }),
+    ])
+    expect(mockFilesUpdateEq).toHaveBeenCalledWith('id', 'f1')
+  })
+
+  it('runDocParse sets extraction_status to error and leaves blocks untouched when parsing throws', async () => {
+    const { after } = await import('next/server')
+    const { textToMarkdown } = await import('@/lib/parsing/textToMarkdown')
+    vi.mocked(textToMarkdown).mockImplementation(() => { throw new Error('bad text') })
+    mockFilesInsertSingle.mockResolvedValue({ data: { id: 'f1' }, error: null })
+
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await createDatabaseDocPage('ws1', 'db1', 'notes.txt', 'ws1/p1/notes.txt', 'text/plain', 'p1')
+    for (const call of vi.mocked(after).mock.calls) await (call[0] as () => Promise<void>)()
+
+    expect(mockBlocksInsert).not.toHaveBeenCalled()
+    expect(mockFilesUpdate).toHaveBeenCalledWith({ extraction_status: 'error' })
+  })
+
+  it('retryDocParse re-runs parsing for the file\'s page and returns the file record', async () => {
+    mockFilesMaybeSingle.mockResolvedValue({
+      data: { id: 'f1', workspace_id: 'ws1', page_id: 'p1', storage_path: 'ws1/p1/notes.txt',
+              mime_type: 'text/plain', extracted_text: null, extraction_status: 'error', created_at: '' },
+      error: null,
+    })
+
+    const { retryDocParse } = await import('@/lib/actions/files')
+    const result = await retryDocParse('f1', 'ws1')
+
+    expect(result.id).toBe('f1')
   })
 })
