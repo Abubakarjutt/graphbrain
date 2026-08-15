@@ -101,4 +101,32 @@ describe('page actions', () => {
     expect(mockOrder).toHaveBeenCalledWith('created_at', { ascending: true })
     expect(pages).toHaveLength(1)
   })
+
+  it('createPage sets database_id when a databaseId is passed', async () => {
+    mockSingle
+      .mockResolvedValueOnce({ data: { id: 'db1', page_id: 'container1' }, error: null }) // databases lookup
+      .mockResolvedValueOnce({ data: { id: 'container1' }, error: null }) // container page lookup — confirms ws1 owns db1
+      .mockResolvedValueOnce({ data: { id: 'p1', title: 'Untitled', workspace_id: 'ws1', parent_id: null, database_id: 'db1', created_by: 'u1', created_at: '', updated_at: '' }, error: null }) // the actual page insert
+    const { createPage } = await import('@/lib/actions/pages')
+    await createPage('ws1', null, 'db1')
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
+      workspace_id: 'ws1', parent_id: null, database_id: 'db1', title: 'Untitled', created_by: 'u1',
+    }))
+  })
+
+  it('createPage defaults database_id to null when omitted', async () => {
+    mockSingle.mockResolvedValueOnce({ data: { id: 'p1', title: 'Untitled', workspace_id: 'ws1', parent_id: null, database_id: null, created_by: 'u1', created_at: '', updated_at: '' }, error: null })
+    const { createPage } = await import('@/lib/actions/pages')
+    await createPage('ws1', null)
+    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({ database_id: null }))
+  })
+
+  it('createPage rejects a databaseId that does not belong to the given workspace', async () => {
+    mockSingle
+      .mockResolvedValueOnce({ data: { id: 'db1', page_id: 'container1' }, error: null }) // databases lookup succeeds
+      .mockResolvedValueOnce({ data: null, error: null }) // container page query finds nothing in ws1 — db1 belongs elsewhere
+    const { createPage } = await import('@/lib/actions/pages')
+    await expect(createPage('ws1', null, 'db1')).rejects.toThrow('Database not found or access denied')
+    expect(mockInsert).not.toHaveBeenCalled()
+  })
 })
