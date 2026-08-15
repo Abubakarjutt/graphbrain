@@ -5,6 +5,7 @@ import { getFileRecord, getSignedReadUrl } from '@/lib/actions/files'
 import { PageEditor } from '@/components/editor/PageEditor'
 import { PropertiesPanel } from '@/components/database/PropertiesPanel'
 import { FilePage } from '@/components/files/FilePage'
+import { DocProcessing } from '@/components/editor/DocProcessing'
 import type { DatabaseField } from '@/lib/types/database'
 
 export default async function PageViewPage({
@@ -20,7 +21,7 @@ export default async function PageViewPage({
   const [{ data: page }, { data: workspace }] = await Promise.all([
     supabase
       .from('pages')
-      .select('id, title, workspace_id')
+      .select('id, title, workspace_id, database_id')
       .eq('id', pageId)
       .eq('workspace_id', workspaceId)
       .maybeSingle(),
@@ -33,9 +34,18 @@ export default async function PageViewPage({
 
   if (!page) notFound()
 
-  // Check if this page is a file page
+  // Check if this page is a file page (attachment) or a database doc import
   const fileRecord = await getFileRecord(pageId, workspaceId)
-  if (fileRecord) {
+  if (fileRecord && page.database_id) {
+    if (fileRecord.extraction_status === 'pending' || fileRecord.extraction_status === 'error') {
+      return (
+        <div className="flex-1 overflow-auto">
+          <DocProcessing fileRecord={fileRecord} workspaceId={workspaceId} />
+        </div>
+      )
+    }
+    // extraction_status === 'done' — blocks already exist from runDocParse, fall through to PageEditor below
+  } else if (fileRecord) {
     const { url: signedUrl } = await getSignedReadUrl(pageId, workspaceId)
     return (
       <div className="flex-1 overflow-auto">

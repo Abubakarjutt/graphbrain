@@ -44,6 +44,12 @@ vi.mock('@/components/files/FilePage', () => ({
   ),
 }))
 
+vi.mock('@/components/editor/DocProcessing', () => ({
+  DocProcessing: (props: { fileRecord: { extraction_status: string } }) => (
+    <div data-testid="doc-processing-stub">{props.fileRecord.extraction_status}</div>
+  ),
+}))
+
 function makeChain(data: unknown) {
   const chain = {
     select: vi.fn(() => chain),
@@ -56,7 +62,7 @@ function makeChain(data: unknown) {
   return chain
 }
 
-const pageData = { id: 'page-1', title: 'My Page', workspace_id: 'ws-1' }
+const pageData = { id: 'page-1', title: 'My Page', workspace_id: 'ws-1', database_id: null }
 const wsData = { name: 'My Workspace' }
 
 async function renderPage() {
@@ -156,5 +162,56 @@ describe('PageViewPage', () => {
 
     expect(screen.getByTestId('page-editor-stub')).toBeInTheDocument()
     expect(screen.queryByTestId('properties-panel-stub')).not.toBeInTheDocument()
+  })
+
+  it('renders DocProcessing for a pending database-doc page', async () => {
+    mockFrom
+      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(wsData))
+    vi.mocked(getFileRecord).mockResolvedValue({
+      id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
+      storage_path: 'ws-1/page-1/notes.pdf', mime_type: 'application/pdf',
+      extracted_text: null, extraction_status: 'pending', created_at: '',
+    })
+
+    await renderPage()
+
+    expect(screen.getByTestId('doc-processing-stub')).toHaveTextContent('pending')
+    expect(loadBlocks).not.toHaveBeenCalled()
+  })
+
+  it('renders DocProcessing for an errored database-doc page', async () => {
+    mockFrom
+      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(wsData))
+    vi.mocked(getFileRecord).mockResolvedValue({
+      id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
+      storage_path: 'ws-1/page-1/notes.pdf', mime_type: 'application/pdf',
+      extracted_text: null, extraction_status: 'error', created_at: '',
+    })
+
+    await renderPage()
+
+    expect(screen.getByTestId('doc-processing-stub')).toHaveTextContent('error')
+  })
+
+  it('falls through to the normal editor once a database-doc page finishes parsing', async () => {
+    mockFrom
+      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(wsData))
+      .mockReturnValueOnce(makeChain(null)) // database_rows
+      .mockReturnValueOnce(makeChain([]))   // pages (children)
+    vi.mocked(getFileRecord).mockResolvedValue({
+      id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
+      storage_path: 'ws-1/page-1/notes.pdf', mime_type: 'application/pdf',
+      extracted_text: null, extraction_status: 'done', created_at: '',
+    })
+
+    await renderPage()
+
+    expect(screen.getByTestId('page-editor-stub')).toBeInTheDocument()
+    expect(screen.queryByTestId('doc-processing-stub')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('file-page-stub')).not.toBeInTheDocument()
+    expect(loadBlocks).toHaveBeenCalled()
   })
 })
