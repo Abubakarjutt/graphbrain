@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { getDatabase } from '@/lib/actions/databases'
+import { getDatabase, getDatabaseDocs } from '@/lib/actions/databases'
 import { getTodoBoard } from '@/lib/actions/todos'
 import { getPages } from '@/lib/actions/pages'
 import { DatabaseShell } from '@/components/database/DatabaseShell'
@@ -26,9 +26,10 @@ export default async function DatabasePage({
     .eq('id', db.page_id)
     .single()
 
-  const [todoBoard, allPages] = await Promise.all([
+  const [todoBoard, allPages, docs] = await Promise.all([
     getTodoBoard(databaseId, workspaceId),
     getPages(workspaceId),
+    getDatabaseDocs(databaseId, workspaceId),
   ])
   // Only show pages that live inside this database's container page
   const pages = allPages.filter(p => p.parent_id === db.page_id)
@@ -42,6 +43,7 @@ export default async function DatabasePage({
       rows={db.rows}
       todoBoard={todoBoard}
       pages={pages}
+      docs={docs}
     />
   )
 }
