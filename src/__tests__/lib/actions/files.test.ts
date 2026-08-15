@@ -242,6 +242,16 @@ describe('file actions', () => {
       createDatabaseDocPage('ws1', 'db1', 'photo.jpg', 'ws1/p1/photo.jpg', 'image/jpeg', 'p1')
     ).rejects.toThrow('Unsupported file type')
     expect(mockPagesInsert).not.toHaveBeenCalled()
+    // the bytes are already uploaded by the time this runs — clean them up, don't orphan them
+    expect(mockStorageRemove).toHaveBeenCalledWith(['ws1/p1/photo.jpg'])
+  })
+
+  it('createDatabaseDocPage rejects an unsupported mime type without removing a path outside the reserved prefix', async () => {
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await expect(
+      createDatabaseDocPage('ws1', 'db1', 'photo.jpg', 'ws2/other/photo.jpg', 'image/jpeg', 'p1')
+    ).rejects.toThrow('Invalid storage path')
+    expect(mockStorageRemove).not.toHaveBeenCalled()
   })
 
   it('createDatabaseDocPage throws on invalid storage path prefix', async () => {
@@ -303,7 +313,43 @@ describe('file actions', () => {
     expect(mockFilesUpdate).toHaveBeenCalledWith({ extraction_status: 'error' })
   })
 
-  it('retryDocParse re-runs parsing for the file\'s page and returns the file record', async () => {
+  it('runDocParse marks the file error when the parser yields no text (e.g. a scanned PDF)', async () => {
+    const { after } = await import('next/server')
+    const { textToMarkdown } = await import('@/lib/parsing/textToMarkdown')
+    const { markdownToBlocks } = await import('@/lib/parsing/markdownToBlocks')
+    vi.mocked(textToMarkdown).mockReturnValue('   \n\n  ')
+    mockFilesInsertSingle.mockResolvedValue({ data: { id: 'f1' }, error: null })
+
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await createDatabaseDocPage('ws1', 'db1', 'scan.txt', 'ws1/p1/scan.txt', 'text/plain', 'p1')
+    for (const call of vi.mocked(after).mock.calls) await (call[0] as () => Promise<void>)()
+
+    expect(markdownToBlocks).not.toHaveBeenCalled()
+    expect(mockBlocksDelete).not.toHaveBeenCalled()
+    expect(mockBlocksInsert).not.toHaveBeenCalled()
+    expect(mockFilesUpdate).toHaveBeenCalledWith({ extraction_status: 'error' })
+  })
+
+  it('runDocParse backs off without rewriting blocks when a concurrent parse already finished', async () => {
+    const { after } = await import('next/server')
+    const { textToMarkdown } = await import('@/lib/parsing/textToMarkdown')
+    vi.mocked(textToMarkdown).mockReturnValue('# hello')
+    mockFilesInsertSingle.mockResolvedValue({ data: { id: 'f1' }, error: null })
+    // the pre-write status check finds the file already marked done by the winning invocation
+    mockFilesMaybeSingle.mockResolvedValue({ data: { extraction_status: 'done' }, error: null })
+
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await createDatabaseDocPage('ws1', 'db1', 'notes.txt', 'ws1/p1/notes.txt', 'text/plain', 'p1')
+    for (const call of vi.mocked(after).mock.calls) await (call[0] as () => Promise<void>)()
+
+    expect(textToMarkdown).toHaveBeenCalled() // parsing still ran normally beforehand
+    expect(mockBlocksDelete).not.toHaveBeenCalled()
+    expect(mockBlocksInsert).not.toHaveBeenCalled()
+    expect(mockFilesUpdate).not.toHaveBeenCalled()
+  })
+
+  it('retryDocParse resets status to pending, then re-runs parsing, and returns the pending record', async () => {
+    const { after } = await import('next/server')
     mockFilesMaybeSingle.mockResolvedValue({
       data: { id: 'f1', workspace_id: 'ws1', page_id: 'p1', storage_path: 'ws1/p1/notes.txt',
               mime_type: 'text/plain', extracted_text: null, extraction_status: 'error', created_at: '' },
@@ -314,5 +360,11 @@ describe('file actions', () => {
     const result = await retryDocParse('f1', 'ws1')
 
     expect(result.id).toBe('f1')
+    // the client only polls while pending — the reset is what restarts polling after a retry
+    expect(result.extraction_status).toBe('pending')
+    expect(mockFilesUpdate).toHaveBeenCalledWith({ extraction_status: 'pending' })
+    expect(mockFilesUpdateEq).toHaveBeenCalledWith('id', 'f1')
+    expect(mockFilesUpdate.mock.invocationCallOrder[0])
+      .toBeLessThan(vi.mocked(after).mock.invocationCallOrder[0])
   })
 })

@@ -11,6 +11,26 @@ interface DocUploadButtonProps {
 
 const ACCEPTED = '.pdf,.docx,.doc,.txt,.md'
 
+const EXTENSION_MIME_TYPES: Record<string, string> = {
+  pdf: 'application/pdf',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  doc: 'application/msword',
+  txt: 'text/plain',
+  md: 'text/markdown',
+}
+
+const ACCEPTED_MIME_TYPES = new Set(Object.values(EXTENSION_MIME_TYPES))
+
+// Browsers report an empty (or wrong) MIME type for `.md` and sometimes `.doc`, depending on
+// the OS's MIME registry — the server allowlist would then reject the doc after the bytes have
+// already uploaded. Fall back to the extension, but only for extensions we actually accept:
+// anything else keeps the browser's value so the server still rejects it.
+export function effectiveMimeType(filename: string, browserType: string): string {
+  if (browserType && ACCEPTED_MIME_TYPES.has(browserType)) return browserType
+  const extension = filename.toLowerCase().split('.').pop() ?? ''
+  return EXTENSION_MIME_TYPES[extension] ?? browserType
+}
+
 export function DocUploadButton({ databaseId, workspaceId }: DocUploadButtonProps) {
   const inputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
@@ -27,7 +47,8 @@ export function DocUploadButton({ databaseId, workspaceId }: DocUploadButtonProp
     setProgress(0)
 
     try {
-      const { signedUrl, storagePath, reservedPageId } = await getUploadUrl(file.name, file.type, workspaceId)
+      const mimeType = effectiveMimeType(file.name, file.type)
+      const { signedUrl, storagePath, reservedPageId } = await getUploadUrl(file.name, mimeType, workspaceId)
 
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest()
@@ -40,11 +61,11 @@ export function DocUploadButton({ databaseId, workspaceId }: DocUploadButtonProp
             : reject(new Error(`Upload failed: ${xhr.status}`))
         xhr.onerror = () => reject(new Error('Upload failed'))
         xhr.open('PUT', signedUrl)
-        xhr.setRequestHeader('Content-Type', file.type)
+        xhr.setRequestHeader('Content-Type', mimeType || 'application/octet-stream')
         xhr.send(file)
       })
 
-      const { pageId } = await createDatabaseDocPage(workspaceId, databaseId, file.name, storagePath, file.type, reservedPageId)
+      const { pageId } = await createDatabaseDocPage(workspaceId, databaseId, file.name, storagePath, mimeType, reservedPageId)
       router.push(`/workspace/${workspaceId}/page/${pageId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')

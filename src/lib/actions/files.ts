@@ -253,8 +253,6 @@ export async function createDatabaseDocPage(
   mimeType: string,
   reservedPageId: string
 ): Promise<{ pageId: string }> {
-  if (!DOC_MIME_TYPES.has(mimeType)) throw new Error(`Unsupported file type: ${mimeType}`)
-
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
@@ -279,6 +277,16 @@ export async function createDatabaseDocPage(
 
   const expectedPrefix = `${workspaceId}/${reservedPageId}/`
   if (!storagePath.startsWith(expectedPrefix)) throw new Error('Invalid storage path')
+
+  // Mime allowlist is checked only after the caller is proven to be a member of this
+  // workspace AND storagePath is proven to live under this workspace's reserved prefix —
+  // the rejection deletes the object, so it must never be reachable for an arbitrary path.
+  // The bytes are already in Storage by this point (client uploads via signed URL first),
+  // so a rejection has to clean up or it orphans the object in the bucket.
+  if (!DOC_MIME_TYPES.has(mimeType)) {
+    await supabase.storage.from('files').remove([storagePath])
+    throw new Error(`Unsupported file type: ${mimeType}`)
+  }
 
   const { error: pageError } = await supabase.from('pages').insert({
     id: reservedPageId,
@@ -341,6 +349,11 @@ async function runDocParse(fileId: string, storagePath: string, mimeType: string
       throw new Error(`Unsupported doc mime type: ${mimeType}`)
     }
 
+    // A scanned/image-only PDF (or an empty file) parses to nothing. Fail loudly instead
+    // of marking the doc 'done' with zero blocks, which lands the user on a blank editor
+    // with no explanation — the error path gives them the Retry/download UX instead.
+    if (markdown.trim() === '') throw new Error('No text content could be extracted from this file')
+
     const doc = markdownToBlocks(markdown)
     const blocks = (doc.content ?? []).map((node: TiptapNode, index: number) => ({
       page_id: pageId,
@@ -348,6 +361,18 @@ async function runDocParse(fileId: string, storagePath: string, mimeType: string
       content: node,
       position: index,
     }))
+
+    // Guard against a Retry that raced a still-running parse: PDF parsing can take minutes,
+    // so two runDocParse invocations for the same file can overlap, and the delete+insert
+    // below is not atomic. Whichever invocation finishes first flips the status to 'done';
+    // any other invocation sees that and backs off rather than duplicating blocks.
+    const { data: current } = await supabase
+      .from('files')
+      .select('extraction_status')
+      .eq('id', fileId)
+      .eq('workspace_id', workspaceId)
+      .maybeSingle()
+    if (current?.extraction_status === 'done') return
 
     const { error: deleteError } = await supabase.from('blocks').delete().eq('page_id', pageId)
     if (deleteError) throw new Error(deleteError.message)
@@ -388,7 +413,12 @@ export async function retryDocParse(fileId: string, workspaceId: string): Promis
   const record = file as FileRecord
   if (!record.page_id) throw new Error('File has no associated page')
 
+  // Reset to 'pending' before scheduling the reparse so the client resumes polling —
+  // DocProcessing only polls while the status is 'pending', so leaving it on 'error'
+  // would leave the user staring at "Import failed" with no sign of progress.
+  await supabase.from('files').update({ extraction_status: 'pending' }).eq('id', fileId)
+
   after(() => runDocParse(fileId, record.storage_path, record.mime_type, workspaceId, record.page_id as string))
 
-  return record
+  return { ...record, extraction_status: 'pending' as const }
 }
