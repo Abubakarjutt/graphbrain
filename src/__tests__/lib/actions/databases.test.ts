@@ -11,7 +11,8 @@ vi.mock('@/lib/graph/content', () => ({
 
 // ── pages table ──────────────────────────────────────────────────
 const mockPagesSingle = vi.fn()
-const mockPagesSelectEq2 = vi.fn(() => ({ single: mockPagesSingle }))
+const mockDocsOrder = vi.fn()
+const mockPagesSelectEq2 = vi.fn(() => ({ single: mockPagesSingle, order: mockDocsOrder }))
 const mockPagesSelectEq1 = vi.fn(() => ({ eq: mockPagesSelectEq2, single: mockPagesSingle }))
 const mockPagesIn = vi.fn().mockResolvedValue({ data: [], error: null })
 const mockPagesSelectChain = vi.fn(() => ({ eq: mockPagesSelectEq1, in: mockPagesIn }))
@@ -69,7 +70,7 @@ describe('database actions', () => {
     vi.resetModules()
     mockPagesDeleteEq.mockResolvedValue({ error: null })
     mockPagesDelete.mockImplementation(() => ({ eq: mockPagesDeleteEq }))
-    mockPagesSelectEq2.mockImplementation(() => ({ single: mockPagesSingle }))
+    mockPagesSelectEq2.mockImplementation(() => ({ single: mockPagesSingle, order: mockDocsOrder }))
     mockPagesSelectEq1.mockImplementation(() => ({ eq: mockPagesSelectEq2, single: mockPagesSingle }))
     mockPagesSelectChain.mockImplementation(() => ({ eq: mockPagesSelectEq1, in: mockPagesIn }))
     mockPagesInsertSelect.mockImplementation(() => ({ single: mockPagesInsertSingle }))
@@ -260,5 +261,26 @@ describe('database actions', () => {
     mockPagesSingle.mockResolvedValue({ data: null, error: null })
     const { updateDatabaseSchema } = await import('@/lib/actions/databases')
     await expect(updateDatabaseSchema('db1', 'wrong-ws', [])).rejects.toThrow('Database not found or access denied')
+  })
+
+  it('getDatabaseDocs returns pages scoped to the database, ordered by created_at', async () => {
+    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'container1' }, error: null })
+    mockPagesSingle.mockResolvedValue({ data: { id: 'container1' }, error: null })
+    mockDocsOrder.mockResolvedValue({
+      data: [{ id: 'doc1', workspace_id: 'ws1', parent_id: null, database_id: 'db1', title: 'Doc One', created_by: 'u1', created_at: '', updated_at: '' }],
+      error: null,
+    })
+
+    const { getDatabaseDocs } = await import('@/lib/actions/databases')
+    const docs = await getDatabaseDocs('db1', 'ws1')
+
+    expect(docs).toHaveLength(1)
+    expect(docs[0].id).toBe('doc1')
+  })
+
+  it('getDatabaseDocs throws when the database is not found', async () => {
+    mockDbSingle.mockResolvedValue({ data: null, error: null })
+    const { getDatabaseDocs } = await import('@/lib/actions/databases')
+    await expect(getDatabaseDocs('missing', 'ws1')).rejects.toThrow('Database not found or access denied')
   })
 })

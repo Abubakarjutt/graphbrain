@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { upsertNode, scheduleEmbed } from '@/lib/graph/graph'
 import { rowToText } from '@/lib/graph/content'
-import type { Database, DatabaseField, DatabaseRow, DatabaseRowWithTitle, DatabaseWithRows } from '@/lib/types/database'
+import type { Database, DatabaseField, DatabaseRow, DatabaseRowWithTitle, DatabaseWithRows, Page } from '@/lib/types/database'
 
 export async function createDatabase(workspaceId: string): Promise<{ database: Database; pageId: string }> {
   const supabase = await createClient()
@@ -262,4 +262,35 @@ export async function deleteRow(
   }
 
   revalidatePath(`/workspace/${workspaceId}/database/${databaseId}`)
+}
+
+export async function getDatabaseDocs(databaseId: string, workspaceId: string): Promise<Page[]> {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Unauthenticated')
+
+  const { data: db } = await supabase
+    .from('databases')
+    .select('id, page_id')
+    .eq('id', databaseId)
+    .single()
+  if (!db) throw new Error('Database not found or access denied')
+
+  const { data: containerPage } = await supabase
+    .from('pages')
+    .select('id')
+    .eq('id', db.page_id)
+    .eq('workspace_id', workspaceId)
+    .single()
+  if (!containerPage) throw new Error('Database not found or access denied')
+
+  const { data, error } = await supabase
+    .from('pages')
+    .select('*')
+    .eq('database_id', databaseId)
+    .eq('workspace_id', workspaceId)
+    .order('created_at', { ascending: true })
+  if (error) throw new Error(error.message)
+
+  return (data ?? []) as Page[]
 }
