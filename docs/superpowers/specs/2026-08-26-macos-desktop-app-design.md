@@ -246,6 +246,7 @@ Auto-update is explicitly out of scope for v1 (no existing hosting for an update
 ## Known Limitations (inherited, not introduced by this work)
 
 - `proxy.ts` calls `supabase.auth.getUser()` — a network round-trip to Supabase — on every navigation to decide the login redirect. The desktop app inherits this exactly as the web app has it today: a network blip while using the desktop app can still bounce the user to `/login` even though the app itself is running locally. This spec doesn't change that behavior; flagging it here so it isn't mistaken for a desktop-specific bug later.
+- `getTimeReport`'s email resolution is now scoped to *current* workspace members (via `get_workspace_member_emails`), whereas the old `admin.auth.admin.listUsers()` call could resolve the email of any user in the whole Supabase project, including someone since removed from the workspace. A removed member's historical time entries will now fall back to showing their raw user ID instead of their email — the existing fallback path (`emailById.get(...) ?? e.user_id`) already handled lookup misses, so this degrades gracefully rather than erroring. This is an accepted trade-off of no longer holding a project-wide admin key; back-filling a stored email snapshot on `time_entries` at insert time would close this gap but is out of scope here.
 
 ---
 
