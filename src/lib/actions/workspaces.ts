@@ -51,41 +51,16 @@ export async function acceptInvite(token: string): Promise<{ workspaceId: string
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('You must be signed in to accept an invite.')
 
-  // Use admin client — invite rows are RLS-restricted to the workspace owner;
-  // the invitee needs the admin client to look up and accept their own token.
-  const admin = createAdminClient()
-  const { data: invite, error } = await admin
-    .from('workspace_invites')
-    .select('id, workspace_id, role, accepted_at')
-    .eq('token', token)
-    .single()
+  const { data: workspaceId, error } = await supabase.rpc('accept_workspace_invite', { p_token: token })
 
-  if (error || !invite) throw new Error('Invite not found. It may have expired or been revoked.')
-  if (invite.accepted_at) throw new Error('This invite has already been used.')
-
-  // Check not already a member
-  const { data: existing } = await supabase
-    .from('workspace_members')
-    .select('user_id')
-    .eq('workspace_id', invite.workspace_id)
-    .eq('user_id', user.id)
-    .single()
-
-  if (!existing) {
-    // members_insert allows user_id = auth.uid(), so regular client works here
-    const { error: memberErr } = await supabase
-      .from('workspace_members')
-      .insert({ workspace_id: invite.workspace_id, user_id: user.id, role: invite.role })
-    if (memberErr) throw new Error(memberErr.message)
+  if (error) {
+    if (error.message === 'invalid_invite') throw new Error('Invite not found. It may have expired or been revoked.')
+    if (error.message === 'invite_email_mismatch') throw new Error('This invite was sent to a different email address.')
+    throw new Error(error.message)
   }
 
-  await admin
-    .from('workspace_invites')
-    .update({ accepted_at: new Date().toISOString() })
-    .eq('token', token)
-
   revalidatePath('/', 'layout')
-  return { workspaceId: invite.workspace_id }
+  return { workspaceId: workspaceId as string }
 }
 
 export interface WorkspaceInvite {
