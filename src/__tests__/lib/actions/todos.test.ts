@@ -89,6 +89,7 @@ describe('todo actions', () => {
         error: null,
       })
       queueOnce('pages', { data: [{ id: 'page-2', title: 'Attached Doc' }], error: null })
+      mockRpc.mockResolvedValueOnce({ data: [], error: null })
 
       const { getTodoBoard } = await import('@/lib/actions/todos')
       const board = await getTodoBoard('db-1', 'ws-1')
@@ -105,11 +106,29 @@ describe('todo actions', () => {
         error: null,
       })
       queueOnce('pages', { data: [], error: null })
+      mockRpc.mockResolvedValueOnce({ data: [], error: null })
 
       const { getTodoBoard } = await import('@/lib/actions/todos')
       const board = await getTodoBoard('db-1', 'ws-1')
 
       expect(board.items[0].attached_page_title).toBe('Untitled')
+    })
+
+    it('resolves assignee emails for workspace members via RPC', async () => {
+      queueAccessGranted()
+      queueOnce('todo_lists', { data: [], error: null })
+      queueOnce('todo_items', {
+        data: [{ id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Task', due_date: null, assignee_id: 'u1', attached_page_id: null, created_at: '' }],
+        error: null,
+      })
+      mockRpc.mockResolvedValueOnce({ data: [{ user_id: 'u1', email: 'alice@example.com' }], error: null })
+
+      const { getTodoBoard } = await import('@/lib/actions/todos')
+      const board = await getTodoBoard('db-1', 'ws-1')
+
+      expect(mockRpc).toHaveBeenCalledWith('get_workspace_member_emails', { p_workspace_id: 'ws-1' })
+      expect(board.assignees).toEqual([{ id: 'u1', email: 'alice@example.com' }])
+      expect(board.items[0].assignee).toEqual({ id: 'u1', email: 'alice@example.com' })
     })
   })
 

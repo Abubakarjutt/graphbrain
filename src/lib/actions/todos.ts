@@ -74,28 +74,10 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
     for (const p of attachedPages ?? []) pageTitles[p.id] = p.title
   }
 
-  // Fetch workspace member IDs, then resolve emails via the admin client
-  // (workspace_members.user_id references auth.users, not a public table,
-  //  so the anon-key client cannot join it — we need the service role)
-  const { data: members } = await supabase
-    .from('workspace_members')
-    .select('user_id')
-    .eq('workspace_id', workspaceId)
-
-  const memberIds = (members ?? []).map(m => m.user_id)
-  const assigneeList: { id: string; email: string }[] = []
-
-  if (memberIds.length > 0) {
-    const admin = createAdminClient()
-    const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-// TODO: paginate to avoid fetching all users
-    const memberSet = new Set(memberIds)
-    for (const u of authUsers) {
-      if (memberSet.has(u.id) && u.email) {
-        assigneeList.push({ id: u.id, email: u.email })
-      }
-    }
-  }
+  const { data: memberRows } = await supabase.rpc('get_workspace_member_emails', { p_workspace_id: workspaceId })
+  const assigneeList: { id: string; email: string }[] = (memberRows ?? []).map(
+    (m: { user_id: string; email: string }) => ({ id: m.user_id, email: m.email })
+  )
 
   // Build a lookup for items that already have an assignee_id stored
   const assignees: Record<string, { id: string; email: string }> = {}
