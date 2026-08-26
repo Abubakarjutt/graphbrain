@@ -84,13 +84,16 @@ New migration `supabase/migrations/20260826000001_workspace_invite_rpcs.sql`:
 The real `workspace_invites` table (`supabase/migrations/20260807000001_workspace_invites.sql`) has columns `id, workspace_id, invited_email, invited_by, role, token, accepted_at, created_at` — **no `expires_at`**. Invites don't expire today; adding expiry would be new scope beyond what this migration needs, so the functions below match current behavior exactly rather than inventing an expiry column.
 
 ```sql
--- Read-only invite lookup by token (unauthenticated-safe: only non-sensitive columns)
+-- Read-only invite lookup by token (unauthenticated-safe: only non-sensitive
+-- columns). Deliberately does NOT filter out already-accepted invites — the
+-- invite page needs to distinguish "already used" from "invalid/unknown" to
+-- show the right message, so `accepted_at` is returned, not filtered on.
 CREATE FUNCTION get_invite_by_token(p_token uuid)
-RETURNS TABLE (workspace_id uuid, workspace_name text, invited_email text)
+RETURNS TABLE (workspace_id uuid, workspace_name text, invited_email text, role text, accepted_at timestamptz)
 LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
-  SELECT w.id, w.name, i.invited_email
+  SELECT w.id, w.name, i.invited_email, i.role, i.accepted_at
   FROM workspace_invites i JOIN workspaces w ON w.id = i.workspace_id
-  WHERE i.token = p_token AND i.accepted_at IS NULL
+  WHERE i.token = p_token
 $$;
 
 -- Atomic accept: validates token + accepting user's email matches the invite,
@@ -150,7 +153,7 @@ Each function checks caller authorization *inside the body* (never relies on `SE
 
 ### Code changes
 
-- `src/app/(auth)/invite/[token]/page.tsx`: replace `createAdminClient()` lookup with `supabase.rpc('get_invite_by_token', ...)`.
+- `src/app/(auth)/invite/[token]/page.tsx`: replace `createAdminClient()` lookup with `supabase.rpc('get_invite_by_token', { p_token: token }).maybeSingle()` (token is unique, so at most one row; `.maybeSingle()` returns `null` data rather than erroring when no invite matches).
 - `src/lib/actions/workspaces.ts`: `acceptInvite` uses `supabase.rpc('accept_workspace_invite', ...)`; `getWorkspaceDetails` uses `supabase.rpc('get_workspace_member_emails', ...)`.
 - `src/lib/actions/todos.ts`: **both** `getTodoBoard` and `getTimeReport` use `supabase.rpc('get_workspace_member_emails', ...)`.
 - Delete `src/lib/supabase/admin.ts` once all five call sites above are migrated (grep for `createAdminClient` to confirm zero remaining references before deleting).
