@@ -25,6 +25,8 @@ function makeTableResolvers() {
       limit: vi.fn(() => builder),
       in: vi.fn(() => builder),
       single: vi.fn(() => builder),
+      gte: vi.fn(() => builder),
+      lt: vi.fn(() => builder),
       then: (resolve: (v: unknown) => void) => resolve(resolver()),
     }
     return builder
@@ -314,6 +316,57 @@ describe('todo actions', () => {
       queueOnce('todo_items', { data: null, error: { message: 'delete failed' } })
       const { deleteTodoItem } = await import('@/lib/actions/todos')
       await expect(deleteTodoItem('item-1', 'db-1', 'ws-1')).rejects.toThrow('delete failed')
+    })
+  })
+
+  describe('getTimeReport', () => {
+    it('returns an empty array when there are no time entries', async () => {
+      queueOnce('time_entries', { data: [], error: null })
+
+      const { getTimeReport } = await import('@/lib/actions/todos')
+      const report = await getTimeReport('db-1', 'ws-1', '2026-08-26')
+
+      expect(report).toEqual([])
+      expect(mockRpc).not.toHaveBeenCalled()
+    })
+
+    it('groups entries by user, resolving emails via the workspace member RPC', async () => {
+      queueOnce('time_entries', {
+        data: [
+          { user_id: 'u1', item_id: 'item-1', item_title: 'Task A', duration_ms: 1000 },
+          { user_id: 'u1', item_id: 'item-2', item_title: 'Task B', duration_ms: 500 },
+          { user_id: 'u2', item_id: 'item-1', item_title: 'Task A', duration_ms: 2000 },
+        ],
+        error: null,
+      })
+      mockRpc.mockResolvedValueOnce({
+        data: [{ user_id: 'u1', email: 'alice@example.com' }, { user_id: 'u2', email: 'bob@example.com' }],
+        error: null,
+      })
+
+      const { getTimeReport } = await import('@/lib/actions/todos')
+      const report = await getTimeReport('db-1', 'ws-1', '2026-08-26')
+
+      expect(mockRpc).toHaveBeenCalledWith('get_workspace_member_emails', { p_workspace_id: 'ws-1' })
+      expect(report[0]).toMatchObject({ userId: 'u2', email: 'bob@example.com', totalMs: 2000 })
+      expect(report[1]).toMatchObject({ userId: 'u1', email: 'alice@example.com', totalMs: 1500 })
+      expect(report[1].tasks).toEqual([
+        { itemId: 'item-1', itemTitle: 'Task A', totalMs: 1000 },
+        { itemId: 'item-2', itemTitle: 'Task B', totalMs: 500 },
+      ])
+    })
+
+    it('falls back to the raw user id when the RPC does not return that member (e.g. removed from workspace)', async () => {
+      queueOnce('time_entries', {
+        data: [{ user_id: 'u3', item_id: 'item-1', item_title: 'Task A', duration_ms: 100 }],
+        error: null,
+      })
+      mockRpc.mockResolvedValueOnce({ data: [], error: null })
+
+      const { getTimeReport } = await import('@/lib/actions/todos')
+      const report = await getTimeReport('db-1', 'ws-1', '2026-08-26')
+
+      expect(report[0]).toMatchObject({ userId: 'u3', email: 'u3' })
     })
   })
 })

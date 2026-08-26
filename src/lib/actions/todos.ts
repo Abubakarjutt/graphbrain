@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 import type { TodoBoard, TodoItemWithPage, TodoList } from '@/lib/types/database'
 
@@ -341,10 +340,8 @@ export async function getTimeReport(
 
   if (!entries || entries.length === 0) return []
 
-  const admin = createAdminClient()
-  const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-// TODO: paginate to avoid fetching all users
-  const emailById = new Map(authUsers.map(u => [u.id, u.email ?? u.id]))
+  const { data: memberRows } = await supabase.rpc('get_workspace_member_emails', { p_workspace_id: workspaceId })
+  const emailById = new Map((memberRows ?? []).map((m: { user_id: string; email: string }) => [m.user_id, m.email]))
 
   const byUser = new Map<string, { email: string; totalMs: number; tasks: Map<string, { title: string; totalMs: number }> }>()
   for (const e of entries) {
