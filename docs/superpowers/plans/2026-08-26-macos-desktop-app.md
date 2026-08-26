@@ -762,13 +762,85 @@ git commit -m "feat: enable Next.js standalone build output for Electron packagi
 
 ---
 
-## Task 9: Add `findFreePort` utility with tests
+## Task 9: Exclude `electron/` from the root TypeScript project and add its own tsconfig
+
+**Files:**
+- Modify: `tsconfig.json`
+- Create: `electron/tsconfig.json`
+
+**Interfaces:**
+- Produces: an independently compilable `electron/` TypeScript project (`tsc -p electron/tsconfig.json`) — consumed by Task 10 (`findFreePort`) and Task 12's build/dev scripts.
+
+- [ ] **Step 1: Exclude `electron/` from the root tsconfig**
+
+In `tsconfig.json`, change:
+
+```json
+  "exclude": ["node_modules"]
+```
+
+to:
+
+```json
+  "exclude": ["node_modules", "electron"]
+```
+
+This prevents the root Next.js TypeScript project (DOM-lib, bundler resolution, `noEmit`) from also trying to type-check the Electron main-process code, which needs Node-only `lib`/`module` settings and must actually emit JS.
+
+- [ ] **Step 2: Create the Electron tsconfig**
+
+Create `electron/tsconfig.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "lib": ["ES2022"],
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true
+  },
+  "include": ["*.ts"]
+}
+```
+
+- [ ] **Step 3: Verify it compiles an empty project**
+
+Run: `npx tsc -p electron/tsconfig.json`
+Expected: succeeds with no output files yet (no `.ts` files exist under `electron/` until Task 10) and no errors.
+
+- [ ] **Step 4: Add the build output directory to `.gitignore`**
+
+In `.gitignore`, add a new section:
+
+```
+# electron desktop build output
+/electron/dist
+/release
+```
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add tsconfig.json electron/tsconfig.json .gitignore
+git commit -m "chore: scope electron/ to its own TypeScript project"
+```
+
+---
+
+## Task 10: Add `findFreePort` utility with tests
 
 **Files:**
 - Create: `electron/findFreePort.ts`
 - Create: `src/__tests__/electron/findFreePort.test.ts`
 
 **Interfaces:**
+- Consumes: `electron/tsconfig.json` from Task 9 (to compile-check this file).
 - Produces: `findFreePort(): Promise<number>` — consumed by Task 12 (`electron/main.ts`).
 
 - [ ] **Step 1: Write the failing test**
@@ -830,87 +902,19 @@ export function findFreePort(): Promise<number> {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [ ] **Step 4: Run test to verify it passes, and that it compiles under the Electron tsconfig**
 
 Run: `npm test -- findFreePort.test.ts`
 Expected: PASS (both tests)
+
+Run: `npx tsc -p electron/tsconfig.json`
+Expected: succeeds, producing `electron/dist/findFreePort.js`.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add electron/findFreePort.ts src/__tests__/electron/findFreePort.test.ts
 git commit -m "feat: add findFreePort utility for the Electron main process"
-```
-
----
-
-## Task 10: Exclude `electron/` from the root TypeScript project and add its own tsconfig
-
-**Files:**
-- Modify: `tsconfig.json`
-- Create: `electron/tsconfig.json`
-
-**Interfaces:**
-- Produces: an independently compilable `electron/` TypeScript project (`tsc -p electron/tsconfig.json`) — consumed by Task 12's build/dev scripts.
-
-- [ ] **Step 1: Exclude `electron/` from the root tsconfig**
-
-In `tsconfig.json`, change:
-
-```json
-  "exclude": ["node_modules"]
-```
-
-to:
-
-```json
-  "exclude": ["node_modules", "electron"]
-```
-
-This prevents the root Next.js TypeScript project (DOM-lib, bundler resolution, `noEmit`) from also trying to type-check the Electron main-process code, which needs Node-only `lib`/`module` settings and must actually emit JS.
-
-- [ ] **Step 2: Create the Electron tsconfig**
-
-Create `electron/tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "module": "CommonJS",
-    "moduleResolution": "node",
-    "lib": ["ES2022"],
-    "outDir": "dist",
-    "rootDir": ".",
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "resolveJsonModule": true
-  },
-  "include": ["*.ts"]
-}
-```
-
-- [ ] **Step 3: Verify it compiles the file from Task 9**
-
-Run: `npx tsc -p electron/tsconfig.json`
-Expected: succeeds, producing `electron/dist/findFreePort.js`.
-
-- [ ] **Step 4: Add the build output directory to `.gitignore`**
-
-In `.gitignore`, add a new section:
-
-```
-# electron desktop build output
-/electron/dist
-/release
-```
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add tsconfig.json electron/tsconfig.json .gitignore
-git commit -m "chore: scope electron/ to its own TypeScript project"
 ```
 
 ---
@@ -966,7 +970,7 @@ git commit -m "feat: add script to copy static assets into the Next standalone b
 - Create: `electron/preload.ts`
 
 **Interfaces:**
-- Consumes: `findFreePort()` from Task 9; `.next/standalone/server.js` from Tasks 8/11 (at `process.resourcesPath/standalone/server.js` when packaged).
+- Consumes: `findFreePort()` from Task 10; `.next/standalone/server.js` from Tasks 8/11 (at `process.resourcesPath/standalone/server.js` when packaged).
 - Produces: the app's entry point, referenced by `package.json`'s `"main"` field in Task 13.
 
 No automated test for this task — per the spec's Testing section, the Electron shell itself is verified manually (Task 14), since importing `electron`'s `app`/`BrowserWindow` outside the real Electron binary does not provide a usable API surface to mock meaningfully.
@@ -1206,7 +1210,7 @@ If all steps pass, no commit is needed for this task — it is a verification ga
 
 **2. Placeholder scan:** No "TBD"/"TODO"/"add error handling" placeholders found in any task; every code step includes full, real content. `main.ts`'s error handling (Step 2 of Task 12) is concrete (`dialog.showErrorBox` + `app.quit()`), matching the spec's Error Handling table rather than being hand-waved.
 
-**3. Type consistency:** `findFreePort(): Promise<number>` (Task 9) is imported and used identically in `electron/main.ts` (Task 12). `get_workspace_member_emails` row shape `{ user_id: string; email: string }` is used consistently across Tasks 3, 5, and 6. `acceptInvite`'s return type `{ workspaceId: string }` (Task 2) matches what `AcceptInviteClient.tsx` already destructures (`const { workspaceId } = await acceptInvite(token)`), so no consumer-side change is needed there. The invite page's RPC row shape (`workspace_id, workspace_name, invited_email, role, accepted_at`) matches the `RETURNS TABLE` columns defined in Task 1 and the fields read in Task 4.
+**3. Type consistency:** `findFreePort(): Promise<number>` (Task 10) is imported and used identically in `electron/main.ts` (Task 12). `get_workspace_member_emails` row shape `{ user_id: string; email: string }` is used consistently across Tasks 3, 5, and 6. `acceptInvite`'s return type `{ workspaceId: string }` (Task 2) matches what `AcceptInviteClient.tsx` already destructures (`const { workspaceId } = await acceptInvite(token)`), so no consumer-side change is needed there. The invite page's RPC row shape (`workspace_id, workspace_name, invited_email, role, accepted_at`) matches the `RETURNS TABLE` columns defined in Task 1 and the fields read in Task 4.
 
 ---
 
