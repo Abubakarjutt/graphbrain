@@ -1,7 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { revalidatePath } from 'next/cache'
 
 export async function createWorkspace(name: string): Promise<{ id: string; name: string }> {
@@ -99,14 +98,13 @@ export async function getWorkspaceDetails(workspaceId: string): Promise<{
     .select('user_id, role')
     .eq('workspace_id', workspaceId)
 
-  const memberIds = (memberRows ?? []).map(m => m.user_id)
-  let members: WorkspaceMember[] = []
-  if (memberIds.length > 0) {
-    const admin = createAdminClient()
-    const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
-    const byId = new Map(authUsers.map(u => [u.id, u.email ?? '']))
-    members = (memberRows ?? []).map(m => ({ user_id: m.user_id, role: m.role, email: byId.get(m.user_id) ?? '' }))
-  }
+  const { data: emailRows } = await supabase.rpc('get_workspace_member_emails', { p_workspace_id: workspaceId })
+  const emailById = new Map((emailRows ?? []).map((r: { user_id: string; email: string }) => [r.user_id, r.email]))
+  const members: WorkspaceMember[] = (memberRows ?? []).map(m => ({
+    user_id: m.user_id,
+    role: m.role,
+    email: emailById.get(m.user_id) ?? '',
+  }))
 
   const { data: invites } = await supabase
     .from('workspace_invites')
