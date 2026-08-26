@@ -18,6 +18,16 @@ const DOC_MIME_TYPES = new Set([
   'text/plain',
   'text/markdown',
 ])
+// Strip HTML tags and dangerous URIs from extracted text. PDF/DOCX parsing can emit
+// raw HTML fragments -- the DB stores this as plain text but it should never be rendered
+// as HTML, so stripping keeps any accidental XSS at bay.
+function sanitizeExtractedText(text: string | null): string | null {
+    if (!text) return null
+    let clean = text.replace(/<\/?[a-z][^>]*>/gi, ' ')
+    clean = clean.replace(/javascript\s*:/gi, '')
+    return clean.trim() || null
+}
+
 
 function extractionStatusForMimeType(mimeType: string): 'pending' | 'none' {
   const extractable = [
@@ -55,6 +65,8 @@ async function runExtraction(fileId: string, storagePath: string, mimeType: stri
     } else if (mimeType === 'text/plain' || mimeType === 'text/markdown') {
       extractedText = buffer.toString('utf-8')
     }
+        // Sanitize before storing
+        extractedText = sanitizeExtractedText(extractedText)
 
     await supabase
       .from('files')
@@ -291,14 +303,24 @@ export async function createDatabaseDocPage(
   const { error: pageError } = await supabase.from('pages').insert({
     id: reservedPageId,
     workspace_id: workspaceId,
-    database_id: databaseId,
-    parent_id: null,
+    parent_id: db.page_id,
     title: filename,
     created_by: user.id,
   })
   if (pageError) {
     await supabase.storage.from('files').remove([storagePath])
     throw new Error(pageError.message)
+  }
+
+  // A doc is a database row like any other — this is what makes it show up
+  // in Table/Kanban/Calendar instead of living in a separate list.
+  const { error: rowError } = await supabase
+    .from('database_rows')
+    .insert({ database_id: databaseId, page_id: reservedPageId, fields: {} })
+  if (rowError) {
+    await supabase.from('pages').delete().eq('id', reservedPageId)
+    await supabase.storage.from('files').remove([storagePath])
+    throw new Error(rowError.message)
   }
 
   const { data: fileData, error: fileError } = await supabase
@@ -314,6 +336,7 @@ export async function createDatabaseDocPage(
     .single()
 
   if (fileError || !fileData) {
+    await supabase.from('database_rows').delete().eq('page_id', reservedPageId)
     await supabase.from('pages').delete().eq('id', reservedPageId)
     await supabase.storage.from('files').remove([storagePath])
     throw new Error(fileError?.message ?? 'Failed to create file record')
@@ -392,7 +415,8 @@ async function runDocParse(fileId: string, storagePath: string, mimeType: string
     } catch (err) {
       console.error(`runDocParse: graph write failed for page ${pageId}:`, err)
     }
-  } catch {
+  } catch (err) {
+    console.error(`runDocParse: parsing failed for file ${fileId}:`, err)
     await supabase.from('files').update({ extraction_status: 'error' }).eq('id', fileId)
   }
 }

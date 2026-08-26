@@ -18,26 +18,14 @@ export async function getPages(workspaceId: string): Promise<Page[]> {
   return data ?? []
 }
 
-export async function createPage(workspaceId: string, parentId: string | null, databaseId?: string | null): Promise<Page> {
+export async function createPage(workspaceId: string, parentId: string | null): Promise<Page> {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthenticated')
 
-  if (databaseId) {
-    const { data: db } = await supabase.from('databases').select('id, page_id').eq('id', databaseId).single()
-    if (!db) throw new Error('Database not found or access denied')
-    const { data: containerPage } = await supabase
-      .from('pages')
-      .select('id')
-      .eq('id', db.page_id)
-      .eq('workspace_id', workspaceId)
-      .single()
-    if (!containerPage) throw new Error('Database not found or access denied')
-  }
-
   const { data, error } = await supabase
     .from('pages')
-    .insert({ workspace_id: workspaceId, parent_id: parentId, database_id: databaseId ?? null, title: 'Untitled', created_by: user.id })
+    .insert({ workspace_id: workspaceId, parent_id: parentId, title: 'Untitled', created_by: user.id })
     .select()
     .single()
   if (error) throw new Error(error.message)
@@ -52,7 +40,7 @@ export async function createPage(workspaceId: string, parentId: string | null, d
     await scheduleEmbed(nodeId, pageToText('Untitled', []))
   })
 
-  revalidatePath(databaseId ? `/workspace/${workspaceId}/database/${databaseId}` : `/workspace/${workspaceId}`)
+  revalidatePath(`/workspace/${workspaceId}`)
   return page
 }
 

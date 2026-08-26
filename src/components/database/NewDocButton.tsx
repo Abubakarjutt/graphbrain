@@ -2,7 +2,7 @@
 
 import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { createPage } from '@/lib/actions/pages'
+import { createRow } from '@/lib/actions/databases'
 
 interface NewDocButtonProps {
   workspaceId: string
@@ -15,8 +15,8 @@ export function NewDocButton({ workspaceId, databaseId }: NewDocButtonProps) {
 
   function handleClick() {
     startTransition(async () => {
-      const page = await createPage(workspaceId, null, databaseId)
-      router.push(`/workspace/${workspaceId}/page/${page.id}`)
+      const row = await createRow(databaseId, workspaceId)
+      router.push(`/workspace/${workspaceId}/page/${row.page_id}`)
     })
   }
 

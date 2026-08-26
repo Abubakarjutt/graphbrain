@@ -62,7 +62,7 @@ function makeChain(data: unknown) {
   return chain
 }
 
-const pageData = { id: 'page-1', title: 'My Page', workspace_id: 'ws-1', database_id: null }
+const pageData = { id: 'page-1', title: 'My Page', workspace_id: 'ws-1' }
 const wsData = { name: 'My Workspace' }
 
 async function renderPage() {
@@ -76,22 +76,25 @@ describe('PageViewPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.resetModules()
+    mockFrom.mockReset()
     vi.mocked(loadBlocks).mockResolvedValue({ type: 'doc', content: [] })
     vi.mocked(getFileRecord).mockResolvedValue(null)
   })
 
   it('calls notFound when the page does not exist in this workspace', async () => {
     mockFrom
-      .mockReturnValueOnce(makeChain(null))
-      .mockReturnValueOnce(makeChain(wsData))
+      .mockReturnValueOnce(makeChain(null))      // pages
+      .mockReturnValueOnce(makeChain(wsData))    // workspaces
+      .mockReturnValueOnce(makeChain(null))      // database_rows
 
     await expect(renderPage()).rejects.toThrow(NotFoundError)
   })
 
-  it('renders FilePage and skips block loading when the page is a file page', async () => {
+  it('renders FilePage and skips block loading when the page is a plain file attachment (no database row)', async () => {
     mockFrom
       .mockReturnValueOnce(makeChain(pageData))
       .mockReturnValueOnce(makeChain(wsData))
+      .mockReturnValueOnce(makeChain(null)) // database_rows
     vi.mocked(getFileRecord).mockResolvedValue({
       id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
       storage_path: 'a/b.pdf', mime_type: 'application/pdf',
@@ -166,8 +169,9 @@ describe('PageViewPage', () => {
 
   it('renders DocProcessing for a pending database-doc page', async () => {
     mockFrom
-      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(pageData))
       .mockReturnValueOnce(makeChain(wsData))
+      .mockReturnValueOnce(makeChain({ id: 'row-1', database_id: 'db-1', fields: {} })) // database_rows
     vi.mocked(getFileRecord).mockResolvedValue({
       id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
       storage_path: 'ws-1/page-1/notes.pdf', mime_type: 'application/pdf',
@@ -182,8 +186,9 @@ describe('PageViewPage', () => {
 
   it('renders DocProcessing for an errored database-doc page', async () => {
     mockFrom
-      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(pageData))
       .mockReturnValueOnce(makeChain(wsData))
+      .mockReturnValueOnce(makeChain({ id: 'row-1', database_id: 'db-1', fields: {} })) // database_rows
     vi.mocked(getFileRecord).mockResolvedValue({
       id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',
       storage_path: 'ws-1/page-1/notes.pdf', mime_type: 'application/pdf',
@@ -197,9 +202,10 @@ describe('PageViewPage', () => {
 
   it('falls through to the normal editor once a database-doc page finishes parsing', async () => {
     mockFrom
-      .mockReturnValueOnce(makeChain({ ...pageData, database_id: 'db-1' }))
+      .mockReturnValueOnce(makeChain(pageData))
       .mockReturnValueOnce(makeChain(wsData))
-      .mockReturnValueOnce(makeChain(null)) // database_rows
+      .mockReturnValueOnce(makeChain({ id: 'row-1', database_id: 'db-1', fields: {} })) // database_rows
+      .mockReturnValueOnce(makeChain({ schema: [] })) // databases
       .mockReturnValueOnce(makeChain([]))   // pages (children)
     vi.mocked(getFileRecord).mockResolvedValue({
       id: 'file-1', workspace_id: 'ws-1', page_id: 'page-1',

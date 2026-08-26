@@ -5,10 +5,8 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition } from 'react'
 import type { User } from '@supabase/supabase-js'
 import type { WorkspaceEntry, Page, Database, DatabaseRowLink } from '@/lib/types/database'
-import { createPage } from '@/lib/actions/pages'
 import { createDatabase } from '@/lib/actions/databases'
 import { createClient } from '@/lib/supabase/client'
-import { SidebarPageTree } from './SidebarPageTree'
 import { SidebarDatabaseTree } from './SidebarDatabaseTree'
 
 interface SidebarProps {
@@ -30,19 +28,6 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
   const [createDbError, setCreateDbError] = useState<string | null>(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const currentWorkspaceId = params?.workspaceId as string | undefined
-
-  const databasePageIds = new Set(databases.map(d => d.page_id))
-  const regularPages = pages.filter(
-    p => !databasePageIds.has(p.id) && !databasePageIds.has(p.parent_id ?? '')
-  )
-
-  function handleCreatePage(parentId: string | null) {
-    if (!currentWorkspaceId) return
-    startTransition(async () => {
-      const page = await createPage(currentWorkspaceId, parentId)
-      router.push(`/workspace/${currentWorkspaceId}/page/${page.id}`)
-    })
-  }
 
   function handleCreateDatabase() {
     if (!currentWorkspaceId) return
@@ -185,11 +170,6 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
 
         {currentWorkspaceId && (
           <>
-            <SidebarPageTree
-              pages={regularPages.filter(p => p.workspace_id === currentWorkspaceId)}
-              workspaceId={currentWorkspaceId}
-              onCreatePage={handleCreatePage}
-            />
             {createDbError && (
               <p className="px-2 py-1 text-xs text-destructive">{createDbError}</p>
             )}
@@ -201,19 +181,6 @@ export function Sidebar({ workspaces, user, pages, databases, databaseRows = [],
               onCreateDatabase={handleCreateDatabase}
             />
           </>
-        )}
-
-        {currentWorkspaceId && (
-          <button
-            onClick={() => handleCreatePage(null)}
-            className="mt-1 flex w-full items-center gap-2 h-8 rounded-lg px-2.5 text-[12px] transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-[var(--sidebar-ring)] hover:bg-sidebar-accent"
-            style={{ color: 'var(--sidebar-foreground)', opacity: 0.38 }}
-          >
-            <svg width="11" height="11" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" aria-hidden>
-              <path d="M6.5 1.5v10M1.5 6.5h10" />
-            </svg>
-            New page
-          </button>
         )}
       </nav>
 

@@ -54,8 +54,8 @@ const lists: TodoList[] = [
 ]
 
 const items: TodoItemWithPage[] = [
-  { id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Write report', due_date: '2026-03-15', attached_page_id: 'page-1', attached_page_title: 'Report Doc', created_at: '2026-03-01T00:00:00Z' },
-  { id: 'item-2', database_id: 'db-1', list_id: 'list-1', title: 'No due date yet', due_date: null, attached_page_id: null, attached_page_title: null, created_at: '2026-03-02T00:00:00Z' },
+  { id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Write report', due_date: '2026-03-15', assignee_id: null, attached_page_id: 'page-1', attached_page_title: 'Report Doc', created_at: '2026-03-01T00:00:00Z' },
+  { id: 'item-2', database_id: 'db-1', list_id: 'list-1', title: 'No due date yet', due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: '2026-03-02T00:00:00Z' },
 ]
 
 // created_at is a timestamptz — the "Created" event must land on whatever
@@ -67,7 +67,7 @@ const items: TodoItemWithPage[] = [
 const item1CreatedDate = format(new Date(items[0].created_at), 'yyyy-MM-dd')
 const item2CreatedDate = format(new Date(items[1].created_at), 'yyyy-MM-dd')
 
-const board: TodoBoard = { lists, items }
+const board: TodoBoard = { lists, items, assignees: [] }
 
 function renderCalendar(overrides: Partial<React.ComponentProps<typeof CalendarView>> = {}) {
   const onBoardChange = vi.fn()
@@ -108,7 +108,7 @@ describe('CalendarView', () => {
     const lateUtcEvening = '2026-03-01T23:00:00Z'
     const lateItem: TodoItemWithPage = {
       id: 'item-late', database_id: 'db-1', list_id: 'list-1', title: 'Late task',
-      due_date: null, attached_page_id: null, attached_page_title: null, created_at: lateUtcEvening,
+      due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: lateUtcEvening,
     }
     renderCalendar({ board: { ...board, items: [lateItem] } })
 
@@ -148,7 +148,7 @@ describe('CalendarView', () => {
   })
 
   it('creates a new to-do item due on the selected slot date, in the first list by position', async () => {
-    const created = { id: 'new-item', database_id: 'db-1', list_id: 'list-1', title: 'New to-do', due_date: '2026-04-01', attached_page_id: null, attached_page_title: null, created_at: '' }
+    const created = { id: 'new-item', database_id: 'db-1', list_id: 'list-1', title: 'New to-do', due_date: '2026-04-01', assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: '' }
     vi.mocked(createTodoItem).mockResolvedValueOnce(created)
     const { onBoardChange } = renderCalendar({ board: { ...board, lists: [lists[1], lists[0]] } })
 
@@ -163,7 +163,7 @@ describe('CalendarView', () => {
   })
 
   it('shows an error instead of creating an item when the board has no lists yet', async () => {
-    const { onBoardChange } = renderCalendar({ board: { lists: [], items: [] } })
+    const { onBoardChange } = renderCalendar({ board: { lists: [], items: [], assignees: [] } })
 
     capturedOnSelectSlot!({ start: new Date('2026-04-01T00:00:00'), end: new Date('2026-04-01T00:00:00') })
 
@@ -194,7 +194,7 @@ describe('CalendarView', () => {
       expect(screen.getByText('Failed to create to-do item')).toBeInTheDocument()
     })
 
-    vi.mocked(createTodoItem).mockResolvedValueOnce({ id: 'new-item-2', database_id: 'db-1', list_id: 'list-1', title: 'New to-do', due_date: '2026-04-02', attached_page_id: null, attached_page_title: null, created_at: '' })
+    vi.mocked(createTodoItem).mockResolvedValueOnce({ id: 'new-item-2', database_id: 'db-1', list_id: 'list-1', title: 'New to-do', due_date: '2026-04-02', assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: '' })
     capturedOnSelectSlot!({ start: new Date('2026-04-02T00:00:00'), end: new Date('2026-04-02T00:00:00') })
 
     await waitFor(() => {

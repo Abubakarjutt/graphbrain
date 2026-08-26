@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import { getDatabase, getDatabaseDocs } from '@/lib/actions/databases'
+import { getDatabase } from '@/lib/actions/databases'
 import { getTodoBoard } from '@/lib/actions/todos'
 import { getPages } from '@/lib/actions/pages'
 import type { TodoBoard, Page } from '@/lib/types/database'
@@ -19,7 +19,6 @@ vi.mock('@/lib/supabase/server', () => ({
 
 vi.mock('@/lib/actions/databases', () => ({
   getDatabase: vi.fn(),
-  getDatabaseDocs: vi.fn(),
 }))
 
 vi.mock('@/lib/actions/todos', () => ({
@@ -31,14 +30,14 @@ vi.mock('@/lib/actions/pages', () => ({
 }))
 
 vi.mock('@/components/database/DatabaseShell', () => ({
-  DatabaseShell: (props: { title: string; schema: unknown[]; rows: unknown[]; todoBoard: TodoBoard; pages: Page[]; docs: Page[] }) => (
+  DatabaseShell: (props: { title: string; schema: unknown[]; rows: unknown[]; todoBoard: TodoBoard; pages: Page[] }) => (
     <div data-testid="database-shell-stub">
-      title:{props.title} fields:{props.schema.length} rows:{props.rows.length} lists:{props.todoBoard.lists.length} pages:{props.pages.length} docs:{props.docs.length}
+      title:{props.title} fields:{props.schema.length} rows:{props.rows.length} lists:{props.todoBoard.lists.length} pages:{props.pages.length}
     </div>
   ),
 }))
 
-const defaultTodoBoard: TodoBoard = { lists: [], items: [] }
+const defaultTodoBoard: TodoBoard = { lists: [], items: [], assignees: [] }
 const defaultPages: Page[] = []
 
 function makeChain(data: unknown) {
@@ -75,11 +74,11 @@ describe('DatabasePage', () => {
     vi.mocked(getTodoBoard).mockResolvedValue({
       lists: [{ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' }],
       items: [],
+      assignees: [],
     })
     vi.mocked(getPages).mockResolvedValue([
-      { id: 'page-2', workspace_id: 'ws-1', parent_id: 'page-1', database_id: null, title: 'Sub Page', created_by: 'u1', created_at: '', updated_at: '' },
+      { id: 'page-2', workspace_id: 'ws-1', parent_id: 'page-1', title: 'Sub Page', created_by: 'u1', created_at: '', updated_at: '' },
     ])
-    vi.mocked(getDatabaseDocs).mockResolvedValue([])
 
     await renderPage()
 
@@ -98,36 +97,9 @@ describe('DatabasePage', () => {
     mockFrom.mockReturnValueOnce(makeChain(null))
     vi.mocked(getTodoBoard).mockResolvedValue(defaultTodoBoard)
     vi.mocked(getPages).mockResolvedValue(defaultPages)
-    vi.mocked(getDatabaseDocs).mockResolvedValue([])
 
     await renderPage()
 
     expect(screen.getByTestId('database-shell-stub')).toHaveTextContent('title:Untitled Database')
-  })
-
-  it('passes docs from getDatabaseDocs to DatabaseShell', async () => {
-    vi.mocked(getDatabase).mockResolvedValue({
-      id: 'db-1',
-      page_id: 'page-1',
-      schema: [{ id: 'f1', name: 'Status', type: 'text' }],
-      created_at: '',
-      rows: [{ id: 'row-1', database_id: 'db-1', page_id: 'page-1', fields: {}, created_at: '', page_title: 'Row One' }],
-    })
-    mockFrom.mockReturnValueOnce(makeChain({ title: 'My Database' }))
-    vi.mocked(getTodoBoard).mockResolvedValue({
-      lists: [{ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' }],
-      items: [],
-    })
-    vi.mocked(getPages).mockResolvedValue([
-      { id: 'page-2', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Other Page', created_by: 'u1', created_at: '', updated_at: '' },
-    ])
-    vi.mocked(getDatabaseDocs).mockResolvedValue([
-      { id: 'doc-1', workspace_id: 'ws-1', parent_id: null, database_id: 'db-1', title: 'Doc One', created_by: 'u1', created_at: '', updated_at: '' },
-    ])
-
-    await renderPage()
-
-    expect(getDatabaseDocs).toHaveBeenCalledWith('db-1', 'ws-1')
-    expect(screen.getByTestId('database-shell-stub')).toHaveTextContent('docs:1')
   })
 })

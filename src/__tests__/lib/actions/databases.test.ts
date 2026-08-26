@@ -263,24 +263,4 @@ describe('database actions', () => {
     await expect(updateDatabaseSchema('db1', 'wrong-ws', [])).rejects.toThrow('Database not found or access denied')
   })
 
-  it('getDatabaseDocs returns pages scoped to the database, ordered by created_at', async () => {
-    mockDbSingle.mockResolvedValue({ data: { id: 'db1', page_id: 'container1' }, error: null })
-    mockPagesSingle.mockResolvedValue({ data: { id: 'container1' }, error: null })
-    mockDocsOrder.mockResolvedValue({
-      data: [{ id: 'doc1', workspace_id: 'ws1', parent_id: null, database_id: 'db1', title: 'Doc One', created_by: 'u1', created_at: '', updated_at: '' }],
-      error: null,
-    })
-
-    const { getDatabaseDocs } = await import('@/lib/actions/databases')
-    const docs = await getDatabaseDocs('db1', 'ws1')
-
-    expect(docs).toHaveLength(1)
-    expect(docs[0].id).toBe('doc1')
-  })
-
-  it('getDatabaseDocs throws when the database is not found', async () => {
-    mockDbSingle.mockResolvedValue({ data: null, error: null })
-    const { getDatabaseDocs } = await import('@/lib/actions/databases')
-    await expect(getDatabaseDocs('missing', 'ws1')).rejects.toThrow('Database not found or access denied')
-  })
 })

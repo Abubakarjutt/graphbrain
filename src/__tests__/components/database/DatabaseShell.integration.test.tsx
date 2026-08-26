@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react'
 import { format } from 'date-fns'
 import { DatabaseShell } from '@/components/database/DatabaseShell'
 import { updateDatabaseSchema } from '@/lib/actions/databases'
@@ -50,6 +50,11 @@ vi.mock('@/lib/actions/databases', () => ({
   deleteRow: vi.fn().mockResolvedValue(undefined),
 }))
 
+vi.mock('@/lib/actions/files', () => ({
+  getUploadUrl: vi.fn(),
+  createDatabaseDocPage: vi.fn(),
+}))
+
 vi.mock('@/lib/actions/todos', () => ({
   createTodoList: vi.fn(),
   renameTodoList: vi.fn().mockResolvedValue(undefined),
@@ -65,10 +70,10 @@ const rows: DatabaseRowWithTitle[] = [
   { id: 'row-1', database_id: 'db-1', page_id: 'p1', page_title: 'Task One', fields: {}, created_at: '' },
 ]
 
-const emptyBoard: TodoBoard = { lists: [], items: [] }
+const emptyBoard: TodoBoard = { lists: [], items: [], assignees: [] }
 
 const pages: Page[] = [
-  { id: 'page-1', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Launch Notes', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'page-1', workspace_id: 'ws-1', parent_id: null, title: 'Launch Notes', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 const SHIP_FEATURE_CREATED_AT = '2026-03-01T00:00:00Z'
@@ -89,7 +94,7 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
     vi.mocked(createTodoList).mockResolvedValueOnce({ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' })
     const createdItem: TodoItemWithPage = {
       id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Ship feature',
-      due_date: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
+      due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
     }
     vi.mocked(createTodoItem).mockResolvedValueOnce(createdItem)
 
@@ -102,17 +107,21 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={emptyBoard}
         pages={pages}
-        docs={[]}
       />
     )
 
     fireEvent.click(screen.getByRole('button', { name: /Kanban/ }))
-    fireEvent.change(screen.getByLabelText('New list name'), { target: { value: 'To Do' } })
-    fireEvent.keyDown(screen.getByLabelText('New list name'), { key: 'Enter' })
-    await waitFor(() => expect(screen.getByLabelText('New item in To Do')).toBeInTheDocument())
+    fireEvent.click(screen.getByText('Add column'))
+    fireEvent.change(screen.getByLabelText('New column name'), { target: { value: 'To Do' } })
+    fireEvent.keyDown(screen.getByLabelText('New column name'), { key: 'Enter' })
+    await waitFor(() => expect(screen.getByText('To Do')).toBeInTheDocument())
 
-    fireEvent.change(screen.getByLabelText('New item in To Do'), { target: { value: 'Ship feature' } })
-    fireEvent.keyDown(screen.getByLabelText('New item in To Do'), { key: 'Enter' })
+    const todoColumn = screen.getByText('To Do').closest('.group') as HTMLElement
+    fireEvent.click(within(todoColumn).getByText('Add task'))
+    await waitFor(() => expect(screen.getByLabelText('New task in To Do')).toBeInTheDocument())
+
+    fireEvent.change(screen.getByLabelText('New task in To Do'), { target: { value: 'Ship feature' } })
+    fireEvent.keyDown(screen.getByLabelText('New task in To Do'), { key: 'Enter' })
     await waitFor(() => expect(screen.getByText('Ship feature')).toBeInTheDocument())
 
     // Table view must be completely unaffected by any of this.
@@ -131,11 +140,12 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
   it('lets attaching a document to a to-do item in the real Kanban board make its real Calendar event navigable', async () => {
     const item: TodoItemWithPage = {
       id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Ship feature',
-      due_date: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
+      due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: SHIP_FEATURE_CREATED_AT,
     }
     const board: TodoBoard = {
       lists: [{ id: 'list-1', database_id: 'db-1', name: 'To Do', position: 0, created_at: '' }],
       items: [item],
+      assignees: [],
     }
     vi.mocked(attachPageToTodoItem).mockResolvedValueOnce({ title: 'Launch Notes' })
 
@@ -148,12 +158,11 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={board}
         pages={pages}
-        docs={[]}
       />
     )
 
     fireEvent.click(screen.getByRole('button', { name: /Kanban/ }))
-    fireEvent.click(screen.getByText('+ Attach document'))
+    fireEvent.click(screen.getByText('Attach document…'))
     fireEvent.click(screen.getByText('Launch Notes'))
 
     await waitFor(() => {
@@ -177,7 +186,6 @@ describe('DatabaseShell + SchemaEditor + KanbanView + CalendarView integration',
         rows={rows}
         todoBoard={emptyBoard}
         pages={pages}
-        docs={[]}
       />
     )
 

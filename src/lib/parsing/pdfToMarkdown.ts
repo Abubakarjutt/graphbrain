@@ -60,7 +60,20 @@ async function reformatChunk(chunk: string): Promise<string> {
   return result
 }
 
+// pdfjs-dist runs PDF parsing on a worker thread by default. Under Next.js/Turbopack's
+// SSR bundling, its fallback "fake worker" can't dynamically import its own worker module
+// (the runtime-built path doesn't exist in the bundled output), which crashes every parse
+// with "Setting up fake worker failed". Pre-registering the worker module on `globalThis`
+// makes pdfjs skip that broken dynamic import and run the worker on the main thread instead.
+async function ensurePdfWorker(): Promise<void> {
+  const target = globalThis as { pdfjsWorker?: unknown }
+  if (target.pdfjsWorker) return
+  // @ts-expect-error - pdfjs-dist ships no type declarations for this worker entry point
+  target.pdfjsWorker = await import('pdfjs-dist/legacy/build/pdf.worker.mjs')
+}
+
 export async function pdfToMarkdown(buffer: Buffer): Promise<string> {
+  await ensurePdfWorker()
   const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: buffer })
   const { text } = await parser.getText()

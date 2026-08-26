@@ -51,7 +51,6 @@ export interface Page {
   id: string
   workspace_id: string
   parent_id: string | null
-  database_id: string | null
   title: string
   created_by: string
   created_at: string

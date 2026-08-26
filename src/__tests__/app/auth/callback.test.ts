@@ -64,7 +64,7 @@ describe('auth callback route', () => {
 
       await GET(new Request('http://localhost:3000/auth/callback'))
 
-      const redirectUrl: URL = vi.mocked(NextResponse.redirect).mock.calls[0][0]
+      const redirectUrl = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL
       expect(redirectUrl.searchParams.get('error')).toBe('auth_callback_failed')
     })
   })
@@ -276,7 +276,7 @@ describe('auth callback route', () => {
 
       await GET(new Request('http://localhost:3000/auth/callback?code=abc&next=/workspace/ws-1'))
 
-      const redirectUrl: URL = vi.mocked(NextResponse.redirect).mock.calls[0][0]
+      const redirectUrl = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL
       expect(redirectUrl.pathname).toBe('/workspace/ws-1')
     })
 
@@ -292,7 +292,7 @@ describe('auth callback route', () => {
 
       await GET(new Request('http://localhost:3000/auth/callback?code=abc'))
 
-      const redirectUrl: URL = vi.mocked(NextResponse.redirect).mock.calls[0][0]
+      const redirectUrl = vi.mocked(NextResponse.redirect).mock.calls[0][0] as URL
       expect(redirectUrl.pathname).toBe('/')
     })
   })

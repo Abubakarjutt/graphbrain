@@ -133,10 +133,10 @@ describe('proxy (auth middleware)', () => {
   describe('cookie propagation', () => {
     it('returns a response even when supabase sets cookies', async () => {
       const { createServerClient } = await import('@supabase/ssr')
-      let capturedSetAll: ((cookies: { name: string; value: string; options?: object }[]) => void) | null = null
+      const captured: { setAll: ((cookies: { name: string; value: string; options?: object }[]) => void) | null } = { setAll: null }
 
       vi.mocked(createServerClient).mockImplementation((_url, _key, opts: any) => {
-        capturedSetAll = opts.cookies.setAll
+        captured.setAll = opts.cookies.setAll
         return makeSupabaseMock(null) as any
       })
 
@@ -145,7 +145,7 @@ describe('proxy (auth middleware)', () => {
       const response = await proxy(request)
 
       // Simulate Supabase calling setAll to refresh cookies
-      capturedSetAll?.([{ name: 'sb-token', value: 'new-val', options: { httpOnly: true } }])
+      captured.setAll?.([{ name: 'sb-token', value: 'new-val', options: { httpOnly: true } }])
 
       expect(response).toBeDefined()
     })

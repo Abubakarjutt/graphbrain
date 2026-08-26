@@ -4,9 +4,9 @@ import { TodoAttachDocumentPicker } from '@/components/database/TodoAttachDocume
 import type { Page } from '@/lib/types/database'
 
 const pages: Page[] = [
-  { id: 'p1', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Roadmap', created_by: 'u1', created_at: '', updated_at: '' },
-  { id: 'p2', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
-  { id: 'p3', workspace_id: 'ws-1', parent_id: null, database_id: null, title: '', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'p1', workspace_id: 'ws-1', parent_id: null, title: 'Roadmap', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'p2', workspace_id: 'ws-1', parent_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'p3', workspace_id: 'ws-1', parent_id: null, title: '', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 function renderPicker(overrides: Partial<React.ComponentProps<typeof TodoAttachDocumentPicker>> = {}) {

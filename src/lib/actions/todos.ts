@@ -88,6 +88,7 @@ export async function getTodoBoard(databaseId: string, workspaceId: string): Pro
   if (memberIds.length > 0) {
     const admin = createAdminClient()
     const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+// TODO: paginate to avoid fetching all users
     const memberSet = new Set(memberIds)
     for (const u of authUsers) {
       if (memberSet.has(u.id) && u.email) {
@@ -360,6 +361,7 @@ export async function getTimeReport(
 
   const admin = createAdminClient()
   const { data: { users: authUsers } } = await admin.auth.admin.listUsers({ perPage: 1000 })
+// TODO: paginate to avoid fetching all users
   const emailById = new Map(authUsers.map(u => [u.id, u.email ?? u.id]))
 
   const byUser = new Map<string, { email: string; totalMs: number; tasks: Map<string, { title: string; totalMs: number }> }>()

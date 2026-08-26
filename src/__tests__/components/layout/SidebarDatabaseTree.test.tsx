@@ -18,7 +18,6 @@ vi.mock('next/navigation', () => ({
 function page(overrides: Partial<Page> & Pick<Page, 'id' | 'workspace_id' | 'title'>): Page {
   return {
     parent_id: null,
-    database_id: null,
     created_by: 'u1',
     created_at: '',
     updated_at: '',
@@ -114,8 +113,7 @@ describe('SidebarDatabaseTree', () => {
   it('renders no disclosure triangle icon for a database with no rows', () => {
     renderTree()
     const untitledRow = screen.getByText('Untitled Database').closest('div') as HTMLElement
-    const toggle = untitledRow.querySelector('button[aria-label="Expand"]') as HTMLElement
-    expect(toggle.querySelector('svg')).toBeNull()
+    expect(untitledRow.querySelector('button[aria-label="Expand"]')).toBeNull()
   })
 
   it('expands to show its linked row pages via database_rows, not parent_id', async () => {

@@ -4,6 +4,15 @@ import { DatabaseShell } from '@/components/database/DatabaseShell'
 import { updateDatabaseSchema, createRow, deleteRow } from '@/lib/actions/databases'
 import type { DatabaseField, DatabaseRowWithTitle, Page, TodoBoard } from '@/lib/types/database'
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
+vi.mock('@/lib/actions/files', () => ({
+  getUploadUrl: vi.fn(),
+  createDatabaseDocPage: vi.fn(),
+}))
+
 // TableView/KanbanView/CalendarView/SchemaEditor each have their own test
 // suites — stubbed here so this file stays focused on what DatabaseShell
 // itself owns: view switching, schema-editor toggle, and the optimistic
@@ -70,12 +79,6 @@ vi.mock('@/components/database/CalendarView', () => ({
   ),
 }))
 
-vi.mock('@/components/database/DocsView', () => ({
-  DocsView: ({ docs }: { docs: Page[] }) => (
-    <div data-testid="docs-view-stub">docs-count:{docs.length}</div>
-  ),
-}))
-
 vi.mock('@/lib/actions/databases', () => ({
   updateDatabaseSchema: vi.fn().mockResolvedValue(undefined),
   createRow: vi.fn(),
@@ -90,12 +93,8 @@ const rows: DatabaseRowWithTitle[] = [
   { id: 'row-3', database_id: 'db-1', page_id: 'p3', page_title: 'Row Three', fields: {}, created_at: '' },
 ]
 
-const todoBoard: TodoBoard = { lists: [], items: [] }
+const todoBoard: TodoBoard = { lists: [], items: [], assignees: [] }
 const pages: Page[] = []
-
-const docs: Page[] = [
-  { id: 'doc-1', workspace_id: 'ws-1', parent_id: null, database_id: 'db-1', title: 'Doc One', created_by: 'u1', created_at: '', updated_at: '' },
-]
 
 function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShell>> = {}) {
   return render(
@@ -107,7 +106,6 @@ function renderShell(overrides: Partial<React.ComponentProps<typeof DatabaseShel
       rows={rows}
       todoBoard={todoBoard}
       pages={pages}
-      docs={docs}
       {...overrides}
     />
   )
@@ -129,6 +127,12 @@ describe('DatabaseShell', () => {
     expect(screen.getAllByText('My Database').length).toBeGreaterThanOrEqual(2)
   })
 
+  it('renders the New doc and Upload document buttons in the header', () => {
+    renderShell()
+    expect(screen.getByRole('button', { name: 'New doc' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Upload document' })).toBeInTheDocument()
+  })
+
   it('defaults to the Table view', () => {
     renderShell()
     expect(screen.getByTestId('table-view-stub')).toBeInTheDocument()
@@ -147,14 +151,6 @@ describe('DatabaseShell', () => {
     renderShell()
     fireEvent.click(screen.getByRole('button', { name: /Calendar/ }))
     expect(screen.getByTestId('calendar-view-stub')).toBeInTheDocument()
-  })
-
-  it('switches to the Docs view when its tab is clicked', () => {
-    renderShell()
-    fireEvent.click(screen.getByRole('button', { name: /Docs/ }))
-    expect(screen.getByTestId('docs-view-stub')).toBeInTheDocument()
-    expect(screen.getByTestId('docs-view-stub')).toHaveTextContent('docs-count:1')
-    expect(screen.queryByTestId('table-view-stub')).not.toBeInTheDocument()
   })
 
   it('marks the active view tab with aria-pressed', () => {

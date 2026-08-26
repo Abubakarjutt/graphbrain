@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react'
 import { KanbanView } from '@/components/database/KanbanView'
 import {
   createTodoList,
@@ -44,6 +44,7 @@ vi.mock('@/lib/actions/todos', () => ({
   updateTodoItem: vi.fn().mockResolvedValue(undefined),
   deleteTodoItem: vi.fn().mockResolvedValue(undefined),
   attachPageToTodoItem: vi.fn().mockResolvedValue({ title: null }),
+  saveTimeEntry: vi.fn().mockResolvedValue(undefined),
 }))
 
 const lists: TodoList[] = [
@@ -54,13 +55,14 @@ const lists: TodoList[] = [
 const board: TodoBoard = {
   lists,
   items: [
-    { id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Write report', due_date: null, attached_page_id: null, attached_page_title: null, created_at: '' },
-    { id: 'item-2', database_id: 'db-1', list_id: 'list-2', title: 'Ship it', due_date: '2026-01-01', attached_page_id: 'page-1', attached_page_title: 'Launch Notes', created_at: '' },
+    { id: 'item-1', database_id: 'db-1', list_id: 'list-1', title: 'Write report', due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: '' },
+    { id: 'item-2', database_id: 'db-1', list_id: 'list-2', title: 'Ship it', due_date: '2026-01-01', assignee_id: null, attached_page_id: 'page-1', attached_page_title: 'Launch Notes', created_at: '' },
   ],
+  assignees: [],
 }
 
 const pages: Page[] = [
-  { id: 'page-2', workspace_id: 'ws-1', parent_id: null, database_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
+  { id: 'page-2', workspace_id: 'ws-1', parent_id: null, title: 'Design Doc', created_by: 'u1', created_at: '', updated_at: '' },
 ]
 
 function renderBoard(overrides: Partial<React.ComponentProps<typeof KanbanView>> = {}) {
@@ -93,6 +95,16 @@ function applyAllChanges(onBoardChange: ReturnType<typeof vi.fn<(update: BoardUp
   )
 }
 
+function getColumn(name: string): HTMLElement {
+  return screen.getByText(name).closest('.group') as HTMLElement
+}
+
+function openColumnMenu(name: string): HTMLElement {
+  const column = getColumn(name)
+  fireEvent.click(within(column).getByLabelText('Column options'))
+  return column
+}
+
 describe('KanbanView', () => {
   beforeEach(() => {
     capturedOnDragEnd = null
@@ -100,13 +112,13 @@ describe('KanbanView', () => {
     vi.mocked(renameTodoList).mockReset().mockResolvedValue(undefined)
     vi.mocked(reorderTodoList).mockReset().mockResolvedValue(undefined)
     vi.mocked(deleteTodoList).mockReset().mockResolvedValue(undefined)
-    vi.mocked(createTodoItem).mockReset().mockResolvedValue({ id: 'new-item', database_id: 'db-1', list_id: 'list-1', title: 'New', due_date: null, attached_page_id: null, attached_page_title: null, created_at: '' })
+    vi.mocked(createTodoItem).mockReset().mockResolvedValue({ id: 'new-item', database_id: 'db-1', list_id: 'list-1', title: 'New', due_date: null, assignee_id: null, attached_page_id: null, attached_page_title: null, created_at: '' })
     vi.mocked(updateTodoItem).mockReset().mockResolvedValue(undefined)
     vi.mocked(deleteTodoItem).mockReset().mockResolvedValue(undefined)
     vi.mocked(attachPageToTodoItem).mockReset().mockResolvedValue({ title: null })
   })
 
-  it('renders each list with its items', () => {
+  it('renders each column with its tasks', () => {
     renderBoard()
     expect(screen.getByText('To Do')).toBeInTheDocument()
     expect(screen.getByText('Done')).toBeInTheDocument()
@@ -114,15 +126,16 @@ describe('KanbanView', () => {
     expect(screen.getByText('Ship it')).toBeInTheDocument()
   })
 
-  it('renders lists in position order', () => {
+  it('renders columns in position order', () => {
     renderBoard({ board: { ...board, lists: [lists[1], lists[0]] } })
     const headers = screen.getAllByText(/To Do|Done/).map(el => el.textContent)
     expect(headers).toEqual(['To Do', 'Done'])
   })
 
-  it('shows an "+ Add list" input that creates a new list on Enter', async () => {
+  it('shows an "Add column" input that creates a new column on Enter', async () => {
     const { onBoardChange } = renderBoard()
-    const input = screen.getByLabelText('New list name')
+    fireEvent.click(screen.getByText('Add column'))
+    const input = screen.getByLabelText('New column name')
     fireEvent.change(input, { target: { value: 'Backlog' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -134,16 +147,17 @@ describe('KanbanView', () => {
     )
   })
 
-  it('does not create a list from a blank name', () => {
+  it('does not create a column from a blank name', () => {
     renderBoard()
-    fireEvent.keyDown(screen.getByLabelText('New list name'), { key: 'Enter' })
+    fireEvent.click(screen.getByText('Add column'))
+    fireEvent.keyDown(screen.getByLabelText('New column name'), { key: 'Enter' })
     expect(createTodoList).not.toHaveBeenCalled()
   })
 
-  it('does not lose an earlier list add when a second add resolves first', async () => {
+  it('does not lose an earlier column add when a second add resolves first', async () => {
     // Regression test: onBoardChange handlers used to close over the `board`
-    // captured at render time, so if list B's create request resolved before
-    // list A's, B's completion would rebuild the board from a snapshot that
+    // captured at render time, so if column B's create request resolved before
+    // column A's, B's completion would rebuild the board from a snapshot that
     // never included A — silently dropping it. The functional-update form
     // fixes this by always merging into whatever the current state actually
     // is when each call lands, not a stale render-time snapshot.
@@ -151,26 +165,27 @@ describe('KanbanView', () => {
     vi.mocked(createTodoList).mockReturnValueOnce(new Promise(resolve => { resolveA = resolve }))
     const { onBoardChange } = renderBoard()
 
-    const input = screen.getByLabelText('New list name')
-    fireEvent.change(input, { target: { value: 'List A' } })
+    fireEvent.click(screen.getByText('Add column'))
+    const input = screen.getByLabelText('New column name')
+    fireEvent.change(input, { target: { value: 'Column A' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
-    vi.mocked(createTodoList).mockResolvedValueOnce({ id: 'list-b', database_id: 'db-1', name: 'List B', position: 3, created_at: '' })
-    fireEvent.change(input, { target: { value: 'List B' } })
+    vi.mocked(createTodoList).mockResolvedValueOnce({ id: 'list-b', database_id: 'db-1', name: 'Column B', position: 3, created_at: '' })
+    fireEvent.change(input, { target: { value: 'Column B' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => expect(onBoardChange).toHaveBeenCalledTimes(1))
-    resolveA!({ id: 'list-a', database_id: 'db-1', name: 'List A', position: 2, created_at: '' })
+    resolveA!({ id: 'list-a', database_id: 'db-1', name: 'Column A', position: 2, created_at: '' })
 
     await waitFor(() => expect(onBoardChange).toHaveBeenCalledTimes(2))
     const finalLists = applyAllChanges(onBoardChange, board).lists.map(l => l.id)
     expect(finalLists).toEqual(expect.arrayContaining(['list-a', 'list-b']))
   })
 
-  it('renames a list when its name is clicked, edited, and committed with Enter', async () => {
+  it('renames a column when its name is clicked, edited, and committed with Enter', async () => {
     const { onBoardChange } = renderBoard()
     fireEvent.click(screen.getByText('To Do'))
-    const input = screen.getByLabelText('Rename To Do')
+    const input = screen.getByDisplayValue('To Do')
     fireEvent.change(input, { target: { value: 'In Progress' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -182,31 +197,35 @@ describe('KanbanView', () => {
     })
   })
 
-  it('reverts a list rename when the persist fails', async () => {
+  it('reverts a column rename when the persist fails', async () => {
     vi.mocked(renameTodoList).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
     fireEvent.click(screen.getByText('To Do'))
-    const input = screen.getByLabelText('Rename To Do')
+    const input = screen.getByDisplayValue('To Do')
     fireEvent.change(input, { target: { value: 'In Progress' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).lists).toEqual(lists)
     })
-    expect(screen.getByText('Failed to rename list')).toBeInTheDocument()
+    expect(screen.getByText('Failed to rename column')).toBeInTheDocument()
   })
 
-  it('disables the left arrow on the first list and the right arrow on the last', () => {
+  it('disables the left arrow on the first column and the right arrow on the last', () => {
     renderBoard()
-    expect(screen.getByLabelText('Move To Do left')).toBeDisabled()
-    expect(screen.getByLabelText('Move To Do right')).not.toBeDisabled()
-    expect(screen.getByLabelText('Move Done left')).not.toBeDisabled()
-    expect(screen.getByLabelText('Move Done right')).toBeDisabled()
+    const todoColumn = openColumnMenu('To Do')
+    expect(within(todoColumn).getByText('Move left').closest('button')).toBeDisabled()
+    expect(within(todoColumn).getByText('Move right').closest('button')).not.toBeDisabled()
+
+    const doneColumn = openColumnMenu('Done')
+    expect(within(doneColumn).getByText('Move left').closest('button')).not.toBeDisabled()
+    expect(within(doneColumn).getByText('Move right').closest('button')).toBeDisabled()
   })
 
-  it('swaps two lists\' positions when the move-right arrow is clicked', async () => {
+  it('swaps two columns\' positions when "Move right" is clicked', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Move To Do right'))
+    const todoColumn = openColumnMenu('To Do')
+    fireEvent.click(within(todoColumn).getByText('Move right'))
 
     expect(applyAllChanges(onBoardChange, board).lists).toEqual(
       expect.arrayContaining([
@@ -219,34 +238,38 @@ describe('KanbanView', () => {
     })
   })
 
-  it('reverts a list move when the persist fails, restoring only the two swapped positions', async () => {
+  it('reverts a column move when the persist fails, restoring only the two swapped positions', async () => {
     vi.mocked(reorderTodoList).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Move To Do right'))
+    const todoColumn = openColumnMenu('To Do')
+    fireEvent.click(within(todoColumn).getByText('Move right'))
 
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).lists).toEqual(lists)
     })
-    expect(screen.getByText('Failed to move list')).toBeInTheDocument()
+    expect(screen.getByText('Failed to move column')).toBeInTheDocument()
   })
 
-  it('deletes a list and its items together', async () => {
+  it('deletes a column and its tasks together', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Delete list To Do'))
+    const todoColumn = openColumnMenu('To Do')
+    fireEvent.click(within(todoColumn).getByText('Delete column'))
 
     expect(applyAllChanges(onBoardChange, board)).toEqual({
       lists: [lists[1]],
       items: [board.items[1]],
+      assignees: [],
     })
     await waitFor(() => {
       expect(deleteTodoList).toHaveBeenCalledWith('list-1', 'db-1', 'ws-1')
     })
   })
 
-  it('reverts list deletion when the persist fails', async () => {
+  it('reverts column deletion when the persist fails', async () => {
     vi.mocked(deleteTodoList).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Delete list To Do'))
+    const todoColumn = openColumnMenu('To Do')
+    fireEvent.click(within(todoColumn).getByText('Delete column'))
 
     // The restored list/items are appended rather than spliced back at their
     // original array index — harmless since rendering groups items by
@@ -259,12 +282,14 @@ describe('KanbanView', () => {
       expect(result.lists).toHaveLength(board.lists.length)
       expect(result.items).toHaveLength(board.items.length)
     })
-    expect(screen.getByText('Failed to delete list')).toBeInTheDocument()
+    expect(screen.getByText('Failed to delete column')).toBeInTheDocument()
   })
 
-  it('adds a new item to a list via its "+ New" input', async () => {
+  it('adds a new task to a column via its "Add task" input', async () => {
     const { onBoardChange } = renderBoard()
-    const input = screen.getByLabelText('New item in To Do')
+    const todoColumn = getColumn('To Do')
+    fireEvent.click(within(todoColumn).getByText('Add task'))
+    const input = screen.getByLabelText('New task in To Do')
     fireEvent.change(input, { target: { value: 'Draft outline' } })
     fireEvent.keyDown(input, { key: 'Enter' })
 
@@ -274,21 +299,22 @@ describe('KanbanView', () => {
     expect(applyAllChanges(onBoardChange, board).items).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'new-item' })])
     )
-    expect(input).toHaveValue('')
   })
 
-  it('does not add an item from a blank title', () => {
+  it('does not add a task from a blank title', () => {
     renderBoard()
-    fireEvent.keyDown(screen.getByLabelText('New item in To Do'), { key: 'Enter' })
+    const todoColumn = getColumn('To Do')
+    fireEvent.click(within(todoColumn).getByText('Add task'))
+    fireEvent.keyDown(screen.getByLabelText('New task in To Do'), { key: 'Enter' })
     expect(createTodoItem).not.toHaveBeenCalled()
   })
 
-  it('renames an item when its title is clicked, edited, and committed with Enter', async () => {
+  it('renames a task via its detail drawer', async () => {
     const { onBoardChange } = renderBoard()
     fireEvent.click(screen.getByText('Write report'))
-    const input = screen.getByLabelText('Edit title for Write report')
+    const input = screen.getByLabelText('Task title')
     fireEvent.change(input, { target: { value: 'Write final report' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.blur(input)
 
     expect(applyAllChanges(onBoardChange, board).items).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'item-1', title: 'Write final report' })])
@@ -298,34 +324,34 @@ describe('KanbanView', () => {
     })
   })
 
-  it('reverts an item rename when the persist fails', async () => {
+  it('reverts a task rename when the persist fails', async () => {
     vi.mocked(updateTodoItem).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
     fireEvent.click(screen.getByText('Write report'))
-    const input = screen.getByLabelText('Edit title for Write report')
+    const input = screen.getByLabelText('Task title')
     fireEvent.change(input, { target: { value: 'Something else' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
+    fireEvent.blur(input)
 
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).items).toEqual(board.items)
     })
-    expect(screen.getByText('Failed to rename item')).toBeInTheDocument()
+    expect(screen.getByText('Failed to rename task')).toBeInTheDocument()
   })
 
-  it('cancels an in-progress title edit on Escape without committing', () => {
+  it('does not commit a task title change until the input is blurred', () => {
     const { onBoardChange } = renderBoard()
     fireEvent.click(screen.getByText('Write report'))
-    const input = screen.getByLabelText('Edit title for Write report')
+    const input = screen.getByLabelText('Task title')
     fireEvent.change(input, { target: { value: 'Something else' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
 
-    expect(screen.getByText('Write report')).toBeInTheDocument()
     expect(onBoardChange).not.toHaveBeenCalled()
   })
 
-  it('updates an item\'s due date', async () => {
+  it('updates a task\'s due date', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.change(screen.getByLabelText('Due date for Write report'), { target: { value: '2026-03-01' } })
+    fireEvent.click(screen.getByText('Set due date…'))
+    const input = screen.getByLabelText('Due date')
+    fireEvent.change(input, { target: { value: '2026-03-01' } })
 
     expect(applyAllChanges(onBoardChange, board).items).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'item-1', due_date: '2026-03-01' })])
@@ -335,9 +361,10 @@ describe('KanbanView', () => {
     })
   })
 
-  it('deletes an item', async () => {
+  it('deletes a task via its detail drawer', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Delete Write report'))
+    fireEvent.click(screen.getByText('Write report'))
+    fireEvent.click(screen.getByText('Delete'))
 
     expect(applyAllChanges(onBoardChange, board).items).toEqual([board.items[1]])
     await waitFor(() => {
@@ -345,27 +372,28 @@ describe('KanbanView', () => {
     })
   })
 
-  it('reverts item deletion when the persist fails', async () => {
+  it('reverts task deletion when the persist fails', async () => {
     vi.mocked(deleteTodoItem).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Delete Write report'))
+    fireEvent.click(screen.getByText('Write report'))
+    fireEvent.click(screen.getByText('Delete'))
 
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).items).toEqual(board.items)
     })
-    expect(screen.getByText('Failed to delete item')).toBeInTheDocument()
+    expect(screen.getByText('Failed to delete task')).toBeInTheDocument()
   })
 
   it('shows the attached document as a link with a way to remove it', () => {
     renderBoard()
     const link = screen.getByText('Launch Notes').closest('a')
     expect(link).toHaveAttribute('href', '/workspace/ws-1/page/page-1')
-    expect(screen.getByLabelText('Remove attached document from Ship it')).toBeInTheDocument()
+    expect(screen.getByLabelText('Remove link')).toBeInTheDocument()
   })
 
   it('opens a document picker and optimistically attaches the selected page', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByText('+ Attach document'))
+    fireEvent.click(screen.getByText('Attach document…'))
     fireEvent.click(screen.getByText('Design Doc'))
 
     expect(applyAllChanges(onBoardChange, board).items).toEqual(
@@ -379,7 +407,7 @@ describe('KanbanView', () => {
   it('reconciles the optimistic title with the server-verified title once the attach succeeds', async () => {
     vi.mocked(attachPageToTodoItem).mockResolvedValueOnce({ title: 'Server-Verified Title' })
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByText('+ Attach document'))
+    fireEvent.click(screen.getByText('Attach document…'))
     fireEvent.click(screen.getByText('Design Doc'))
 
     await waitFor(() => {
@@ -392,7 +420,7 @@ describe('KanbanView', () => {
   it('reverts an attach when the persist fails', async () => {
     vi.mocked(attachPageToTodoItem).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByText('+ Attach document'))
+    fireEvent.click(screen.getByText('Attach document…'))
     fireEvent.click(screen.getByText('Design Doc'))
 
     await waitFor(() => {
@@ -401,9 +429,9 @@ describe('KanbanView', () => {
     expect(screen.getByText('Failed to attach document')).toBeInTheDocument()
   })
 
-  it('detaches a document when its remove button is clicked', async () => {
+  it('detaches a document when its remove-link button is clicked', async () => {
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Remove attached document from Ship it'))
+    fireEvent.click(screen.getByLabelText('Remove link'))
 
     expect(applyAllChanges(onBoardChange, board).items).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: 'item-2', attached_page_id: null, attached_page_title: null })])
@@ -416,15 +444,15 @@ describe('KanbanView', () => {
   it('reverts a detach when the persist fails', async () => {
     vi.mocked(attachPageToTodoItem).mockRejectedValueOnce(new Error('boom'))
     const { onBoardChange } = renderBoard()
-    fireEvent.click(screen.getByLabelText('Remove attached document from Ship it'))
+    fireEvent.click(screen.getByLabelText('Remove link'))
 
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).items).toEqual(board.items)
     })
-    expect(screen.getByText('Failed to remove attached document')).toBeInTheDocument()
+    expect(screen.getByText('Failed to remove document')).toBeInTheDocument()
   })
 
-  it('moves a card to another list on drag end', async () => {
+  it('moves a card to another column on drag end', async () => {
     const { onBoardChange } = renderBoard()
     capturedOnDragEnd!({ active: { id: 'item-1' }, over: { id: 'list-2' } })
 
@@ -436,14 +464,14 @@ describe('KanbanView', () => {
     })
   })
 
-  it('does nothing when a card is dropped back onto the list it is already in', () => {
+  it('does nothing when a card is dropped back onto the column it is already in', () => {
     const { onBoardChange } = renderBoard()
     capturedOnDragEnd!({ active: { id: 'item-1' }, over: { id: 'list-1' } })
     expect(onBoardChange).not.toHaveBeenCalled()
     expect(updateTodoItem).not.toHaveBeenCalled()
   })
 
-  it('does nothing when dropped outside any list', () => {
+  it('does nothing when dropped outside any column', () => {
     const { onBoardChange } = renderBoard()
     capturedOnDragEnd!({ active: { id: 'item-1' }, over: null })
     expect(onBoardChange).not.toHaveBeenCalled()
@@ -455,7 +483,7 @@ describe('KanbanView', () => {
     expect(onBoardChange).not.toHaveBeenCalled()
   })
 
-  it('does nothing when dropped onto a target id that is not one of the board\'s lists', () => {
+  it('does nothing when dropped onto a target id that is not one of the board\'s columns', () => {
     const { onBoardChange } = renderBoard()
     capturedOnDragEnd!({ active: { id: 'item-1' }, over: { id: 'not-a-real-list' } })
     expect(onBoardChange).not.toHaveBeenCalled()
@@ -470,6 +498,6 @@ describe('KanbanView', () => {
     await waitFor(() => {
       expect(applyAllChanges(onBoardChange, board).items).toEqual(board.items)
     })
-    expect(screen.getByText('Failed to move item')).toBeInTheDocument()
+    expect(screen.getByText('Failed to move task')).toBeInTheDocument()
   })
 })

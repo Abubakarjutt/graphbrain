@@ -9,6 +9,7 @@ const PRINCIPLES = [
 ]
 
 export function AuthShell({
+  eyebrow,
   title,
   subtitle,
   children,
@@ -69,6 +70,11 @@ export function AuthShell({
             style={{ animationDelay: '220ms' }}
           >
             <div className="relative overflow-hidden rounded-xl border border-white/8 bg-[oklch(0.15_0.018_68)] p-8 shadow-[0_24px_64px_-16px_oklch(0_0_0/0.7),0_4px_16px_-4px_oklch(0_0_0/0.4)]">
+              {eyebrow && (
+                <p className="text-[11px] font-semibold uppercase tracking-[0.10em] text-[oklch(0.75_0.14_65)] mb-2.5">
+                  {eyebrow}
+                </p>
+              )}
               <h1 className="font-display text-[2rem] leading-tight font-light text-white mb-1">
                 {title}
               </h1>

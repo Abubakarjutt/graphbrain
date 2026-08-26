@@ -192,7 +192,7 @@ describe('TableView', () => {
 
   it('calls onAddRow when the New button is clicked', () => {
     const { onAddRow } = renderTable()
-    fireEvent.click(screen.getByText('New'))
+    fireEvent.click(screen.getByText('New row'))
     expect(onAddRow).toHaveBeenCalledTimes(1)
   })
 

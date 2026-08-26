@@ -14,8 +14,8 @@ vi.mock('next/navigation', () => ({
 }))
 
 vi.mock('next/link', () => ({
-  default: ({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) => (
-    <a href={href} className={className}>{children}</a>
+  default: ({ href, children, className, style }: { href: string; children: React.ReactNode; className?: string; style?: React.CSSProperties }) => (
+    <a href={href} className={className} style={style}>{children}</a>
   ),
 }))
 
@@ -51,18 +51,20 @@ describe('Sidebar', () => {
 
   it('links Ask to the current workspace', () => {
     render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
-    expect(screen.getByText('Ask').closest('a')).toHaveAttribute('href', '/workspace/ws-1/ask')
+    expect(screen.getByText('Ask AI').closest('a')).toHaveAttribute('href', '/workspace/ws-1/ask')
   })
 
   it('highlights Ask as active when on the ask route', () => {
     mockUsePathname.mockReturnValue('/workspace/ws-1/ask')
     render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
-    expect(screen.getByText('Ask').closest('a')?.className).toContain('text-spark')
+    const link = screen.getByText('Ask AI').closest('a') as HTMLElement
+    expect(link.style.fontWeight).toBe('600')
   })
 
   it('does not highlight Ask when on a different route', () => {
     mockUsePathname.mockReturnValue('/workspace/ws-1')
     render(<Sidebar workspaces={mockWorkspaces} user={mockUser} pages={[]} databases={[]} />)
-    expect(screen.getByText('Ask').closest('a')?.className).not.toContain('text-spark')
+    const link = screen.getByText('Ask AI').closest('a') as HTMLElement
+    expect(link.style.fontWeight).toBe('500')
   })
 })

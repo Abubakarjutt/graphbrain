@@ -29,6 +29,11 @@ const mockDatabasesSingle = vi.fn()
 const mockDatabasesEq = vi.fn(() => ({ single: mockDatabasesSingle }))
 const mockDatabasesSelect = vi.fn(() => ({ eq: mockDatabasesEq }))
 
+// ── database_rows table ─────────────────────────────────────────────
+const mockRowInsert = vi.fn().mockResolvedValue({ error: null })
+const mockRowDeleteEq = vi.fn().mockResolvedValue({ error: null })
+const mockRowDelete = vi.fn(() => ({ eq: mockRowDeleteEq }))
+
 // ── files table ───────────────────────────────────────────────────
 const mockFilesInsertSingle = vi.fn()
 const mockFilesInsertSelect = vi.fn(() => ({ single: mockFilesInsertSingle }))
@@ -100,6 +105,9 @@ describe('file actions', () => {
     mockPagesContainerEq2.mockImplementation(() => ({ single: mockPagesContainerSingle }))
     mockPagesContainerEq1.mockImplementation(() => ({ eq: mockPagesContainerEq2, single: mockPagesTitleSingle }))
     mockPagesContainerSelect.mockImplementation(() => ({ eq: mockPagesContainerEq1 }))
+    mockRowInsert.mockResolvedValue({ error: null })
+    mockRowDeleteEq.mockResolvedValue({ error: null })
+    mockRowDelete.mockImplementation(() => ({ eq: mockRowDeleteEq }))
     mockBlocksDeleteEq.mockResolvedValue({ error: null })
     mockBlocksDelete.mockImplementation(() => ({ eq: mockBlocksDeleteEq }))
     mockBlocksInsert.mockResolvedValue({ error: null })
@@ -117,6 +125,7 @@ describe('file actions', () => {
         case 'workspace_members': return { select: mockMemberSelect }
         case 'databases': return { select: mockDatabasesSelect }
         case 'pages': return { insert: mockPagesInsert, delete: mockPagesDelete, select: mockPagesContainerSelect }
+        case 'database_rows': return { insert: mockRowInsert, delete: mockRowDelete }
         case 'files': return { insert: mockFilesInsert, update: mockFilesUpdate, select: mockFilesSelect }
         case 'blocks': return { delete: mockBlocksDelete, insert: mockBlocksInsert }
         default: return {}
@@ -224,11 +233,14 @@ describe('file actions', () => {
     ).rejects.toThrow('Invalid storage path')
   })
 
-  it('createDatabaseDocPage inserts a page with database_id set and parent_id null', async () => {
+  it('createDatabaseDocPage inserts a page under the database container and a database_rows entry', async () => {
     const { createDatabaseDocPage } = await import('@/lib/actions/files')
     const result = await createDatabaseDocPage('ws1', 'db1', 'notes.pdf', 'ws1/p1/notes.pdf', 'application/pdf', 'p1')
     expect(mockPagesInsert).toHaveBeenCalledWith(expect.objectContaining({
-      id: 'p1', workspace_id: 'ws1', database_id: 'db1', parent_id: null, title: 'notes.pdf',
+      id: 'p1', workspace_id: 'ws1', parent_id: 'container1', title: 'notes.pdf',
+    }))
+    expect(mockRowInsert).toHaveBeenCalledWith(expect.objectContaining({
+      database_id: 'db1', page_id: 'p1', fields: {},
     }))
     expect(mockFilesInsert).toHaveBeenCalledWith(expect.objectContaining({
       workspace_id: 'ws1', page_id: 'p1', storage_path: 'ws1/p1/notes.pdf', mime_type: 'application/pdf', extraction_status: 'pending',
@@ -270,14 +282,26 @@ describe('file actions', () => {
     expect(mockPagesInsert).not.toHaveBeenCalled()
   })
 
-  it('createDatabaseDocPage rolls back the page on file insert failure', async () => {
+  it('createDatabaseDocPage rolls back the page and database row on file insert failure', async () => {
     mockFilesInsertSingle.mockResolvedValue({ data: null, error: { message: 'files insert failed' } })
     const { createDatabaseDocPage } = await import('@/lib/actions/files')
     await expect(
       createDatabaseDocPage('ws1', 'db1', 'notes.pdf', 'ws1/p1/notes.pdf', 'application/pdf', 'p1')
     ).rejects.toThrow('files insert failed')
+    expect(mockRowDeleteEq).toHaveBeenCalledWith('page_id', 'p1')
     expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p1')
     expect(mockStorageRemove).toHaveBeenCalledWith(['ws1/p1/notes.pdf'])
+  })
+
+  it('createDatabaseDocPage rolls back the page on database row insert failure', async () => {
+    mockRowInsert.mockResolvedValueOnce({ error: { message: 'row insert failed' } })
+    const { createDatabaseDocPage } = await import('@/lib/actions/files')
+    await expect(
+      createDatabaseDocPage('ws1', 'db1', 'notes.pdf', 'ws1/p1/notes.pdf', 'application/pdf', 'p1')
+    ).rejects.toThrow('row insert failed')
+    expect(mockPagesDeleteEq).toHaveBeenCalledWith('id', 'p1')
+    expect(mockStorageRemove).toHaveBeenCalledWith(['ws1/p1/notes.pdf'])
+    expect(mockFilesInsert).not.toHaveBeenCalled()
   })
 
   it('runDocParse (via createDatabaseDocPage -> after()) parses txt, saves blocks, marks done', async () => {

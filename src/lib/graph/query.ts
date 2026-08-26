@@ -24,6 +24,15 @@ interface EdgeRow {
   target_node_id: string
 }
 
+// safeS: user-controlled jsonb values may contain non-string types.
+// String() coercing arrays/objects to [object Object] would produce confusing results.
+function safeS(v: unknown): string {
+    if (typeof v === 'string') return v
+    if (Array.isArray(v)) return ''
+    if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+    return ''
+}
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 async function fetchContentBatch(
@@ -125,7 +134,7 @@ async function fetchContentBatch(
   // Hydrate database rows
   for (const row of rows) {
     const fields = row.fields
-    const rawTitle = fields['title'] ?? fields['name'] ?? fields['Name'] ?? 'Untitled Row'
+    const rawTitle = safeS(fields['title']) ?? safeS(fields['name']) ?? safeS(fields['Name']) ?? 'Untitled Row'
     const excerpt = Object.values(fields)
       .filter(v => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
       .map(v => String(v))

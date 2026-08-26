@@ -18,10 +18,10 @@ export default async function PageViewPage({
 
   // Authorization is enforced by the pages_select RLS policy
   // (is_workspace_member); scope to the URL's workspace as well.
-  const [{ data: page }, { data: workspace }] = await Promise.all([
+  const [{ data: page }, { data: workspace }, { data: dbRow }] = await Promise.all([
     supabase
       .from('pages')
-      .select('id, title, workspace_id, database_id')
+      .select('id, title, workspace_id')
       .eq('id', pageId)
       .eq('workspace_id', workspaceId)
       .maybeSingle(),
@@ -30,13 +30,20 @@ export default async function PageViewPage({
       .select('name')
       .eq('id', workspaceId)
       .single(),
+    // A database doc import is a database row like any other row — this is
+    // what distinguishes it below from a plain file attachment page.
+    supabase
+      .from('database_rows')
+      .select('id, database_id, fields')
+      .eq('page_id', pageId)
+      .maybeSingle(),
   ])
 
   if (!page) notFound()
 
   // Check if this page is a file page (attachment) or a database doc import
   const fileRecord = await getFileRecord(pageId, workspaceId)
-  if (fileRecord && page.database_id) {
+  if (fileRecord && dbRow) {
     if (fileRecord.extraction_status === 'pending' || fileRecord.extraction_status === 'error') {
       return (
         <div className="flex-1 overflow-auto">
@@ -55,13 +62,6 @@ export default async function PageViewPage({
   }
 
   const doc = await loadBlocks(pageId, workspaceId)
-
-  // Check if this page is a database row
-  const { data: dbRow } = await supabase
-    .from('database_rows')
-    .select('id, database_id, fields')
-    .eq('page_id', pageId)
-    .maybeSingle()
 
   let dbSchema: DatabaseField[] | null = null
   if (dbRow) {

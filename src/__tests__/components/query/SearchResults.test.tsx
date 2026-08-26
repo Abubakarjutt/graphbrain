@@ -46,8 +46,8 @@ describe('SearchResults', () => {
 
   it('omits the excerpt line when there is none', () => {
     const results = [result({ entityId: 'e1', title: 'Doc', excerpt: '' })]
-    const { container } = render(<SearchResults results={results} workspaceId="ws-1" onNavigate={vi.fn()} />)
-    expect(container.querySelectorAll('span').length).toBe(1)
+    render(<SearchResults results={results} workspaceId="ws-1" onNavigate={vi.fn()} />)
+    expect(screen.getByText('Doc').closest('a')?.querySelectorAll('p').length).toBe(1)
   })
 
   it('links to the correct page for each result', () => {

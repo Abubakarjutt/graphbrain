@@ -18,7 +18,6 @@ function fakePage(overrides: Partial<Page> = {}): Page {
     id: 'page-1',
     workspace_id: 'ws-1',
     parent_id: null,
-    database_id: null,
     title: 'Untitled',
     created_by: 'u1',
     created_at: '',
@@ -35,14 +34,14 @@ describe('NewPageButton', () => {
 
   it('renders the default label, enabled', () => {
     render(<NewPageButton workspaceId="ws-1" />)
-    expect(screen.getByRole('button', { name: '+ New Page' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'New page' })).toBeEnabled()
   })
 
   it('creates a page for the given workspace and navigates to it', async () => {
     vi.mocked(createPage).mockResolvedValueOnce(fakePage({ id: 'page-42' }))
     render(<NewPageButton workspaceId="ws-1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: '+ New Page' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New page' }))
 
     await waitFor(() => {
       expect(mockPush).toHaveBeenCalledWith('/workspace/ws-1/page/page-42')
@@ -55,12 +54,12 @@ describe('NewPageButton', () => {
     vi.mocked(createPage).mockReturnValueOnce(new Promise(resolve => { resolveCreate = resolve }))
     render(<NewPageButton workspaceId="ws-1" />)
 
-    fireEvent.click(screen.getByRole('button', { name: '+ New Page' }))
+    fireEvent.click(screen.getByRole('button', { name: 'New page' }))
     expect(screen.getByRole('button', { name: 'Creating…' })).toBeDisabled()
 
     resolveCreate(fakePage())
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: '+ New Page' })).toBeEnabled()
+      expect(screen.getByRole('button', { name: 'New page' })).toBeEnabled()
     })
   })
 })

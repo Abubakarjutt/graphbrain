@@ -11,6 +11,10 @@ vi.mock('next/link', () => ({
   ),
 }))
 
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}))
+
 vi.mock('@/lib/actions/pages', () => ({
   updatePageTitle: vi.fn().mockResolvedValue(undefined),
   saveBlocks: vi.fn().mockResolvedValue(undefined),
@@ -89,7 +93,7 @@ describe('PageEditor', () => {
     fireEvent.blur(input)
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to save title')).toBeInTheDocument()
+      expect(screen.getByText('save failed')).toBeInTheDocument()
     })
   })
 
@@ -108,7 +112,7 @@ describe('PageEditor', () => {
     fireEvent.click(screen.getByText('trigger-editor-save'))
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to save content')).toBeInTheDocument()
+      expect(screen.getByText('save failed')).toBeInTheDocument()
     })
   })
 
@@ -117,12 +121,12 @@ describe('PageEditor', () => {
     renderEditor()
     fireEvent.click(screen.getByText('trigger-editor-save'))
     await waitFor(() => {
-      expect(screen.getByText('Failed to save content')).toBeInTheDocument()
+      expect(screen.getByText('save failed')).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByText('trigger-editor-save'))
     await waitFor(() => {
-      expect(screen.queryByText('Failed to save content')).not.toBeInTheDocument()
+      expect(screen.queryByText('save failed')).not.toBeInTheDocument()
     })
   })
 

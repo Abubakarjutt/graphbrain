@@ -6,6 +6,7 @@ import type { QueryScope } from '@/lib/graph/query'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_QUERY_LENGTH = 1000
+const MAX_RESPONSE_LENGTH = 10_000 // cap query_logs.response to prevent runaway model text bloating the DB
 
 function sanitizeQuery(q: string): string {
   // Collapse newlines to spaces to prevent prompt injection via instruction injection
@@ -96,7 +97,7 @@ export async function POST(req: Request): Promise<Response> {
           workspace_id: workspaceId,
           user_id: user.id,
           query,
-          response: fullResponse,
+          response: fullResponse.slice(0, MAX_RESPONSE_LENGTH),
           sources: sources.map(s => ({
             node_id: s.nodeId,
             entity_type: s.entityType,
