@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { createAdminClient } from '@/lib/supabase/admin'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { AcceptInviteClient } from './AcceptInviteClient'
 import Link from 'next/link'
@@ -10,21 +9,15 @@ interface Props {
 
 export default async function InvitePage({ params }: Props) {
   const { token } = await params
-
-  // Look up the invite (admin client — invitees aren't workspace owners)
-  const admin = createAdminClient()
-  const { data: invite } = await admin
-    .from('workspace_invites')
-    .select('id, invited_email, role, accepted_at, workspace_id, workspaces(name)')
-    .eq('token', token)
-    .single()
-
   const supabase = await createClient()
+
+  const { data: invite } = await supabase
+    .rpc('get_invite_by_token', { p_token: token })
+    .maybeSingle()
+
   const { data: { user } } = await supabase.auth.getUser()
 
-  const workspaceName = invite
-    ? (Array.isArray(invite.workspaces) ? invite.workspaces[0]?.name : (invite.workspaces as { name: string } | null)?.name) ?? 'a workspace'
-    : null
+  const workspaceName = invite?.workspace_name ?? null
 
   return (
     <AuthShell
