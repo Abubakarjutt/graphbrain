@@ -169,7 +169,11 @@ Each function checks caller authorization *inside the body* (never relies on `SE
 appId: com.graphbrain.desktop
 productName: GraphBrain
 directories:
-  buildResources: build
+  # NOT top-level `build` — the repo's .gitignore already ignores `/build`
+  # (a leftover Next.js convention), which would silently drop a committed
+  # icon later. Colocated under electron/ instead.
+  buildResources: electron/build
+  output: release
 files:
   - electron/dist/**/*
 extraResources:
