@@ -1,0 +1,19 @@
+appId: com.graphbrain.desktop
+productName: GraphBrain
+directories:
+  buildResources: electron/build
+  output: release
+files:
+  - electron/dist/**/*
+  - package.json
+extraResources:
+  - from: .next/standalone
+    to: standalone
+mac:
+  category: public.app-category.productivity
+  target: dmg
+  # Signing/notarization are optional for v1 and only activate when these
+  # env vars are set: CSC_LINK, CSC_KEY_PASSWORD, APPLE_ID,
+  # APPLE_APP_SPECIFIC_PASSWORD, APPLE_TEAM_ID. Without them, electron-builder
+  # produces an ad-hoc-signed build — verify it actually launches on a clean
+  # Apple Silicon Mac before distributing (see Task 14); do not assume.

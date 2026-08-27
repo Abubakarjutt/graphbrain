@@ -2,6 +2,7 @@
   "name": "graphbrain",
   "version": "0.1.0",
   "private": true,
+  "main": "electron/dist/main.js",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -9,7 +10,9 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "electron:dev": "concurrently -k \"next dev\" \"wait-on http://localhost:3000 && tsc -p electron/tsconfig.json && ELECTRON_DEV_SERVER_URL=http://localhost:3000 electron electron/dist/main.js\"",
+    "build:desktop": "next build && node electron/prepare-standalone.mjs && tsc -p electron/tsconfig.json && electron-builder --mac"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
@@ -58,12 +61,15 @@
     "@types/react-dom": "^19",
     "@types/turndown": "^5.0.6",
     "@vitejs/plugin-react": "^6.0.4",
-    "electron": "^33.4.11",
+    "concurrently": "^9.0.0",
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "wait-on": "^8.0.0"
   }
 }
