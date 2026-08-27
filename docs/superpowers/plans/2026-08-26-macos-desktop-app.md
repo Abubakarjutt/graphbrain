@@ -83,7 +83,7 @@ $$;
 
 CREATE OR REPLACE FUNCTION is_workspace_member(p_workspace_id uuid)
 RETURNS boolean
-LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
+LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
   SELECT EXISTS (
     SELECT 1 FROM workspace_members
     WHERE workspace_id = p_workspace_id AND user_id = auth.uid()
