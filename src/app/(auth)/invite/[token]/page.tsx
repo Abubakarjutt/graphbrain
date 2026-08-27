@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { AuthShell } from '@/components/auth/AuthShell'
 import { AcceptInviteClient } from './AcceptInviteClient'
+import { WorkspaceInvite } from '@/lib/types/database'
 import Link from 'next/link'
 
 interface Props {
@@ -11,9 +12,11 @@ export default async function InvitePage({ params }: Props) {
   const { token } = await params
   const supabase = await createClient()
 
-  const { data: invite } = await supabase
+  const { data } = await supabase
     .rpc('get_invite_by_token', { p_token: token })
     .maybeSingle()
+
+  const invite = data as WorkspaceInvite | null
 
   const { data: { user } } = await supabase.auth.getUser()
 

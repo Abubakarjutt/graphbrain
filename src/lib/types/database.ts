@@ -40,6 +40,14 @@ export interface Workspace {
   created_at: string
 }
 
+export interface WorkspaceInvite {
+  workspace_id: string
+  workspace_name: string
+  invited_email: string
+  role: string
+  accepted_at: string | null
+}
+
 export interface WorkspaceMember {
   workspace_id: string
   user_id: string

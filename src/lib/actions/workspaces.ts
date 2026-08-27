@@ -98,8 +98,9 @@ export async function getWorkspaceDetails(workspaceId: string): Promise<{
     .select('user_id, role')
     .eq('workspace_id', workspaceId)
 
-  const { data: emailRows } = await supabase.rpc('get_workspace_member_emails', { p_workspace_id: workspaceId })
-  const emailById = new Map((emailRows ?? []).map((r: { user_id: string; email: string }) => [r.user_id, r.email]))
+  const { data: emailRowsData } = await supabase.rpc('get_workspace_member_emails', { p_workspace_id: workspaceId })
+  const emailRows = (emailRowsData ?? []) as { user_id: string; email: string }[]
+  const emailById = new Map(emailRows.map((r: { user_id: string; email: string }) => [r.user_id, r.email]))
   const members: WorkspaceMember[] = (memberRows ?? []).map(m => ({
     user_id: m.user_id,
     role: m.role,
