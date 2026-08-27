@@ -48,3 +48,7 @@ test-results/
 
 # superpowers subagent-driven-development scratch workspaces
 .superpowers/
+
+# electron desktop build output
+/electron/dist
+/release
