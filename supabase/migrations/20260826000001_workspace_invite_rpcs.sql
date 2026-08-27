@@ -46,12 +46,18 @@ BEGIN
 END;
 $$;
 
-CREATE OR REPLACE FUNCTION is_workspace_member(p_workspace_id uuid)
+-- Postgres rejects CREATE OR REPLACE FUNCTION when it renames an input
+-- parameter, and this function's signature is depended on by ~48 RLS
+-- policies across the schema (dropping it to rename would cascade-drop all
+-- of them) -- so the existing parameter name (ws_id) is kept as-is; only
+-- the body gains SET search_path = public to harden it against search_path
+-- hijacking on a SECURITY DEFINER function.
+CREATE OR REPLACE FUNCTION is_workspace_member(ws_id uuid)
 RETURNS boolean
 LANGUAGE sql SECURITY DEFINER STABLE SET search_path = public AS $$
   SELECT EXISTS (
     SELECT 1 FROM workspace_members
-    WHERE workspace_id = p_workspace_id AND user_id = auth.uid()
+    WHERE workspace_id = ws_id AND user_id = auth.uid()
   )
 $$;
 
