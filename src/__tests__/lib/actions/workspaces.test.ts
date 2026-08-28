@@ -130,6 +130,19 @@ describe('getWorkspaceDetails', () => {
 
     expect(result.members).toEqual([{ user_id: 'u1', role: 'owner', email: '' }])
   })
+
+  it('defaults members and invites to empty arrays when their queries return null data', async () => {
+    queueOnce('workspaces', { data: { id: 'ws-1', name: 'Acme', owner_id: 'u1' }, error: null })
+    queueOnce('workspace_members', { data: null, error: null })
+    mockRpc.mockResolvedValueOnce({ data: [], error: null })
+    queueOnce('workspace_invites', { data: null, error: null })
+
+    const { getWorkspaceDetails } = await import('@/lib/actions/workspaces')
+    const result = await getWorkspaceDetails('ws-1')
+
+    expect(result.members).toEqual([])
+    expect(result.invites).toEqual([])
+  })
 })
 
 describe('createWorkspace', () => {
