@@ -1,0 +1,62 @@
+<svg width="760" height="300" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="graphbrain — a second brain that thinks in connections">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FBF7EF"/>
+      <stop offset="1" stop-color="#F4EEE1"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="46%" r="60%">
+      <stop offset="0" stop-color="#B45309" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#B45309" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5B7553" stop-opacity="0.15"/>
+      <stop offset="0.5" stop-color="#5B7553" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#B45309" stop-opacity="0.15"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="760" height="300" rx="20" fill="url(#bg)"/>
+  <rect width="760" height="300" rx="20" fill="url(#glow)"/>
+  <rect x="0.75" y="0.75" width="758.5" height="298.5" rx="19.5" fill="none" stroke="#B45309" stroke-opacity="0.12"/>
+
+  <!-- knowledge-graph constellation (left) -->
+  <g stroke="url(#edge)" stroke-width="1.6" fill="none">
+    <line x1="150" y1="150" x2="96"  y2="84"/>
+    <line x1="150" y1="150" x2="70"  y2="172"/>
+    <line x1="150" y1="150" x2="112" y2="232"/>
+    <line x1="150" y1="150" x2="228" y2="96"/>
+    <line x1="150" y1="150" x2="240" y2="186"/>
+    <line x1="228" y1="96"  x2="286" y2="70"/>
+    <line x1="240" y1="186" x2="300" y2="210"/>
+    <line x1="112" y1="232" x2="70"  y2="172"/>
+    <line x1="96"  y1="84"  x2="150" y2="150"/>
+    <line x1="228" y1="96"  x2="240" y2="186"/>
+  </g>
+  <g>
+    <!-- outer nodes (sage) -->
+    <circle cx="96"  cy="84"  r="6"   fill="#5B7553"/>
+    <circle cx="70"  cy="172" r="5"   fill="#5B7553"/>
+    <circle cx="112" cy="232" r="5.5" fill="#5B7553"/>
+    <circle cx="286" cy="70"  r="4.5" fill="#5B7553"/>
+    <circle cx="300" cy="210" r="5"   fill="#5B7553"/>
+    <circle cx="228" cy="96"  r="6.5" fill="#B45309" fill-opacity="0.9"/>
+    <circle cx="240" cy="186" r="6"   fill="#B45309" fill-opacity="0.9"/>
+    <!-- central "brain" node -->
+    <circle cx="150" cy="150" r="34" fill="#B45309" fill-opacity="0.10"/>
+    <circle cx="150" cy="150" r="20" fill="#B45309" fill-opacity="0.16"/>
+    <circle cx="150" cy="150" r="9"  fill="#B45309"/>
+    <circle cx="150" cy="150" r="9"  fill="none" stroke="#FBF7EF" stroke-width="1.5"/>
+  </g>
+
+  <!-- wordmark + tagline (right) -->
+  <text x="360" y="132" font-family="Georgia, 'Times New Roman', serif" font-size="60" font-weight="600" letter-spacing="-1.5" fill="#3A2A1E">
+    graph<tspan fill="#B45309">brain</tspan>
+  </text>
+  <text x="362" y="176" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="17" font-weight="400" fill="#6E5B4B">
+    a second brain that thinks in connections
+  </text>
+  <line x1="362" y1="196" x2="520" y2="196" stroke="#B45309" stroke-width="2" stroke-opacity="0.5"/>
+  <text x="362" y="228" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="13" font-weight="500" letter-spacing="1.5" fill="#5B7553" fill-opacity="0.9">
+    CAPTURE · LINK · QUERY · PRIVATE
+  </text>
+</svg>
