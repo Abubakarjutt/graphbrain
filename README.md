@@ -8,10 +8,10 @@ A second brain that thinks in connections. Capture, link, and query everything
 you know, powered by a real knowledge graph and a local AI assistant that
 never sends your data anywhere.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-1a1a1a?style=flat-square)]()
-[![Node](https://img.shields.io/badge/node-%E2%89%A520-1a1a1a?style=flat-square)](https://nodejs.org)
-[![Next.js](https://img.shields.io/badge/Next.js-16-1a1a1a?style=flat-square)](https://nextjs.org)
-[![License](https://img.shields.io/badge/license-MIT-6b6b6b?style=flat-square)](./LICENSE)
+[![Version](https://img.shields.io/badge/version-0.1.0-B45309?style=flat-square)]()
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-339933?style=flat-square&logo=nodedotjs&logoColor=white)](https://nodejs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16-000000?style=flat-square&logo=nextdotjs&logoColor=white)](https://nextjs.org)
+[![License](https://img.shields.io/badge/license-MIT-3B82F6?style=flat-square)](./LICENSE)
 
 </div>
 
