@@ -2,22 +2,33 @@
 
    <img src="./public/graphbrain-mark.svg" alt="graphbrain — a second brain that thinks in connections" width="760" />
 
-### *Capture. Link. Query — privately.*
+**_Capture. Link. Query — privately._**
 
-graphbrain is a **second brain that thinks in connections.** Capture, link, and
-query everything you know — powered by a real knowledge graph and a **local AI
-assistant that never sends your data anywhere.**
+A second brain that thinks in connections. Capture, link, and query everything
+you know, powered by a real knowledge graph and a local AI assistant that
+never sends your data anywhere.
 
-[![Version](https://img.shields.io/badge/version-0.1.0-B45309?style=flat)]()
-[![Node](https://img.shields.io/badge/node-%3E%3D20-B45309?style=flat)](https://nodejs.org)
-[![Next.js](https://img.shields.io/badge/Next.js-16-B45309?style=flat)](https://nextjs.org)
-[![License](https://img.shields.io/badge/license-Unlicensed-8A8A8A?style=flat)]()
+[![Version](https://img.shields.io/badge/version-0.1.0-1a1a1a?style=flat-square)]()
+[![Node](https://img.shields.io/badge/node-%E2%89%A520-1a1a1a?style=flat-square)](https://nodejs.org)
+[![Next.js](https://img.shields.io/badge/Next.js-16-1a1a1a?style=flat-square)](https://nextjs.org)
+[![License](https://img.shields.io/badge/license-Unlicensed-6b6b6b?style=flat-square)]()
 
 </div>
 
----
+<br>
 
-## ✨ Highlights
+## Contents
+
+- [Highlights](#highlights)
+- [How it works](#how-it-works)
+- [Tech stack](#tech-stack)
+- [Quick start](#quick-start)
+- [Desktop app](#desktop-app)
+- [Testing](#testing)
+- [Project structure](#project-structure)
+- [License](#license)
+
+## Highlights
 
 - **Pages & blocks** — a fast, keyboard-driven rich-text editor built on
   [Tiptap](https://tiptap.dev): slash commands, callouts, toggles, task lists,
@@ -38,7 +49,7 @@ assistant that never sends your data anywhere.**
 - **Native desktop app** — a macOS build ([Electron](https://www.electronjs.org))
   that wraps the same product, no browser required.
 
-## 🧠 How it works
+## How it works
 
 Pages, databases, and files aren't stored side by side. In graphbrain, **every
 page, block, file, and database row becomes a node** in one connected graph.
@@ -52,12 +63,12 @@ question ──▶ embed ──▶ pgvector search ──▶ traverse edges ─�
 It embeds your question, retrieves the most relevant nodes, and answers using a
 locally-running LLM — always citing the exact pages and rows it drew from.
 
-> 🔒 **Private by design.** Embeddings and answers are produced by
+> **Private by design.** Embeddings and answers are produced by
 > [Ollama](https://ollama.com) on your own machine. Your pages, questions, and
 > files never travel to a third party, and row-level security keeps every
 > multi-user workspace cleanly separated.
 
-## 🧩 Tech stack
+## Tech stack
 
 | Layer          | Technology                                                            |
 | -------------- | -------------------------------------------------------------------- |
@@ -70,7 +81,7 @@ locally-running LLM — always citing the exact pages and rows it drew from.
 | **Desktop**    | [Electron](https://www.electronjs.org) + electron-builder             |
 | **Testing**    | [Vitest](https://vitest.dev) · [Playwright](https://playwright.dev)   |
 
-## 🚀 Quick start
+## Quick start
 
 ### Prerequisites
 
@@ -131,7 +142,7 @@ locally-running LLM — always citing the exact pages and rows it drew from.
 
    Open [http://localhost:3000](http://localhost:3000).
 
-## 🖥️ Desktop app
+## Desktop app
 
 graphbrain also ships as a native macOS app.
 
@@ -143,7 +154,7 @@ npm run build:desktop    # produce a distributable .dmg in release/
 The desktop build bakes in the Supabase backend configured in `.env.local` at
 build time — end users never configure a backend or touch a terminal.
 
-## 🧪 Testing
+## Testing
 
 ```bash
 npm test           # unit & integration tests (Vitest)
@@ -151,7 +162,7 @@ npm run test:e2e   # end-to-end tests (Playwright)
 npm run lint       # ESLint
 ```
 
-## 📁 Project structure
+## Project structure
 
 ```text
 graphbrain/
@@ -179,6 +190,6 @@ graphbrain/
 └─ scripts/               Notion import and embedding-backfill utilities
 ```
 
-## 📄 License
+## License
 
 This project is currently private and unlicensed for external use.
