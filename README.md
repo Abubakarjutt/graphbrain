@@ -11,7 +11,7 @@ never sends your data anywhere.
 [![Version](https://img.shields.io/badge/version-0.1.0-1a1a1a?style=flat-square)]()
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-1a1a1a?style=flat-square)](https://nodejs.org)
 [![Next.js](https://img.shields.io/badge/Next.js-16-1a1a1a?style=flat-square)](https://nextjs.org)
-[![License](https://img.shields.io/badge/license-Unlicensed-6b6b6b?style=flat-square)]()
+[![License](https://img.shields.io/badge/license-MIT-6b6b6b?style=flat-square)](./LICENSE)
 
 </div>
 
@@ -192,4 +192,4 @@ graphbrain/
 
 ## License
 
-This project is currently private and unlicensed for external use.
+[MIT](./LICENSE) © 2026 Muhammad Abubakar
